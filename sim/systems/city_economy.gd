@@ -55,4 +55,7 @@ static func target_stock(economy: EconomyDef, city: CityState, good: GoodDef) ->
 
 ## City workshops stop producing a good once stock reaches this.
 static func stock_cap(economy: EconomyDef, city: CityState, good: GoodDef) -> int:
-	return ceili(target_stock(economy, city, good) * economy.stock_cap_factor)
+	# Integer ceiling division: floats would turn 50 x 1.1 = 55 into 55.00000000000001 -> 56.
+	var scaled := target_stock(economy, city, good) * rate_steps(economy.stock_cap_factor)
+	@warning_ignore("integer_division")
+	return (scaled + RATE_STEPS - 1) / RATE_STEPS
