@@ -23,6 +23,8 @@ func setup(session: GameSession) -> void:
 	_entries.autowrap_mode = TextServer.AUTOWRAP_WORD
 	column.add_child(_entries)
 	_pause_toggle.name = "PauseOnArrival"
+	# Flat: a pressed switch shouldn't look like the active speed button.
+	_pause_toggle.flat = true
 	_pause_toggle.text = "Pause when a ship arrives"
 	_pause_toggle.toggled.connect(func(on: bool) -> void: _session.pause_on_arrival = on)
 	column.add_child(_pause_toggle)

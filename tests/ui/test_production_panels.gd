@@ -2,6 +2,7 @@ extends GutTest
 ## Kontor, workshop and shipyard panels driven through their real buttons on the shipped data.
 
 const MainScene := preload("res://ui/main.tscn")
+const TestSaves := preload("res://tests/support/test_saves.gd")
 const SCREEN_SIZE: Vector2 = Vector2(1280, 720)
 
 var _main: Control
@@ -14,11 +15,15 @@ func before_each() -> void:
 	_main.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_main.size = SCREEN_SIZE
 	_session = _main.get_node("Session")
+	TestSaves.use(_session)
 	_session.set_speed(0)
-	_session.save_slot = "ui_test"
 	_session.sim.world.player().coins = 50_000
 	_session.changed.emit()
 	await wait_process_frames(1)
+
+
+func after_each() -> void:
+	TestSaves.clear()
 
 
 func test_buying_a_kontor_shows_its_storage() -> void:
@@ -108,15 +113,18 @@ func test_a_loaded_ship_cannot_be_sold() -> void:
 	assert_true(_button("SellShip").disabled)
 
 
-func test_save_and_load_buttons_restore_the_game() -> void:
+func test_save_and_load_menus_restore_the_game() -> void:
 	_press("BuyKontor")
 	_press("BuyShip_snaikka")
 	_press("SaveGame")
-	assert_eq(_text("MessageLabel"), "Game saved")
+	(_main.find_child("SaveName", true, false) as LineEdit).text = "Before selling"
+	_press("ConfirmSave")
+	assert_eq(_text("MessageLabel"), 'Game saved as "Before selling"')
 	var coins := _player().coins
 	_press("SellShip")
 	_session.advance(30)
 	_press("LoadGame")
+	_press("Slot_Before_selling")
 	assert_eq(_text("MessageLabel"), "Game loaded (day 1)")
 	assert_eq(_player().coins, coins)
 	assert_eq(_player().ships.size(), 2)
@@ -125,7 +133,6 @@ func test_save_and_load_buttons_restore_the_game() -> void:
 	assert_not_null(
 		_main.find_child("Ship_ship_2", true, false), "fleet list shows the loaded ships"
 	)
-	DirAccess.remove_absolute(SaveGame.path_for("ui_test"))
 
 
 func _player() -> TraderState:

@@ -2,6 +2,7 @@ extends GutTest
 ## Plays the core loop through the real UI: buy in Lübeck, sail, sell elsewhere.
 
 const MainScene := preload("res://ui/main.tscn")
+const TestSaves := preload("res://tests/support/test_saves.gd")
 const SCREEN_SIZE: Vector2 = Vector2(1280, 720)
 
 var _main: Control
@@ -14,8 +15,13 @@ func before_each() -> void:
 	_main.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_main.size = SCREEN_SIZE
 	_session = _main.get_node("Session")
+	TestSaves.use(_session)
 	_session.set_speed(0)
 	await wait_process_frames(1)
+
+
+func after_each() -> void:
+	TestSaves.clear()
 
 
 func test_buy_button_loads_the_chosen_quantity() -> void:
@@ -128,6 +134,15 @@ func test_cargo_ideas_load_the_suggested_cargo() -> void:
 func test_cargo_ideas_need_a_ship_in_port() -> void:
 	_session.select_city("visby")
 	assert_string_contains(_text("PlannerNote"), "Dock a ship here")
+
+
+func test_sparklines_scale_to_their_values_and_base_price() -> void:
+	var sparkline: Sparkline = autofree(Sparkline.new())
+	sparkline.set_values(PackedInt64Array([800, 1500]), 1000.0)
+	assert_eq(sparkline.value_range(), Vector2(800, 1500))
+	# A small wobble is padded to at least 20% of the base price, centred on the data and base.
+	sparkline.set_values(PackedInt64Array([1000, 1010]), 1000.0)
+	assert_eq(sparkline.value_range(), Vector2(905, 1105))
 
 
 func _grain() -> GoodDef:

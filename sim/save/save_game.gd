@@ -15,6 +15,10 @@ extends RefCounted
 const SAVE_VERSION: int = 2
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
+## Longest slot name the player can type.
+const MAX_SLOT_NAME: int = 32
+## Characters above this are non-ASCII letters and symbols, all safe in file names.
+const ASCII_MAX: int = 127
 
 ## Problems found by the last from_dict() / load_file() call.
 var errors: PackedStringArray = []
@@ -54,8 +58,37 @@ static func to_dict(world: WorldState) -> Dictionary:
 	}
 
 
-static func path_for(slot: String) -> String:
-	return SAVE_DIR.path_join("%s.json" % slot)
+static func path_for(slot: String, dir: String = SAVE_DIR) -> String:
+	return dir.path_join("%s.json" % slot)
+
+
+## Slot names are what the player types: letters (including non-ASCII ones such as "ü"), digits,
+## spaces, "-" and "_", so they are also safe file names. Returns "" or why the name can't be used.
+static func check_slot_name(slot: String) -> String:
+	if slot.strip_edges().is_empty():
+		return "Enter a name for the save"
+	if slot.length() > MAX_SLOT_NAME:
+		return "Save names can be at most %d characters" % MAX_SLOT_NAME
+	for character in slot:
+		var code := character.unicode_at(0)
+		var ascii_ok := character.is_valid_identifier() or character.is_valid_int()
+		if not (ascii_ok or character in " -" or code > ASCII_MAX):
+			return "Save names can only use letters, digits, spaces, - and _"
+	if slot != slot.strip_edges():
+		return "Save names can't start or end with a space"
+	return ""
+
+
+## Names of the saves in `dir`, sorted.
+static func list_slots(dir: String = SAVE_DIR) -> PackedStringArray:
+	var slots: PackedStringArray = []
+	if not DirAccess.dir_exists_absolute(dir):
+		return slots
+	for file_name in DirAccess.get_files_at(dir):
+		if file_name.get_extension() == "json":
+			slots.append(file_name.get_basename())
+	slots.sort()
+	return slots
 
 
 ## Writes the world to `path` as JSON. Returns "" or an error message.

@@ -1,11 +1,14 @@
 class_name Sparkline
 extends Control
-## A small line chart of recent prices, drawn against a fixed range (the good's clamped price
-## range) so lines in different rows compare at a glance. A faint line marks the base price.
+## A small line chart of recent prices. The vertical range covers the values and the base price
+## (marked by a faint line), and is at least MIN_SPAN of the base price tall, so small wobbles
+## stay small while a real trend fills the chart.
 
 const LINE_COLOR: Color = UiStyle.GOLD
 const BASE_COLOR: Color = Color(UiStyle.INK_MUTED, 0.35)
 const LINE_WIDTH: float = 1.5
+## Smallest vertical range, as a fraction of the base price.
+const MIN_SPAN: float = 0.2
 
 var _values: PackedInt64Array = PackedInt64Array()
 var _low: float = 0.0
@@ -18,15 +21,27 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 
-## Shows `values` scaled so that `low` is the bottom edge and `high` the top.
-func set_values(values: PackedInt64Array, low: float, high: float, base: float) -> void:
-	if values == _values and low == _low and high == _high and base == _base:
+## Shows `values` (and `base` as a reference line).
+func set_values(values: PackedInt64Array, base: float) -> void:
+	if values == _values and base == _base:
 		return
 	_values = values.duplicate()
-	_low = low
-	_high = maxf(high, low + 1.0)
 	_base = base
+	_low = base
+	_high = base
+	for value in values:
+		_low = minf(_low, value)
+		_high = maxf(_high, value)
+	var missing := base * MIN_SPAN - (_high - _low)
+	if missing > 0.0:
+		_low -= missing / 2.0
+		_high += missing / 2.0
 	queue_redraw()
+
+
+## The vertical range drawn, bottom to top.
+func value_range() -> Vector2:
+	return Vector2(_low, _high)
 
 
 func point_count() -> int:

@@ -221,18 +221,8 @@ func _sell(good_id: String) -> void:
 
 
 func _refresh_trend(row: Row, city: CityState, good: GoodDef) -> void:
-	var economy := _session.sim.data.economy
 	var history: PackedInt64Array = city.price_history[good.id]
-	(
-		row
-		. sparkline
-		. set_values(
-			history,
-			PriceHistorySystem.min_scaled_price(economy, good),
-			PriceHistorySystem.max_scaled_price(economy, good),
-			PriceHistorySystem.scaled_price(good.base_price),
-		)
-	)
+	row.sparkline.set_values(history, PriceHistorySystem.scaled_price(good.base_price))
 	var arrow := trend_arrow(history)
 	row.trend.text = arrow
 	row.trend.tooltip_text = {

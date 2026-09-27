@@ -2,6 +2,7 @@ extends GutTest
 ## The notification log: ship arrivals and stopped workshops, and pausing when a ship arrives.
 
 const MainScene := preload("res://ui/main.tscn")
+const TestSaves := preload("res://tests/support/test_saves.gd")
 const SCREEN_SIZE: Vector2 = Vector2(1280, 720)
 
 var _main: Control
@@ -14,8 +15,13 @@ func before_each() -> void:
 	_main.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_main.size = SCREEN_SIZE
 	_session = _main.get_node("Session")
+	TestSaves.use(_session)
 	_session.set_speed(0)
 	await wait_process_frames(1)
+
+
+func after_each() -> void:
+	TestSaves.clear()
 
 
 func test_an_arrival_is_logged_and_pauses_the_game() -> void:
