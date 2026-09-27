@@ -54,6 +54,10 @@ until your trading house shapes the prices of the whole sea.
 - Formulas: [ADR 0003](adr/0003-market-pricing-curve.md). Tuning: `data/economy.json`,
   `data/goods.json` (`consumption_per_1000`), `data/cities.json` (`production`).
 
+**Losses (planned, M10).** Perishable goods such as fish and beer slowly spoil while stored in
+ships and kontors, and events such as fires can destroy stored goods. Both are booked in the goods
+ledger like consumption ([ADR 0006](adr/0006-event-losses-and-spoilage.md)).
+
 **Off-map trade.** Overland traders and foreign ships that the game doesn't model individually
 bring goods to cities that are short and take away surpluses, in proportion to how far the stock is
 from its target. A city that makes nothing settles near a third of its target stock (about 1.4× base
@@ -73,8 +77,9 @@ AI competitors come after the MVP. Details and balance targets:
 
 The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
 time, each with its own roadmap milestone: readable markets and quality of life (M6), trade routes
-(M7), AI competitor traders (M8), city needs and growth (M9), events (M10) and more cities and goods
-(M11). Still parked: reputation and ranks, loans and banking, convoys and combat, politics.
+(M7), AI competitor traders (M8), city needs and growth (M9), events and spoilage (M10) and more
+cities and goods (M11). Still parked: reputation and ranks, loans and banking, convoys and combat,
+politics.
 
 ## Open questions
 
