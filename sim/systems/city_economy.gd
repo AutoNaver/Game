@@ -16,3 +16,15 @@ static func target_stock(economy: EconomyDef, city: CityState, good: GoodDef) ->
 ## City workshops stop producing a good once stock reaches this.
 static func stock_cap(economy: EconomyDef, city: CityState, good: GoodDef) -> int:
 	return ceili(target_stock(economy, city, good) * economy.stock_cap_factor)
+
+
+## Coins a trader pays to buy `quantity` units of `good` here (walks the price, ADR 0003).
+static func buy_cost(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
+	var target := target_stock(economy, city, good)
+	return Pricing.buy_cost(economy, good.base_price, target, city.stock[good.id], quantity)
+
+
+## Coins a trader receives for selling `quantity` units of `good` here.
+static func sell_revenue(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
+	var target := target_stock(economy, city, good)
+	return Pricing.sell_revenue(economy, good.base_price, target, city.stock[good.id], quantity)
