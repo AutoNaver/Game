@@ -21,8 +21,14 @@ const ECONOMY_FIELDS: PackedStringArray = [
 	"price_min_multiplier",
 	"spread",
 ]
-const GOOD_FIELDS: PackedStringArray = ["id", "name", "category", "base_price"]
-const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "population"]
+const GOOD_FIELDS: PackedStringArray = [
+	"id", "name", "category", "base_price", "consumption_per_1000"
+]
+const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "population", "production"]
+
+## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
+const MAX_CONSUMPTION_PER_1000: float = 1000.0
+const MAX_PRODUCTION_PER_DAY: float = 10000.0
 
 ## Upper bounds for plain numbers. JSON allows values like 1e100 that overflow int or Vector2
 ## (32-bit floats in the standard build), so anything beyond these is rejected as a data error.
@@ -58,13 +64,14 @@ func load_dir(dir: String) -> GameData:
 	var cities := _read_array(dir.path_join(CITIES_FILE))
 	for i in cities.size():
 		var ctx := "%s[%d]" % [CITIES_FILE, i]
-		var city := _parse_city(cities[i], ctx)
+		var city := _parse_city(cities[i], ctx, data)
 		if city == null:
 			continue
 		if data.has_city(city.id):
 			_error(ctx, "duplicate id '%s'" % city.id)
 		else:
 			data.add_city(city)
+			_check_stock_caps(city, data, ctx)
 
 	if not errors.is_empty():
 		return null
@@ -122,12 +129,17 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 		var allowed := ", ".join(GoodDef.CATEGORIES)
 		_error(ctx, "'category' must be one of %s (got '%s')" % [allowed, category])
 	var base_price := _get_positive_int(entry, "base_price", ctx)
+	var consumption := _get_float_between(
+		entry, "consumption_per_1000", 0.0, MAX_CONSUMPTION_PER_1000, ctx, true
+	)
+	_check_rate_resolution(consumption, "consumption_per_1000", ctx)
 	if errors.size() > error_count:
 		return null
-	return GoodDef.new(id, good_name, category, base_price)
+	return GoodDef.new(id, good_name, category, base_price, consumption)
 
 
-func _parse_city(raw: Variant, ctx: String) -> CityDef:
+## Goods must already be loaded into `data`, so production can refer to them.
+func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 	if not raw is Dictionary:
 		_error(ctx, "entry must be an object")
 		return null
@@ -138,9 +150,54 @@ func _parse_city(raw: Variant, ctx: String) -> CityDef:
 	var city_name := _get_string(entry, "name", ctx)
 	var map_position := _get_vector2(entry, "map_position", ctx)
 	var population := _get_positive_int(entry, "population", ctx)
+	var production := _get_production(entry, ctx, data)
 	if errors.size() > error_count:
 		return null
-	return CityDef.new(id, city_name, map_position, population)
+	return CityDef.new(id, city_name, map_position, population, production)
+
+
+## Fields that are fine on their own can multiply into a stock cap (population × consumption ×
+## days of cover × cap factor) too large for int. Reject that here, not at the first production day.
+func _check_stock_caps(city: CityDef, data: GameData, ctx: String) -> void:
+	if data.economy == null:
+		return
+	for good in data.goods:
+		var daily := city.population / 1000.0 * good.consumption_per_1000
+		var cap := daily * data.economy.days_of_cover * data.economy.stock_cap_factor
+		if cap > MAX_INT_VALUE:
+			var message := "stock cap for '%s' exceeds %d units; lower population or consumption"
+			_error(ctx, message % [good.id, MAX_INT_VALUE])
+
+
+func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictionary[String, float]:
+	var production: Dictionary[String, float] = {}
+	if not entry.has("production"):
+		return production
+	if not entry["production"] is Dictionary:
+		_error(ctx, "'production' must be an object")
+		return production
+	var rates: Dictionary = entry["production"]
+	for key: Variant in rates.keys():
+		var good_id := str(key)
+		if not data.has_good(good_id):
+			_error(ctx, "'production' has unknown good '%s'" % good_id)
+			continue
+		var field := "production.%s" % good_id
+		var rate := _get_float_between({field: rates[key]}, field, 0.0, MAX_PRODUCTION_PER_DAY, ctx)
+		if rate <= 0.0:
+			continue
+		if _check_rate_resolution(rate, field, ctx):
+			production[good_id] = rate
+	return production
+
+
+## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would
+## silently be rounded. Returns false after reporting a violation.
+func _check_rate_resolution(rate: float, field: String, ctx: String) -> bool:
+	if CityEconomy.is_valid_rate(rate):
+		return true
+	_error(ctx, "'%s' must be a multiple of 0.001 (got %s)" % [field, rate])
+	return false
 
 
 ## Reports missing and unknown fields. The typed getters below skip missing fields so each
@@ -189,16 +246,25 @@ func _get_positive_int(entry: Dictionary, field: String, ctx: String) -> int:
 	return int(number)
 
 
-## Accepts numbers strictly between low and high.
+## Accepts numbers strictly between low and high, or equal to low if low_inclusive.
 func _get_float_between(
-	entry: Dictionary, field: String, low: float, high: float, ctx: String
+	entry: Dictionary,
+	field: String,
+	low: float,
+	high: float,
+	ctx: String,
+	low_inclusive: bool = false,
 ) -> float:
 	if not entry.has(field):
 		return 0.0
 	var value: Variant = entry[field]
-	if (value is int or value is float) and float(value) > low and float(value) < high:
-		return float(value)
-	_error(ctx, "'%s' must be a number greater than %s and less than %s" % [field, low, high])
+	if value is int or value is float:
+		var number := float(value)
+		var above_low := number >= low if low_inclusive else number > low
+		if above_low and number < high:
+			return number
+	var bound := "at least" if low_inclusive else "greater than"
+	_error(ctx, "'%s' must be a number %s %s and less than %s" % [field, bound, low, high])
 	return 0.0
 
 

@@ -19,10 +19,10 @@ Work top to bottom unless the owner reprioritizes.
 ## M1: Economy core (headless)
 
 - [x] ADR 0003: pricing curve, spread, and per-unit price walk (`sim/systems/pricing.gd`, `data/economy.json`)
-- [ ] City state: population, market stock per good, derived target stock
-- [ ] Data: city production specialties and per-capita consumption
-- [ ] Daily systems: production, consumption, price update
-- [ ] `Simulation` with seeded RNG and a `tick()` / `advance_days()` API
+- [x] City state: population, market stock per good, derived target stock (`CityState`, `CityEconomy`)
+- [x] Data: city production specialties and per-capita consumption
+- [x] Daily systems: production (idles at the stock cap), then consumption (records shortages). Prices are derived from stock on demand
+- [x] `Simulation` with seeded RNG and a `tick()` / `advance_days()` API
 - [ ] `tools/soak.gd` plus a CI step: 365 days, invariants hold, prices stay within bounds
 
 ## M2: Ships and trading

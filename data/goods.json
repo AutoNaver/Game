@@ -1,12 +1,12 @@
 [
-  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40 },
-  { "id": "fish", "name": "Fish", "category": "raw", "base_price": 60 },
-  { "id": "salt", "name": "Salt", "category": "raw", "base_price": 50 },
-  { "id": "timber", "name": "Timber", "category": "raw", "base_price": 45 },
-  { "id": "wool", "name": "Wool", "category": "raw", "base_price": 70 },
-  { "id": "iron", "name": "Iron", "category": "raw", "base_price": 110 },
-  { "id": "beer", "name": "Beer", "category": "processed", "base_price": 55 },
-  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140 },
-  { "id": "tools", "name": "Tools", "category": "processed", "base_price": 170 },
-  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220 }
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40, "consumption_per_1000": 3.0 },
+  { "id": "fish", "name": "Fish", "category": "raw", "base_price": 60, "consumption_per_1000": 2.5 },
+  { "id": "salt", "name": "Salt", "category": "raw", "base_price": 50, "consumption_per_1000": 0.6 },
+  { "id": "timber", "name": "Timber", "category": "raw", "base_price": 45, "consumption_per_1000": 1.0 },
+  { "id": "wool", "name": "Wool", "category": "raw", "base_price": 70, "consumption_per_1000": 0.5 },
+  { "id": "iron", "name": "Iron", "category": "raw", "base_price": 110, "consumption_per_1000": 0.3 },
+  { "id": "beer", "name": "Beer", "category": "processed", "base_price": 55, "consumption_per_1000": 3.0 },
+  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140, "consumption_per_1000": 0.5 },
+  { "id": "tools", "name": "Tools", "category": "processed", "base_price": 170, "consumption_per_1000": 0.3 },
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220, "consumption_per_1000": 0.15 }
 ]

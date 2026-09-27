@@ -19,9 +19,9 @@ data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-
 - **`sim/defs`** holds typed definitions loaded once from JSON. `GameDataLoader` collects *all*
   validation errors with `<file>[<index>]: <message>` context. `GameData` exposes ordered arrays for
   deterministic iteration and lookup maps for access by id.
-- **`sim/state`** (from M1) is everything that changes and gets saved. It holds plain data plus small
+- **`sim/state`** is everything that changes and gets saved. It holds plain data plus small
   helpers, and no rules.
-- **`sim/systems`** (from M1) are stateless rule functions that mutate state for one tick or day.
+- **`sim/systems`** are stateless rule functions that mutate state for one tick or day.
 - **`sim/commands`** (from M2) are the only way actions enter the simulation. Each command has
   `validate(state) -> String` (an empty string means OK) and `apply(state)`. The UI and the future AI
   both use them.
@@ -30,9 +30,10 @@ data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-
 
 ## Time
 
-`Simulation.tick()` advances one hour. Every 24 ticks it runs the daily systems in a fixed order
-(production → consumption → prices). The UI's speed setting decides how many ticks run per real
-second, so pausing is simply running zero ticks.
+`Simulation.tick()` advances one hour. Every 24 ticks it runs the daily systems in a fixed order:
+production, then consumption. Prices are not stored. `Pricing` derives them from current stock
+whenever they are needed, so they can never go stale. The UI's speed setting decides how many ticks
+run per real second, so pausing is simply running zero ticks.
 
 ## Determinism
 
