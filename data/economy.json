@@ -1,9 +1,11 @@
 {
   "days_of_cover": 20,
   "stock_cap_factor": 3.0,
-  "price_max_multiplier": 2.5,
-  "price_min_multiplier": 0.35,
+  "price_max_multiplier": 1.8,
+  "price_min_multiplier": 0.55,
   "spread": 0.1,
   "ship_resale_factor": 0.6,
-  "workforce_share": 0.1
+  "workforce_share": 0.1,
+  "import_rate": 1.5,
+  "export_rate": 1.0
 }

@@ -12,6 +12,8 @@ var stock: Dictionary[String, int] = {}
 ## rates add up exactly. See CityEconomy.PARTS_PER_UNIT.
 var production_carry: Dictionary[String, int] = {}
 var consumption_carry: Dictionary[String, int] = {}
+## Carry for off-map imports or exports (only one direction is active per good at a time).
+var trade_carry: Dictionary[String, int] = {}
 ## Units the population wanted but could not get on the last day, by good id.
 var shortage: Dictionary[String, int] = {}
 

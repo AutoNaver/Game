@@ -2,7 +2,7 @@ class_name Simulation
 extends RefCounted
 ## Owns the world and advances it. One tick is one in-game hour: ships move every tick, and the
 ## daily systems run whenever a tick completes a day, in a fixed order: city production, traders'
-## workshops, then consumption. Actions enter only through execute().
+## workshops, consumption, then off-map trade. Actions enter only through execute().
 ##
 ## Prices are not stored: they are derived from stock on demand (see Pricing, CityEconomy).
 
@@ -31,6 +31,7 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 			world.goods_ledger[good.id] += city.stock[good.id]
 			city.production_carry[good.id] = 0
 			city.consumption_carry[good.id] = 0
+			city.trade_carry[good.id] = 0
 			city.shortage[good.id] = 0
 		world.add_city(city)
 	var scenario := p_data.scenario
@@ -62,6 +63,7 @@ func tick() -> void:
 		ProductionSystem.run_day(data, world)
 		WorkshopSystem.run_day(data, world)
 		ConsumptionSystem.run_day(data, world)
+		OffMapTradeSystem.run_day(data, world)
 
 
 func advance_days(days: int) -> void:

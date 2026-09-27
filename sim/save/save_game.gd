@@ -30,6 +30,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 					"stock": city.stock.duplicate(),
 					"production_carry": city.production_carry.duplicate(),
 					"consumption_carry": city.consumption_carry.duplicate(),
+					"trade_carry": city.trade_carry.duplicate(),
 					"shortage": city.shortage.duplicate(),
 				}
 			)
@@ -203,6 +204,9 @@ func _read_cities(data: GameData, world: WorldState, cities: Array) -> void:
 		)
 		city.consumption_carry = _goods(
 			data, _dict(raw, "consumption_carry", ctx), "%s consumption_carry" % ctx, true
+		)
+		city.trade_carry = _goods(
+			data, _dict(raw, "trade_carry", ctx), "%s trade_carry" % ctx, true
 		)
 		city.shortage = _goods(data, _dict(raw, "shortage", ctx), "%s shortage" % ctx, true)
 		world.add_city(city)

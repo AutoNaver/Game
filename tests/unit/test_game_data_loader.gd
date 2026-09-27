@@ -82,6 +82,8 @@ func test_invalid_data_reports_every_problem() -> void:
 		"economy.json: missing field 'price_min_multiplier'",
 		"economy.json: missing field 'ship_resale_factor'",
 		"economy.json: missing field 'workforce_share'",
+		"economy.json: missing field 'import_rate'",
+		"economy.json: missing field 'export_rate'",
 		"economy.json: unknown field 'tax'",
 		"economy.json: 'days_of_cover' must be a positive integer",
 		"economy.json: 'stock_cap_factor' must be a number greater than 1.0 and less than 100.0",

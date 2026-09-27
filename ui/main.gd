@@ -46,6 +46,11 @@ func _ready() -> void:
 	hud.setup(session)
 	map.setup(session)
 	side.setup(session)
+	var hints := HintPanel.new()
+	hints.name = "Hints"
+	hints.position = Vector2(12, 12)
+	map.add_child(hints)
+	hints.setup(session)
 
 
 func _show_fatal(text: String) -> void:

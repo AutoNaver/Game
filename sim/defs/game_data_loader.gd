@@ -27,6 +27,8 @@ const ECONOMY_FIELDS: PackedStringArray = [
 	"spread",
 	"ship_resale_factor",
 	"workforce_share",
+	"import_rate",
+	"export_rate",
 ]
 const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
@@ -165,10 +167,25 @@ func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
 	_check_rate_resolution(resale, "ship_resale_factor", ctx)
 	var workforce := _get_float_between(entry, "workforce_share", 0.0, 1.0, ctx, true)
 	_check_rate_resolution(workforce, "workforce_share", ctx)
+	var import_rate := _get_float_between(entry, "import_rate", 0.0, 10.0, ctx, true)
+	_check_rate_resolution(import_rate, "import_rate", ctx)
+	var export_rate := _get_float_between(entry, "export_rate", 0.0, 10.0, ctx, true)
+	_check_rate_resolution(export_rate, "export_rate", ctx)
 	if errors.size() > error_count:
 		return null
-	return EconomyDef.new(
-		days_of_cover, stock_cap_factor, max_multiplier, min_multiplier, spread, resale, workforce
+	return (
+		EconomyDef
+		. new(
+			days_of_cover,
+			stock_cap_factor,
+			max_multiplier,
+			min_multiplier,
+			spread,
+			resale,
+			workforce,
+			import_rate,
+			export_rate,
+		)
 	)
 
 

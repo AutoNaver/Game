@@ -16,6 +16,10 @@ var spread: float
 var ship_resale_factor: float
 ## Share of a city's population available to work in traders' workshops.
 var workforce_share: float
+## Off-map trade strength (OffMapTradeSystem): daily imports at empty stock, and exports at
+## double the target, as multiples of daily demand. 0 disables it.
+var import_rate: float
+var export_rate: float
 
 
 func _init(
@@ -26,6 +30,8 @@ func _init(
 	p_spread: float,
 	p_ship_resale_factor: float = 0.6,
 	p_workforce_share: float = 0.1,
+	p_import_rate: float = 0.0,
+	p_export_rate: float = 0.0,
 ) -> void:
 	days_of_cover = p_days_of_cover
 	stock_cap_factor = p_stock_cap_factor
@@ -34,3 +40,5 @@ func _init(
 	spread = p_spread
 	ship_resale_factor = p_ship_resale_factor
 	workforce_share = p_workforce_share
+	import_rate = p_import_rate
+	export_rate = p_export_rate
