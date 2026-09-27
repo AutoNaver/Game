@@ -26,14 +26,13 @@ func test_travel_hours_round_up_and_are_at_least_one() -> void:
 
 
 func test_slowest_allowed_ship_on_the_longest_possible_route_fits_in_int() -> void:
-	var limit := GameDataLoader.MAX_MAP_COORDINATE
+	# Map units are km; half the Earth's circumference is the longest straight route possible.
 	var data := GameData.new()
 	var none: Dictionary[String, float] = {}
-	data.add_city(CityDef.new("a", "A", Vector2(-limit, -limit), 1, none))
-	data.add_city(CityDef.new("b", "B", Vector2(limit, limit), 1, none))
+	data.add_city(CityDef.new("a", "A", Vector2.ZERO, 1, none))
+	data.add_city(CityDef.new("b", "B", Vector2(20_000, 0), 1, none))
 	var slowest := ShipDef.new("slow", "Slow", 1, GameDataLoader.MIN_SHIP_SPEED, 1)
-	var hours := Navigation.travel_hours(data, slowest, "a", "b")
-	assert_between(hours, 2_800_000, 2_900_000)
+	assert_eq(Navigation.travel_hours(data, slowest, "a", "b"), 200_000)
 
 
 func test_sail_command_starts_a_voyage() -> void:

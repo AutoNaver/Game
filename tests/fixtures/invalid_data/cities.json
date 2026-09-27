@@ -1,6 +1,6 @@
 [
-  { "id": "lubeck", "name": "Lübeck", "map_position": [136], "population": 12000, "production": { "grain": 10 } },
-  { "id": "visby", "name": "Visby", "map_position": [744, 340], "population": 0, "production": { "amber": 5, "grain": -2 } },
-  { "id": "stockholm", "name": "Stockholm", "map_position": [726, 167], "population": 7000, "production": "lots" },
-  { "id": "riga", "name": "Riga", "map_position": [1e100, 0], "population": 1e12, "production": { "grain": 0.0004 } }
+  { "id": "lubeck", "name": "Lübeck", "coordinates": [10.687], "population": 12000, "production": { "grain": 10 } },
+  { "id": "visby", "name": "Visby", "coordinates": [18.295, 57.634], "population": 0, "production": { "amber": 5, "grain": -2 } },
+  { "id": "stockholm", "name": "Stockholm", "coordinates": [18.069, 59.329], "population": 7000, "production": "lots" },
+  { "id": "riga", "name": "Riga", "coordinates": [1e100, 0], "population": 1e12, "production": { "grain": 0.0004 } }
 ]

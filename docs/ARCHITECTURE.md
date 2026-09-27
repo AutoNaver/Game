@@ -28,6 +28,13 @@ data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-
 - **`ui/`** holds Godot scenes. They observe state after each tick and send commands. They never
   mutate state directly.
 
+## Map
+
+`data/map.json` defines the map frame and projection (`MapDef`). Cities are given as `[lon, lat]`
+and projected to **map units = kilometres** from the frame's north-west corner, so ship speeds are
+km/h. `tools/map/render_map.py` renders `assets/map/baltic.png` from Natural Earth coastlines with
+the same projection, so the picture and the simulation always line up.
+
 ## Time
 
 `Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24 ticks it runs the daily systems in a fixed order:

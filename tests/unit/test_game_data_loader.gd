@@ -40,7 +40,10 @@ func test_valid_fixture_is_parsed_in_file_order() -> void:
 	assert_eq(data.cities.size(), 1)
 	var lubeck := data.get_city("lubeck")
 	assert_eq(lubeck.name, "Lübeck")
-	assert_eq(lubeck.map_position, Vector2(136, 710))
+	assert_eq(lubeck.map_position, data.map.project(10.687, 53.866))
+	assert_almost_eq(lubeck.map_position.x, 162.7, 0.1, "km east of 8.0°E at ~57°N scale")
+	assert_almost_eq(lubeck.map_position.y, 848.9, 0.1, "km south of 61.5°N")
+	assert_eq(data.map.image, "res://assets/map/baltic.png")
 	assert_eq(lubeck.population, 12000)
 	assert_eq(lubeck.production_of("cloth"), 18.0)
 	assert_eq(lubeck.production_of("grain"), 0.5)
@@ -83,12 +86,12 @@ func test_invalid_data_reports_every_problem() -> void:
 		"goods.json[4]: 'consumption_per_1000' must be a multiple of 0.001 (got 0.0004)",
 		"goods.json[5]: missing field 'base_price'",
 		"goods.json[6]: entry must be an object",
-		"cities.json[0]: 'map_position' must be an array of two numbers",
+		"cities.json[0]: 'coordinates' must be an array of two numbers [lon, lat]",
 		"cities.json[1]: 'population' must be a positive integer",
 		"cities.json[1]: 'production' has unknown good 'amber'",
 		"cities.json[1]: 'production.grain' must be a number greater than 0.0 and less than 10000.0",
 		"cities.json[2]: 'production' must be an object",
-		"cities.json[3]: 'map_position' coordinates must be within ±100000",
+		"cities.json[3]: 'coordinates' must lie within the map (lon 8.0..30.5, lat 53.2..61.5)",
 		"cities.json[3]: 'population' must be at most 1000000000",
 		"cities.json[3]: 'production.grain' must be a multiple of 0.001 (got 0.0004)",
 		"ships.json[1]: 'capacity' must be a positive integer",
@@ -131,7 +134,35 @@ func test_missing_directory_reports_each_file() -> void:
 	for message in loader.errors:
 		assert_string_contains(message, ": file not found at %s/" % MISSING_DIR)
 		files.append(message.get_slice(":", 0))
-	assert_eq(files, ["economy.json", "goods.json", "cities.json", "ships.json", "scenario.json"])
+	var expected_files: Array[String] = [
+		"economy.json", "goods.json", "map.json", "cities.json", "ships.json", "scenario.json"
+	]
+	assert_eq(files, expected_files)
+
+
+func test_map_image_must_be_a_texture() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_map_type"))
+	assert_eq(Array(loader.errors), ["map.json: 'image' must be a texture: res://ui/main.tscn"])
+
+
+func test_map_frame_must_be_ordered() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_map_frame"))
+	var expected := "map.json: the frame must have west_lon < east_lon and south_lat < north_lat"
+	assert_eq(Array(loader.errors), [expected])
+
+
+func test_map_image_must_exist_and_latitudes_be_sane() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_map_image"))
+	assert_eq(
+		Array(loader.errors),
+		[
+			"map.json: 'image' not found: res://assets/map/missing.png",
+			"map.json: 'north_lat' must be a number at least -85.0 and less than 85.0",
+		]
+	)
 
 
 func test_wrong_top_level_type_is_reported() -> void:
@@ -142,6 +173,7 @@ func test_wrong_top_level_type_is_reported() -> void:
 		[
 			"economy.json: top level must be an object",
 			"goods.json: top level must be an array",
+			"map.json: top level must be an object",
 			"ships.json: top level must be an array",
 			"scenario.json: top level must be an object",
 		]
