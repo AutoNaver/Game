@@ -33,9 +33,23 @@ func test_invariant_check_reports_violations() -> void:
 	port.stock["grain"] = -3
 	port.consumption_carry["wine"] = 1500
 	var violations := EconomyInvariants.check(sim.data, sim.world)
-	assert_eq(violations.size(), 2)
+	assert_eq(violations.size(), 3)
 	assert_string_contains(violations[0], "port/grain: negative stock -3")
 	assert_string_contains(violations[1], "port/wine: carry 1500 outside [0, 1000)")
+	assert_string_contains(violations[2], ", grain: ")
+	assert_string_contains(violations[2], "units exist but production and consumption account for")
+
+
+func test_goods_created_outside_production_are_caught() -> void:
+	var sim := SmallWorld.simulation()
+	sim.advance_days(3)
+	assert_eq(EconomyInvariants.check(sim.data, sim.world), PackedStringArray())
+	var ledger: int = sim.world.goods_ledger["wine"]
+	sim.world.get_city("port").stock["wine"] += 2
+	var violations := EconomyInvariants.check(sim.data, sim.world)
+	assert_eq(violations.size(), 1)
+	var expected := "wine: %d units exist but production and consumption account for %d"
+	assert_string_contains(violations[0], expected % [ledger + 2, ledger])
 
 
 func _play_scripted_turns(sim: Simulation) -> void:
@@ -52,6 +66,7 @@ func _fingerprint(sim: Simulation) -> Array:
 		parts.append(
 			[city.id, city.stock, city.production_carry, city.consumption_carry, city.shortage]
 		)
+	parts.append(sim.world.goods_ledger)
 	for trader in sim.world.traders:
 		parts.append([trader.id, trader.coins])
 		for ship in trader.ships:
