@@ -83,6 +83,14 @@ func test_cannot_redirect_a_ship_at_sea() -> void:
 	assert_eq(sim.world.player().get_ship(SHIP).destination, "town")
 
 
+func test_invariants_report_unknown_ship_types_instead_of_crashing() -> void:
+	var sim := SmallWorld.simulation()
+	sim.world.player().get_ship(SHIP).type_id = "galleon"
+	var violations := EconomyInvariants.check(sim.data, sim.world)
+	assert_eq(violations.size(), 1)
+	assert_string_contains(violations[0], "ship_1: unknown ship type 'galleon'")
+
+
 func test_invariants_catch_broken_ships_and_coins() -> void:
 	var sim := SmallWorld.simulation()
 	var player := sim.world.player()
