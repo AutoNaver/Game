@@ -60,11 +60,58 @@ Work top to bottom unless the owner reprioritizes.
 - [x] First-time hints (tutorial-lite): a banner that follows buy, sail, sell, kontor and workshop (`HintPanel`)
 - [x] Windows export preset, with the build as a CI artifact (`export-windows` job, artifact `hanse-windows`)
 - [x] Balance pass: off-map trade, prices 0.55×–1.8×, workforce effect on city production, `tools/balance.gd` (ADR 0005)
+- [x] **Owner play-test** of the Windows build (2026-09-27: successful)
+
+## M6: Readable markets and quality of life
+
+Pillar 3: the player can always see why a price is what it is, and doesn't have to babysit ships.
+
+- [ ] Price history: daily mid price per city and good for the last 30 days, saved (`save_version` 2, migrating version 1 saves with an empty history)
+- [ ] Market panel: sparkline and trend arrow per good, and a tooltip explaining the price (stock vs target, daily demand, last shortage, off-map flow)
+- [ ] Trade planner: for a docked ship, the best goods to carry to each other city, with margin and profit per day of sailing
+- [ ] Notifications: the sim records events (ship arrived, workshop idle and why, kontor full) that the UI lists; optional auto-pause on arrival
+- [ ] Saves: several named slots, an autosave every few days, and a start screen with New game / Continue / Load
+
+## M7: Trade routes
+
+Automates the core loop once the player runs more ships than they want to sail by hand.
+
+- [ ] Route orders: an ordered list of stops, each with buy/sell/transfer actions, limit prices and quantities
+- [ ] Execution only through the existing buy, sell, transfer and sail commands (no second path); failures become notifications
+- [ ] Assign or unassign a route per ship; routes and progress saved
+- [ ] Route editor UI, and route status in the fleet panel
+- [ ] Integration test: a looping route stays profitable for a year and never breaks an invariant
+
+## M8: AI competitor traders
+
+- [ ] Rival trading houses (data-driven names, start cities, capital) that choose routes with the balance bot's logic and act through commands
+- [ ] Rivals buy ships and kontors as they grow; all their choices draw on the world RNG
+- [ ] Rivals list: coins, ships, kontors, so the player can measure progress
+- [ ] Rebalance with rivals active (soak, `tools/balance.gd`, off-map rates), recorded in an ADR
+
+## M9: City needs and growth
+
+- [ ] City satisfaction from recent shortages, shown in the city panel
+- [ ] Population grows or shrinks with satisfaction, changing demand and workforce (saves validate a range instead of matching data)
+- [ ] Soak and balance checks that cities neither explode nor starve without the player
+
+## M10: Events
+
+- [ ] ADR and owner decision on event losses: fires destroying kontor stock would be a new goods sink, so either amend AGENTS.md rule 7 to allow ledger-booked event losses, or fires only close a kontor for some days
+- [ ] Data-driven, seeded events with a clear duration: storms (ships delayed), harvest failures (production cut), war (off-map imports cut), fires (per the ADR above)
+- [ ] Events announced through notifications, with their effect visible in the price tooltip
+- [ ] Events saved; soak runs with events enabled
+
+## M11: More of the Baltic
+
+- [ ] New cities (Riga, Reval, Stralsund, Bergen, Novgorod) with sea lanes checked against the coastline
+- [ ] New goods (furs, wax, honey, pitch) with producers and consumers
+- [ ] Rebalance, and the map fits the larger area
 
 ## Backlog (deferred review findings and small follow-ups)
 
 Deferred P2 review findings go here, with the PR they came from.
 
-## Later (parked, see GAME_DESIGN "Out of scope")
+## Later (parked, see GAME_DESIGN "After the MVP")
 
-AI traders, trade routes, reputation, more cities, events, city growth, convoys, loans, politics.
+Reputation and ranks (unlocking loans and banking), convoys with pirates and combat, politics.
