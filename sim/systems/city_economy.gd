@@ -61,6 +61,12 @@ static func stock_cap(economy: EconomyDef, city: CityState, good: GoodDef) -> in
 	return (scaled + RATE_STEPS - 1) / RATE_STEPS
 
 
+## Mid price of `good` here at the current stock, before the spread (ADR 0003).
+static func mid_price(economy: EconomyDef, city: CityState, good: GoodDef) -> float:
+	var target := target_stock(economy, city, good)
+	return Pricing.mid_price(economy, good.base_price, target, city.stock[good.id])
+
+
 ## Coins a trader pays to buy `quantity` units of `good` here (walks the price, ADR 0003).
 static func buy_cost(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
 	var target := target_stock(economy, city, good)

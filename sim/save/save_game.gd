@@ -11,7 +11,9 @@ extends RefCounted
 
 ## Bump on every change to the saved shape, with a migration in from_dict() or an explicit
 ## decision to reject older saves.
-const SAVE_VERSION: int = 1
+## Version 2 added cities' price_history; version 1 saves load with an empty history.
+const SAVE_VERSION: int = 2
+const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 
 ## Problems found by the last from_dict() / load_file() call.
@@ -32,6 +34,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 					"consumption_carry": city.consumption_carry.duplicate(),
 					"trade_carry": city.trade_carry.duplicate(),
 					"shortage": city.shortage.duplicate(),
+					"price_history": _history_to_dict(city),
 				}
 			)
 		)
@@ -88,8 +91,9 @@ func load_file(data: GameData, path: String) -> WorldState:
 func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	errors.clear()
 	var version := _int(save, "save_version", "save")
-	if errors.is_empty() and version != SAVE_VERSION:
-		errors.append("save version %d is not supported (expected %d)" % [version, SAVE_VERSION])
+	if errors.is_empty() and (version < OLDEST_SUPPORTED_VERSION or version > SAVE_VERSION):
+		var versions := [version, OLDEST_SUPPORTED_VERSION, SAVE_VERSION]
+		errors.append("save version %d is not supported (expected %d to %d)" % versions)
 		return null
 	var world := WorldState.new()
 	world.hour = _int(save, "hour", "save")
@@ -100,7 +104,7 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	world.next_ship_number = _int(save, "next_ship_number", "save")
 	world.next_workshop_number = _int(save, "next_workshop_number", "save")
 	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
-	_read_cities(data, world, _array(save, "cities", "save"))
+	_read_cities(data, world, _array(save, "cities", "save"), version)
 	for i in _array(save, "traders", "save").size():
 		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i)
 		if trader != null:
@@ -189,7 +193,7 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 	}
 
 
-func _read_cities(data: GameData, world: WorldState, cities: Array) -> void:
+func _read_cities(data: GameData, world: WorldState, cities: Array, version: int) -> void:
 	if cities.size() != data.cities.size():
 		errors.append("save has %d cities, the game has %d" % [cities.size(), data.cities.size()])
 		return
@@ -221,7 +225,43 @@ func _read_cities(data: GameData, world: WorldState, cities: Array) -> void:
 			data, _dict(raw, "trade_carry", ctx), "%s trade_carry" % ctx, true
 		)
 		city.shortage = _goods(data, _dict(raw, "shortage", ctx), "%s shortage" % ctx, true)
+		if version >= 2:
+			_read_history(data, city, _dict(raw, "price_history", ctx), ctx)
+		else:
+			for good in data.goods:
+				city.price_history[good.id] = PackedInt64Array()
 		world.add_city(city)
+
+
+static func _history_to_dict(city: CityState) -> Dictionary:
+	var history: Dictionary = {}
+	for good_id: String in city.price_history:
+		history[good_id] = Array(city.price_history[good_id])
+	return history
+
+
+## Every good needs a history of at most HISTORY_DAYS whole prices within the clamped range
+## (PriceHistorySystem's scale).
+func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String) -> void:
+	for key: Variant in raw.keys():
+		if not data.has_good(str(key)):
+			errors.append("%s price_history: unknown good '%s'" % [ctx, str(key)])
+	for good in data.goods:
+		var good_ctx := "%s price_history %s" % [ctx, good.id]
+		var history := PackedInt64Array()
+		var entries := _array(raw, good.id, "%s price_history" % ctx)
+		if entries.size() > PriceHistorySystem.HISTORY_DAYS:
+			var limit := PriceHistorySystem.HISTORY_DAYS
+			errors.append("%s: %d days, at most %d" % [good_ctx, entries.size(), limit])
+		var lowest := PriceHistorySystem.min_scaled_price(data.economy, good)
+		var highest := PriceHistorySystem.max_scaled_price(data.economy, good)
+		for i in entries.size():
+			var price := _int({"price": entries[i]}, "price", "%s[%d]" % [good_ctx, i])
+			if price < lowest or price > highest:
+				var bounds := [good_ctx, i, price, lowest, highest]
+				errors.append("%s[%d]: price %d outside [%d, %d]" % bounds)
+			history.append(price)
+		city.price_history[good.id] = history
 
 
 func _read_trader(data: GameData, raw_value: Variant, ctx: String) -> TraderState:

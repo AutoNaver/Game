@@ -16,6 +16,9 @@ var consumption_carry: Dictionary[String, int] = {}
 var trade_carry: Dictionary[String, int] = {}
 ## Units the population wanted but could not get on the last day, by good id.
 var shortage: Dictionary[String, int] = {}
+## Mid price at the end of each recent day, oldest first, in hundredths of a coin
+## (PriceHistorySystem). Integers keep saves exact.
+var price_history: Dictionary[String, PackedInt64Array] = {}
 
 
 func _init(p_id: String, p_population: int) -> void:

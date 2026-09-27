@@ -91,7 +91,7 @@ func test_other_versions_are_rejected() -> void:
 	save["save_version"] = SaveGame.SAVE_VERSION + 1
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
-	assert_eq(Array(loader.errors), ["save version 2 is not supported (expected 1)"])
+	assert_eq(Array(loader.errors), ["save version 3 is not supported (expected 1 to 2)"])
 
 
 func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
@@ -182,3 +182,50 @@ func test_kontors_in_unknown_cities_are_rejected() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(Array(loader.errors), ["traders[0] kontors[1]: unknown city 'riga'"])
+
+
+func test_version_1_saves_load_with_an_empty_price_history() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	save["save_version"] = 1
+	for city: Dictionary in save["cities"]:
+		city.erase("price_history")
+	var world := _load(sim, save)
+	for city in world.cities:
+		for good in sim.data.goods:
+			assert_eq(city.price_history[good.id].size(), 0)
+	var loaded := Simulation.new(sim.data, world)
+	loaded.advance_days(1)
+	assert_eq(loaded.world.get_city("town").price_history["grain"].size(), 1)
+
+
+func test_price_history_round_trips() -> void:
+	var sim := _played_simulation()
+	var world := _load(sim, _through_json(SaveGame.to_dict(sim.world)))
+	var history: PackedInt64Array = world.get_city("town").price_history["wine"]
+	assert_eq(history.size(), 2)
+	assert_eq(Array(history), Array(sim.world.get_city("town").price_history["wine"]))
+
+
+func test_bad_price_histories_are_rejected() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var history: Dictionary = save["cities"][0]["price_history"]
+	var too_long: Array = []
+	too_long.resize(PriceHistorySystem.HISTORY_DAYS + 1)
+	too_long.fill(4000)
+	history["grain"] = too_long
+	history["wine"] = [22000, 99999999]
+	history["amber"] = []
+	var highest := PriceHistorySystem.max_scaled_price(sim.data.economy, sim.data.get_good("wine"))
+	var lowest := PriceHistorySystem.min_scaled_price(sim.data.economy, sim.data.get_good("wine"))
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_eq(
+		Array(loader.errors),
+		[
+			"cities[0] price_history: unknown good 'amber'",
+			"cities[0] price_history grain: 31 days, at most 30",
+			"cities[0] price_history wine[1]: price 99999999 outside [%d, %d]" % [lowest, highest],
+		]
+	)
