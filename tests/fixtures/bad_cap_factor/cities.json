@@ -2,7 +2,7 @@
   {
     "id": "lubeck",
     "name": "Lübeck",
-    "map_position": [136, 710],
+    "coordinates": [10.687, 53.866],
     "population": 12000,
     "production": { "cloth": 18, "grain": 0.5 }
   }
