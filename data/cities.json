@@ -52,6 +52,7 @@
     "id": "bergen",
     "name": "Bergen",
     "coordinates": [5.324, 60.393],
+    "import_factor": 3.0,
     "population": 7000,
     "production": { "fish": 70, "iron": 6, "wine": 4 }
   },
@@ -59,6 +60,7 @@
     "id": "novgorod",
     "name": "Novgorod",
     "coordinates": [31.275, 58.522],
+    "import_factor": 2.5,
     "population": 12000,
     "production": { "timber": 23, "iron": 7, "beer": 30, "furs": 7, "wax": 10, "honey": 22 }
   }

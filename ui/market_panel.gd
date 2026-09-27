@@ -264,7 +264,8 @@ func _explain_price(city: CityState, good: GoodDef) -> String:
 		lines.append("Local workshops make up to %.1f a day" % produced)
 	if city.shortage[good.id] > 0:
 		lines.append("Ran short by %d yesterday" % city.shortage[good.id])
-	var flow := OffMapTradeSystem.expected_flow(economy, city, good)
+	var import_factor := _session.sim.data.get_city(city.id).import_factor
+	var flow := OffMapTradeSystem.expected_flow(economy, city, good, import_factor)
 	if flow >= 0.05:
 		lines.append("Overland traders bring about %.1f a day" % flow)
 	elif flow <= -0.05:

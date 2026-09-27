@@ -21,7 +21,12 @@ extends RefCounted
 ## workshops work slower); older saves load at neutral satisfaction and no progress.
 ## Version 6 added world events, next_event_number and ships' and kontors' spoil_carry (ADR 0011);
 ## older saves load with no events and no spoilage carried.
-const SAVE_VERSION: int = 6
+## Version 7 marks the larger world of M11 (ADR 0012). Older saves were made with fewer cities,
+## goods and rival houses: whatever they lack is added as a new game starts it (cities appended to
+## data/cities.json, goods to data/goods.json, houses to data/rivals.json). The shape is unchanged.
+const SAVE_VERSION: int = 7
+## The first version whose saves must cover every city, good and house in the data.
+const COMPLETE_WORLD_VERSION: int = 7
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -31,6 +36,10 @@ const ASCII_MAX: int = 127
 
 ## Problems found by the last from_dict() / load_file() call.
 var errors: PackedStringArray = []
+
+## Goods the save being read covers: every good in the data, or for saves from before the larger
+## world, the goods in its ledger (the rest are added as in a new game).
+var _save_goods: PackedStringArray = []
 
 
 static func to_dict(world: WorldState) -> Dictionary:
@@ -172,8 +181,15 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 			var event := _read_event(data, events[i], "events[%d]" % i)
 			if event != null:
 				world.events.append(event)
-	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
+	var ledger := _dict(save, "goods_ledger", "save")
+	_save_goods.clear()
+	for good in data.goods:
+		if version >= COMPLETE_WORLD_VERSION or ledger.has(good.id):
+			_save_goods.append(good.id)
+	world.goods_ledger = _goods(data, ledger, "goods_ledger", true)
 	_read_cities(data, world, _array(save, "cities", "save"), version)
+	if version < COMPLETE_WORLD_VERSION and errors.is_empty():
+		_grow_world(data, world)
 	for i in _array(save, "traders", "save").size():
 		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i, version)
 		if trader != null:
@@ -183,7 +199,7 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	for trader in world.traders:
 		if trader.id != WorldState.PLAYER_ID and not data.has_rival(trader.id):
 			errors.append("unknown trader '%s' (neither the player nor a rival house)" % trader.id)
-	if version < 4 and errors.is_empty():
+	if version < COMPLETE_WORLD_VERSION and errors.is_empty():
 		for rival in data.rivals:
 			if world.get_trader(rival.id) == null:
 				Simulation.add_rival(world, rival)
@@ -334,8 +350,25 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 	}
 
 
+## Adds what a save from before the larger world lacks: goods to every city it has, then the cities
+## after its last one, all as a new game starts them.
+func _grow_world(data: GameData, world: WorldState) -> void:
+	for good in data.goods:
+		if _save_goods.has(good.id):
+			continue
+		world.goods_ledger[good.id] = 0
+		for city in world.cities:
+			Simulation.stock_new_good(data, world, city, good)
+	for i in range(world.cities.size(), data.cities.size()):
+		Simulation.add_city(data, world, data.cities[i])
+
+
 func _read_cities(data: GameData, world: WorldState, cities: Array, version: int) -> void:
-	if cities.size() != data.cities.size():
+	var count_ok := cities.size() == data.cities.size()
+	if version < COMPLETE_WORLD_VERSION:
+		# Older saves hold the cities of their day: a leading part of today's list.
+		count_ok = cities.size() <= data.cities.size()
+	if not count_ok:
 		errors.append("save has %d cities, the game has %d" % [cities.size(), data.cities.size()])
 		return
 	for i in cities.size():
@@ -402,6 +435,8 @@ func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String
 		if not data.has_good(str(key)):
 			errors.append("%s price_history: unknown good '%s'" % [ctx, str(key)])
 	for good in data.goods:
+		if not _save_goods.has(good.id):
+			continue
 		var good_ctx := "%s price_history %s" % [ctx, good.id]
 		var history := PackedInt64Array()
 		var entries := _array(raw, good.id, "%s price_history" % ctx)
@@ -620,8 +655,8 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int)
 	return kontor
 
 
-## A per-good table of whole numbers. With `complete`, every good must be present (cities and the
-## ledger); otherwise only known goods with positive amounts may appear (cargo).
+## A per-good table of whole numbers. With `complete`, every good the save covers must be present
+## (cities and the ledger); otherwise only known goods with positive amounts may appear (cargo).
 func _goods(
 	data: GameData, raw: Dictionary, ctx: String, complete: bool
 ) -> Dictionary[String, int]:
@@ -638,7 +673,7 @@ func _goods(
 		table[good_id] = amount
 	if complete:
 		for good in data.goods:
-			if not table.has(good.id):
+			if not table.has(good.id) and _save_goods.has(good.id):
 				errors.append("%s: missing %s" % [ctx, good.id])
 	return table
 

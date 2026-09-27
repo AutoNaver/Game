@@ -30,17 +30,7 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	for good in p_data.goods:
 		world.goods_ledger[good.id] = 0
 	for city_def in p_data.cities:
-		var city := CityState.new(city_def.id, city_def.population)
-		city.satisfaction = CityEconomy.to_parts(p_data.population.neutral_satisfaction)
-		for good in p_data.goods:
-			city.stock[good.id] = CityEconomy.target_stock(p_data.economy, city, good)
-			world.goods_ledger[good.id] += city.stock[good.id]
-			city.production_carry[good.id] = 0
-			city.consumption_carry[good.id] = 0
-			city.trade_carry[good.id] = 0
-			city.shortage[good.id] = 0
-			city.price_history[good.id] = PackedInt64Array()
-		world.add_city(city)
+		add_city(p_data, world, city_def)
 	var scenario := p_data.scenario
 	var player := TraderState.new(WorldState.PLAYER_ID, "Player", scenario.coins)
 	world.traders.append(player)
@@ -49,6 +39,31 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	for rival in p_data.rivals:
 		add_rival(world, rival)
 	return Simulation.new(p_data, world)
+
+
+## Adds a city to the world as it starts a new game: home population, neutral satisfaction and the
+## target stock of every good, booked in the goods ledger.
+static func add_city(p_data: GameData, world: WorldState, city_def: CityDef) -> CityState:
+	var city := CityState.new(city_def.id, city_def.population)
+	city.satisfaction = CityEconomy.to_parts(p_data.population.neutral_satisfaction)
+	for good in p_data.goods:
+		stock_new_good(p_data, world, city, good)
+	world.add_city(city)
+	return city
+
+
+## Gives `city` its starting market for `good` as a new game does: the target stock (booked in the
+## goods ledger), no carries, no shortage and no price history.
+static func stock_new_good(
+	p_data: GameData, world: WorldState, city: CityState, good: GoodDef
+) -> void:
+	city.stock[good.id] = CityEconomy.target_stock(p_data.economy, city, good)
+	world.goods_ledger[good.id] = world.goods_ledger.get(good.id, 0) + city.stock[good.id]
+	city.production_carry[good.id] = 0
+	city.consumption_carry[good.id] = 0
+	city.trade_carry[good.id] = 0
+	city.shortage[good.id] = 0
+	city.price_history[good.id] = PackedInt64Array()
 
 
 ## Adds a rival house to the world as it starts: its coins and ships, docked in its start city.

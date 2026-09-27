@@ -10,6 +10,9 @@ var map_position: Vector2
 var population: int
 ## Units the city's own workshops produce per day, by good id. Goods not listed are not produced.
 var production: Dictionary[String, float]
+## Multiplies the city's off-map imports (OffMapTradeSystem): trade beyond the map that the game
+## doesn't model, such as Bergen's with England and the Low Countries. 1 for most cities.
+var import_factor: float = 1.0
 
 
 func _init(

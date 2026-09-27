@@ -56,6 +56,9 @@ const MAP_FIELDS: PackedStringArray = [
 	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
 ]
 const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population", "production"]
+const CITY_OPTIONAL_FIELDS: PackedStringArray = ["import_factor"]
+## Highest import_factor a city may have.
+const MAX_IMPORT_FACTOR: float = 10.0
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
@@ -379,15 +382,23 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, CITY_FIELDS, ctx)
+	_check_fields(entry, CITY_FIELDS, ctx, CITY_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	var city_name := _get_string(entry, "name", ctx)
 	var map_position := _get_map_position(entry, ctx, data)
 	var population := _get_positive_int(entry, "population", ctx)
 	var production := _get_production(entry, ctx, data)
+	var import_factor := 1.0
+	if entry.has("import_factor"):
+		import_factor = _get_float_between(
+			entry, "import_factor", 0.0, MAX_IMPORT_FACTOR, ctx, true, true
+		)
+		_check_rate_resolution(import_factor, "import_factor", ctx)
 	if errors.size() > error_count:
 		return null
-	return CityDef.new(id, city_name, map_position, population, production)
+	var city := CityDef.new(id, city_name, map_position, population, production)
+	city.import_factor = import_factor
+	return city
 
 
 ## Fields that are fine on their own can multiply into a stock cap (population × consumption ×

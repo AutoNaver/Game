@@ -28,11 +28,19 @@ until your trading house shapes the prices of the whole sea.
 4. Sell, watching the price fall as you flood the market.
 5. Reinvest in more cargo space, a kontor to store goods, and workshops to produce your own.
 
-## World (MVP)
+## World
 
-- **Cities:** Lübeck, Danzig, Visby, Stockholm.
-- **Goods:** grain, fish, salt, timber, wool, iron (raw); beer, cloth, tools (processed); wine
-  (luxury, imported). Definitions are in `data/goods.json`.
+- **Cities (M11):** Lübeck, Danzig, Visby and Stockholm from the MVP, plus Stralsund, Riga,
+  Reval, Bergen and Novgorod, from the North Sea coast to the Russian rivers. Bergen is reached
+  through the Øresund and around Skagen. Novgorod lies inland, up the Neva, across Lake Ladoga
+  and up the Volkhov ([ADR 0012](adr/0012-more-of-the-baltic.md)).
+- **Goods:** grain, fish, salt, timber, wool, iron, wax, honey, pitch (raw); beer, cloth, tools
+  (processed); wine, furs (luxury). Definitions are in `data/goods.json`. Novgorod is the cheap
+  source of furs, wax and honey; Riga shares in them; Stockholm, Riga and Danzig make pitch;
+  Bergen is the great fish market.
+- **Links beyond the map.** Bergen trades with England and the Low Countries, and Novgorod with
+  the Russian hinterland, so their overland and off-map supply is stronger
+  (`import_factor` in `data/cities.json`).
 - **Wine** isn't made in the Baltic. Lübeck's trade with the west is modeled as a small, steady
   Lübeck "production" (`data/cities.json`), which makes Lübeck the cheap wine source. Off-map trade
   (ADR 0005) tops up the other cities' wine only slowly, so they stay expensive.
@@ -88,8 +96,8 @@ Details: [ADR 0010](adr/0010-city-satisfaction-and-growth.md), tuning in `data/p
 
 ## Rival trading houses (M8)
 
-Three rival houses (Veckinchusen from Danzig, Castorp from Stockholm and Wulflam from Visby,
-`data/rivals.json`) start like the player: one cog and 5000 coins. Their ships trade greedily
+Five rival houses (Veckinchusen from Danzig, Castorp from Stockholm, Wulflam from Visby, and since
+M11 Hildebrand from Riga and Brandes from Stralsund, `data/rivals.json`) start like the player: one cog and 5000 coins. Their ships trade greedily
 with a little randomness, selling everything on arrival and carrying one of the best few loads.
 Every few weeks a house buys a ship or sets up a workshop in a kontor, and closes workshops that
 stop paying. They use the same commands, prices and workers as the player, so they compete for
