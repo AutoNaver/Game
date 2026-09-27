@@ -10,9 +10,17 @@ extends RefCounted
 ##         print(loader.errors)
 
 const DEFAULT_DIR: String = "res://data"
+const ECONOMY_FILE: String = "economy.json"
 const GOODS_FILE: String = "goods.json"
 const CITIES_FILE: String = "cities.json"
 
+const ECONOMY_FIELDS: PackedStringArray = [
+	"days_of_cover",
+	"stock_cap_factor",
+	"price_max_multiplier",
+	"price_min_multiplier",
+	"spread",
+]
 const GOOD_FIELDS: PackedStringArray = ["id", "name", "category", "base_price"]
 const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "population"]
 
@@ -26,6 +34,10 @@ var _id_pattern: RegEx = RegEx.create_from_string("^[a-z][a-z0-9_]*$")
 func load_dir(dir: String) -> GameData:
 	errors.clear()
 	var data := GameData.new()
+
+	var economy: Variant = _read_json(dir.path_join(ECONOMY_FILE), TYPE_DICTIONARY)
+	if economy != null:
+		data.economy = _parse_economy(economy as Dictionary, ECONOMY_FILE)
 
 	var goods := _read_array(dir.path_join(GOODS_FILE))
 	for i in goods.size():
@@ -55,20 +67,40 @@ func load_dir(dir: String) -> GameData:
 
 
 func _read_array(path: String) -> Array:
+	var value: Variant = _read_json(path, TYPE_ARRAY)
+	return value as Array if value != null else []
+
+
+## Returns the parsed top-level value, or null after reporting why it is unusable.
+func _read_json(path: String, expected_type: Variant.Type) -> Variant:
 	var file_name := path.get_file()
 	if not FileAccess.file_exists(path):
 		_error(file_name, "file not found at %s" % path)
-		return []
+		return null
 	var json := JSON.new()
 	if json.parse(FileAccess.get_file_as_string(path)) != OK:
 		# get_error_line() is 0-based; editors count from 1.
 		var line := json.get_error_line() + 1
 		_error(file_name, "invalid JSON at line %d: %s" % [line, json.get_error_message()])
-		return []
-	if not json.data is Array:
-		_error(file_name, "top level must be an array")
-		return []
-	return json.data as Array
+		return null
+	if typeof(json.data) != expected_type:
+		var expected := "an array" if expected_type == TYPE_ARRAY else "an object"
+		_error(file_name, "top level must be %s" % expected)
+		return null
+	return json.data
+
+
+func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
+	var error_count := errors.size()
+	_check_fields(entry, ECONOMY_FIELDS, ctx)
+	var days_of_cover := _get_positive_int(entry, "days_of_cover", ctx)
+	var stock_cap_factor := _get_float_between(entry, "stock_cap_factor", 1.0, 100.0, ctx)
+	var max_multiplier := _get_float_between(entry, "price_max_multiplier", 1.0, 100.0, ctx)
+	var min_multiplier := _get_float_between(entry, "price_min_multiplier", 0.0, 1.0, ctx)
+	var spread := _get_float_between(entry, "spread", 0.0, 1.0, ctx)
+	if errors.size() > error_count:
+		return null
+	return EconomyDef.new(days_of_cover, stock_cap_factor, max_multiplier, min_multiplier, spread)
 
 
 func _parse_good(raw: Variant, ctx: String) -> GoodDef:
@@ -147,6 +179,19 @@ func _get_positive_int(entry: Dictionary, field: String, ctx: String) -> int:
 		_error(ctx, "'%s' must be a positive integer" % field)
 		return 0
 	return int(number)
+
+
+## Accepts numbers strictly between low and high.
+func _get_float_between(
+	entry: Dictionary, field: String, low: float, high: float, ctx: String
+) -> float:
+	if not entry.has(field):
+		return 0.0
+	var value: Variant = entry[field]
+	if (value is int or value is float) and float(value) > low and float(value) < high:
+		return float(value)
+	_error(ctx, "'%s' must be a number greater than %s and less than %s" % [field, low, high])
+	return 0.0
 
 
 func _get_vector2(entry: Dictionary, field: String, ctx: String) -> Vector2:

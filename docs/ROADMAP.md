@@ -13,11 +13,12 @@ Work top to bottom unless the owner reprioritizes.
 - [x] CI workflow (`ci` job) and PR template
 - [x] Data loader for goods and cities with validation and tests
 - [x] Placeholder main scene showing the loaded data
-- [ ] Branch protection on `main` and a first PR through the Codex review loop
+- [x] Branch protection on `main` (required `ci`, up to date, resolved conversations, admins enforced)
+- [ ] First PR reviewed by Codex. Blocked: the Codex GitHub app hasn't responded yet, so check it's connected for this repo
 
 ## M1: Economy core (headless)
 
-- [ ] ADR: pricing curve, spread, and per-unit price walk
+- [x] ADR 0003: pricing curve, spread, and per-unit price walk (`sim/systems/pricing.gd`, `data/economy.json`)
 - [ ] City state: population, market stock per good, derived target stock
 - [ ] Data: city production specialties and per-capita consumption
 - [ ] Daily systems: production, consumption, price update
