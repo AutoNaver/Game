@@ -12,6 +12,7 @@ extends RefCounted
 const DEFAULT_DIR: String = "res://data"
 const ECONOMY_FILE: String = "economy.json"
 const GOODS_FILE: String = "goods.json"
+const MAP_FILE: String = "map.json"
 const CITIES_FILE: String = "cities.json"
 const SHIPS_FILE: String = "ships.json"
 const SCENARIO_FILE: String = "scenario.json"
@@ -26,7 +27,10 @@ const ECONOMY_FIELDS: PackedStringArray = [
 const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
 ]
-const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "population", "production"]
+const MAP_FIELDS: PackedStringArray = [
+	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
+]
+const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population", "production"]
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
@@ -35,14 +39,13 @@ const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
 const MAX_PRODUCTION_PER_DAY: float = 10000.0
 const MAX_SHIP_SPEED: float = 1000.0
-## Slowest allowed speed. With coordinates within ±MAX_MAP_COORDINATE the longest route is about
-## 283k map units, so the longest voyage stays near 2.8M hours: far inside int range.
+## Slowest allowed speed. Map units are km and no route on Earth is near 100,000 km, so the longest
+## voyage stays below a million hours: far inside int range.
 const MIN_SHIP_SPEED: float = 0.1
 
-## Upper bounds for plain numbers. JSON allows values like 1e100 that overflow int or Vector2
-## (32-bit floats in the standard build), so anything beyond these is rejected as a data error.
+## Upper bound for plain integers. JSON allows values like 1e100 that overflow int, so anything
+## beyond this is rejected as a data error.
 const MAX_INT_VALUE: int = 1_000_000_000
-const MAX_MAP_COORDINATE: float = 100_000.0
 
 ## Problems found by the last load_dir() call, formatted as "<file>[<index>]: <message>".
 var errors: PackedStringArray = []
@@ -69,6 +72,10 @@ func load_dir(dir: String) -> GameData:
 			_error(ctx, "duplicate id '%s'" % good.id)
 		else:
 			data.add_good(good)
+
+	var map_config: Variant = _read_json(dir.path_join(MAP_FILE), TYPE_DICTIONARY)
+	if map_config != null:
+		data.map = _parse_map(map_config as Dictionary, MAP_FILE)
 
 	var cities := _read_array(dir.path_join(CITIES_FILE))
 	for i in cities.size():
@@ -161,7 +168,26 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 	return GoodDef.new(id, good_name, category, base_price, consumption)
 
 
-## Goods must already be loaded into `data`, so production can refer to them.
+func _parse_map(entry: Dictionary, ctx: String) -> MapDef:
+	var error_count := errors.size()
+	_check_fields(entry, MAP_FIELDS, ctx)
+	var image := _get_string(entry, "image", ctx)
+	if not image.is_empty() and not ResourceLoader.exists(image):
+		_error(ctx, "'image' not found: %s" % image)
+	var west := _get_float_between(entry, "west_lon", -180.0, 180.0, ctx, true)
+	var east := _get_float_between(entry, "east_lon", -180.0, 180.0, ctx, true)
+	var south := _get_float_between(entry, "south_lat", -85.0, 85.0, ctx, true)
+	var north := _get_float_between(entry, "north_lat", -85.0, 85.0, ctx, true)
+	var reference := _get_float_between(entry, "reference_lat", -85.0, 85.0, ctx, true)
+	if errors.size() > error_count:
+		return null
+	if west >= east or south >= north:
+		_error(ctx, "the frame must have west_lon < east_lon and south_lat < north_lat")
+		return null
+	return MapDef.new(image, west, east, south, north, reference)
+
+
+## Goods (and the map) must already be loaded into `data`.
 func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 	if not raw is Dictionary:
 		_error(ctx, "entry must be an object")
@@ -171,7 +197,7 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 	_check_fields(entry, CITY_FIELDS, ctx)
 	var id := _get_id(entry, ctx)
 	var city_name := _get_string(entry, "name", ctx)
-	var map_position := _get_vector2(entry, "map_position", ctx)
+	var map_position := _get_map_position(entry, ctx, data)
 	var population := _get_positive_int(entry, "population", ctx)
 	var production := _get_production(entry, ctx, data)
 	if errors.size() > error_count:
@@ -336,21 +362,27 @@ func _get_float_between(
 	return 0.0
 
 
-func _get_vector2(entry: Dictionary, field: String, ctx: String) -> Vector2:
-	if not entry.has(field):
+## Reads "coordinates": [lon, lat], checks they lie inside the map frame and projects them to km.
+func _get_map_position(entry: Dictionary, ctx: String, data: GameData) -> Vector2:
+	if not entry.has("coordinates"):
 		return Vector2.ZERO
-	var value: Variant = entry[field]
+	var value: Variant = entry["coordinates"]
 	if value is Array and (value as Array).size() == 2:
 		var pair: Array = value
-		var x: Variant = pair[0]
-		var y: Variant = pair[1]
-		if (x is int or x is float) and (y is int or y is float):
-			if absf(float(x)) > MAX_MAP_COORDINATE or absf(float(y)) > MAX_MAP_COORDINATE:
-				var message := "'%s' coordinates must be within ±%d"
-				_error(ctx, message % [field, int(MAX_MAP_COORDINATE)])
+		var lon: Variant = pair[0]
+		var lat: Variant = pair[1]
+		if (lon is int or lon is float) and (lat is int or lat is float):
+			if data.map == null:
+				return Vector2.ZERO  # map.json is broken; that error is already reported
+			if not data.map.contains(float(lon), float(lat)):
+				var frame := (
+					"lon %s..%s, lat %s..%s"
+					% [data.map.west_lon, data.map.east_lon, data.map.south_lat, data.map.north_lat]
+				)
+				_error(ctx, "'coordinates' must lie within the map (%s)" % frame)
 				return Vector2.ZERO
-			return Vector2(float(x), float(y))
-	_error(ctx, "'%s' must be an array of two numbers" % field)
+			return data.map.project(float(lon), float(lat))
+	_error(ctx, "'coordinates' must be an array of two numbers [lon, lat]")
 	return Vector2.ZERO
 
 

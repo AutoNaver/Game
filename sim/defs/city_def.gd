@@ -4,7 +4,7 @@ extends RefCounted
 
 var id: String
 var name: String
-## Position on the world map in map units (not pixels).
+## Position on the world map in map units: km from the map's north-west corner (see MapDef).
 var map_position: Vector2
 ## Starting population.
 var population: int
