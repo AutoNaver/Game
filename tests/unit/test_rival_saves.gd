@@ -48,7 +48,7 @@ func test_version_3_saves_get_the_rivals_as_they_start() -> void:
 	assert_eq(world.next_ship_number, 4)
 
 
-func test_version_4_saves_keep_the_rivals_they_have() -> void:
+func test_current_saves_keep_the_rivals_they_have() -> void:
 	var sim := SmallWorld.rival_simulation(4)
 	sim.world.traders.remove_at(1)
 	var loader := SaveGame.new()

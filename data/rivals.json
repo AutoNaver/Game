@@ -16,7 +16,12 @@
       "color": "#5b8fd6",
       "start_city": "danzig",
       "coins": 5000,
-      "ships": [{ "type": "cog", "name": "Sankt Jürgen" }]
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Sankt Jürgen"
+        }
+      ]
     },
     {
       "id": "castorp",
@@ -24,7 +29,12 @@
       "color": "#5fb37a",
       "start_city": "stockholm",
       "coins": 5000,
-      "ships": [{ "type": "cog", "name": "Marienkrone" }]
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Marienkrone"
+        }
+      ]
     },
     {
       "id": "wulflam",
@@ -32,7 +42,40 @@
       "color": "#b07cc6",
       "start_city": "visby",
       "coins": 5000,
-      "ships": [{ "type": "cog", "name": "Seepferd" }]
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Seepferd"
+        }
+      ]
+    },
+    {
+      "id": "hildebrand",
+      "name": "Hildebrand",
+      "color": "#d6a05b",
+      "start_city": "riga",
+      "since_save": 7,
+      "coins": 5000,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Sankt Olav"
+        }
+      ]
+    },
+    {
+      "id": "brandes",
+      "name": "Brandes",
+      "color": "#c65f5f",
+      "start_city": "stralsund",
+      "since_save": 7,
+      "coins": 5000,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Gude Hoffnung"
+        }
+      ]
     }
   ]
 }

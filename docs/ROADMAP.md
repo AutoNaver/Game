@@ -106,9 +106,9 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 ## M11: More of the Baltic
 
-- [ ] New cities (Riga, Reval, Stralsund, Bergen, Novgorod) with sea lanes checked against the coastline
-- [ ] New goods (furs, wax, honey, pitch) with producers and consumers
-- [ ] Rebalance, and the map fits the larger area
+- [x] New cities (Riga, Reval, Stralsund, Bergen, Novgorod) with sea lanes checked against the coastline (river lanes to Novgorod, ADR 0012)
+- [x] New goods (furs, wax, honey, pitch) with producers and consumers
+- [x] Rebalance, and the map fits the larger area (two more rival houses, `import_factor` for Bergen and Novgorod, save version 7 grows older saves; the whole map fits at zoom 1)
 
 ## Progression (ADR 0009)
 

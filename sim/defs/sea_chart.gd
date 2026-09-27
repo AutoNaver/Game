@@ -11,6 +11,8 @@ var _order: Array[String] = []
 var _neighbours: Dictionary[String, PackedStringArray] = {}
 ## Every lane as [a, b] in the order added.
 var _lanes: Array[PackedStringArray] = []
+## Whether each lane in _lanes runs up a river (data/sea_lanes.json "rivers").
+var _rivers: Array[bool] = []
 ## Shortest routes already computed, keyed "from>to".
 var _routes: Dictionary[String, PackedVector2Array] = {}
 
@@ -30,18 +32,33 @@ func has_lane(a: String, b: String) -> bool:
 	return has_node(a) and _neighbours[a].has(b)
 
 
-func add_lane(a: String, b: String) -> void:
+## A `river` lane runs up a river to an inland city; ships sail it like any other lane, but it is
+## too narrow for the map's coastline check (see sea_segments()).
+func add_lane(a: String, b: String, river: bool = false) -> void:
 	assert(has_node(a) and has_node(b) and a != b, "invalid lane %s-%s" % [a, b])
 	_neighbours[a].append(b)
 	_neighbours[b].append(a)
 	_lanes.append(PackedStringArray([a, b]))
+	_rivers.append(river)
 	_routes.clear()
 
 
 ## Every configured lane as its two end points, in the order added (used / unused by routes alike).
 func lane_segments() -> Array[PackedVector2Array]:
+	return _segments(true)
+
+
+## Like lane_segments(), without the river lanes: the ones that must stay on open water.
+func sea_segments() -> Array[PackedVector2Array]:
+	return _segments(false)
+
+
+func _segments(with_rivers: bool) -> Array[PackedVector2Array]:
 	var segments: Array[PackedVector2Array] = []
-	for lane in _lanes:
+	for i in _lanes.size():
+		if _rivers[i] and not with_rivers:
+			continue
+		var lane := _lanes[i]
 		segments.append(PackedVector2Array([_positions[lane[0]], _positions[lane[1]]]))
 	return segments
 

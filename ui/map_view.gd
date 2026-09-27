@@ -4,9 +4,12 @@ extends Control
 ## house colours, smaller and unlabelled). Mouse wheel zooms around the cursor, dragging pans,
 ## clicking a city selects it. Positions are map units (km, see MapDef).
 
-const MAX_ZOOM: float = 6.0
+## Zoom is relative to the whole map fitting the view, so this is about 3 px per km on a
+## laptop-sized window.
+const MAX_ZOOM: float = 9.0
 const ZOOM_STEP: float = 1.15
 const CITY_RADIUS: float = 6.0
+const CITY_FONT_SIZE: int = 16
 const CLICK_RADIUS: float = 22.0
 ## Mouse travel before a press counts as a drag rather than a click.
 const DRAG_THRESHOLD: float = 4.0
@@ -68,7 +71,12 @@ func _draw_city(city: CityDef) -> void:
 		draw_arc(at, CITY_RADIUS + 5.0, 0.0, TAU, 32, SELECTED_COLOR, 2.5, true)
 	draw_circle(at, CITY_RADIUS + 1.5, CITY_OUTLINE)
 	draw_circle(at, CITY_RADIUS, CITY_FILL)
-	_draw_label(at + Vector2(CITY_RADIUS + 5.0, 5.0), city.name, 16)
+	# Right of the city, unless that runs off the view (Novgorod at the map's eastern edge).
+	var width := get_theme_default_font().get_string_size(city.name, 0, -1, CITY_FONT_SIZE).x
+	var offset := Vector2(CITY_RADIUS + 5.0, 5.0)
+	if at.x + offset.x + width > size.x:
+		offset.x = -CITY_RADIUS - 5.0 - width
+	_draw_label(at + offset, city.name, CITY_FONT_SIZE)
 
 
 ## The rest of the ship's voyage along the sea lanes.
@@ -191,18 +199,21 @@ func zoom() -> float:
 	return _zoom
 
 
-## Pixels per km: at zoom 1 the map covers the whole control, so there are no empty bars.
+## Pixels per km: at zoom 1 the whole map fits the control, from Bergen to Novgorod, with open sea
+## (BACKGROUND) along the sides it doesn't fill.
 func _scale() -> float:
 	var map_size := _session.sim.data.map.size_km()
-	return maxf(size.x / map_size.x, size.y / map_size.y) * _zoom
+	return minf(size.x / map_size.x, size.y / map_size.y) * _zoom
 
 
-## Keeps the map covering the view where it can, and centred along an axis where it is smaller.
+## Keeps the map covering the view where it can. Where it is smaller, it is centred across and
+## kept at the top, so the spare sea is at the bottom, under the log panel (main.gd).
 func _clamp_view() -> void:
 	var drawn := _session.sim.data.map.size_km() * _scale()
 	for axis: int in [Vector2.AXIS_X, Vector2.AXIS_Y]:
 		if drawn[axis] <= size[axis]:
-			_origin[axis] = (size[axis] - drawn[axis]) / 2.0
+			var centred := (size[axis] - drawn[axis]) / 2.0
+			_origin[axis] = centred if axis == Vector2.AXIS_X else 0.0
 		else:
 			_origin[axis] = clampf(_origin[axis], size[axis] - drawn[axis], 0.0)
 	queue_redraw()
