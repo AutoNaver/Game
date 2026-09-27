@@ -151,6 +151,34 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 
 Deferred P2 review findings go here, with the PR they came from.
 
+From a code review of `main` at c40d4c8 (2026-09-27):
+
+- [ ] Rivals churn workshops (#18): `_close_losing_workshops` judges today's margin, which the
+  workshop's own output and input buying have moved, and closes at once on `-INF` (inputs above
+  `input_price_limit`). Seed 1 over a year: 27 opened, 26 closed one expansion cycle later (24 with
+  inputs still stocked), 114,500 coins of build cost lost, and open/close news every 20 days. Add
+  hysteresis (several losing checks in a row), leave out the house's own market impact, or wait
+  while the kontor still holds inputs
+- [ ] Rivals' kontor buying keeps back only the current workshop's wages, not the house's total
+  (`RivalSystem._run_kontors`, #18)
+- [ ] Time can run while the save menu or route editor is open: the HUD speed buttons stay live,
+  and opening one dialog over the other restores the wrong speed on close (#13, #17)
+- [ ] Saves are written in place, so a crash mid-autosave corrupts the only autosave; write to a
+  temp file and rename (`SaveGame.save_file`, #13)
+- [ ] A named save called "autosave" (or "Autosave", the same file on Windows) is overwritten by
+  the next autosave; reserve the name case-insensitively (`SaveGame.check_slot_name`, #13)
+- [ ] `FleetPanel.batched_revenue` re-implements the sell price walk in the UI; move it into
+  `CityEconomy` with a sim test (#20)
+- [ ] #20 says the cargo manifest doesn't reveal distant markets, but `CargoDestinationPlanner`
+  (#21) and `TradePlanner` value cargo at every port; settle the rule before M12
+- [ ] Stale conservation wording: `WorldState.goods_ledger` and `EconomyInvariants`
+  (`_check_conservation` doc and message) still say only production and consumption, missing
+  off-map trade and workshops (and M10's sinks)
+- [ ] ARCHITECTURE.md: the layer diagram names a `Market` state class and "daily: … prices", and
+  Determinism still says "A test will enforce this from M1"
+- [ ] `tests/support/test_saves.gd` matches GUT's `test_` prefix, so every run logs 9 "Ignoring…"
+  warnings; rename it (for example `save_dir_guard.gd`)
+
 ## Later (parked, see GAME_DESIGN "After the MVP")
 
 Loans and banking, convoys with pirates and combat, politics.

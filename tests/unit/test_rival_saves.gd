@@ -68,6 +68,39 @@ func test_unknown_traders_are_rejected() -> void:
 	)
 
 
+func test_traders_out_of_order_are_rejected() -> void:
+	var sim := _played()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var traders: Array = save["traders"]
+	traders.reverse()
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_eq(
+		Array(loader.errors),
+		["traders must be in the order player, %s (got %s, player)" % [RIVAL, RIVAL]]
+	)
+
+
+func test_rival_houses_must_keep_the_data_order() -> void:
+	var data := SmallWorld.with_rival(SmallWorld.with_rival(SmallWorld.data()), "town", "baltic")
+	var sim := Simulation.new_game(data, 1)
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var loader := SaveGame.new()
+	assert_not_null(loader.from_dict(data, save), "the order a new game makes loads")
+	var traders: Array = save["traders"]
+	traders.push_back(traders.pop_at(1))
+	assert_null(loader.from_dict(data, save))
+	assert_eq(
+		Array(loader.errors),
+		[
+			(
+				"traders must be in the order player, %s, baltic (got player, baltic, %s)"
+				% [RIVAL, RIVAL]
+			)
+		]
+	)
+
+
 func test_net_worth_counts_coins_ships_buildings_and_goods() -> void:
 	var sim := SmallWorld.rival_simulation()
 	var rival := sim.world.get_trader(RIVAL)
