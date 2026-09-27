@@ -46,6 +46,14 @@ func test_valid_fixture_is_parsed_in_file_order() -> void:
 	assert_eq(lubeck.production_of("grain"), 0.5)
 	assert_eq(lubeck.production_of("wine"), 0.0)
 
+	var cog := data.get_ship("cog")
+	assert_eq([cog.name, cog.capacity, cog.speed, cog.price], ["Cog", 50, 10.0, 5000])
+	assert_eq(data.scenario.start_city, "lubeck")
+	assert_eq(data.scenario.coins, 5000)
+	assert_eq(data.scenario.ships.size(), 1)
+	assert_eq(data.scenario.ships[0].type_id, "cog")
+	assert_eq(data.scenario.ships[0].name, "Adler")
+
 
 func test_unknown_ids_return_null() -> void:
 	var data := GameDataLoader.new().load_dir(VALID_DIR)
@@ -81,6 +89,11 @@ func test_invalid_data_reports_every_problem() -> void:
 		"cities.json[2]: 'production' must be an object",
 		"cities.json[3]: 'map_position' coordinates must be within ±100000",
 		"cities.json[3]: 'population' must be at most 1000000000",
+		"ships.json[1]: 'capacity' must be a positive integer",
+		"ships.json[1]: 'speed' must be a number greater than 0.0 and less than 1000.0",
+		"scenario.json: 'start_city' is not a known city: 'atlantis'",
+		"scenario.json ships[0]: 'type' is not a known ship type: 'galleon'",
+		"scenario.json ships[1]: missing field 'name'",
 	]
 	assert_eq(Array(loader.errors), expected)
 
@@ -105,10 +118,11 @@ func test_malformed_json_reports_line() -> void:
 func test_missing_directory_reports_each_file() -> void:
 	var loader := GameDataLoader.new()
 	assert_null(loader.load_dir(MISSING_DIR))
-	assert_eq(loader.errors.size(), 3)
-	assert_string_starts_with(loader.errors[0], "economy.json: file not found")
-	assert_string_starts_with(loader.errors[1], "goods.json: file not found")
-	assert_string_starts_with(loader.errors[2], "cities.json: file not found")
+	var files: Array[String] = []
+	for message in loader.errors:
+		assert_string_contains(message, ": file not found at %s/" % MISSING_DIR)
+		files.append(message.get_slice(":", 0))
+	assert_eq(files, ["economy.json", "goods.json", "cities.json", "ships.json", "scenario.json"])
 
 
 func test_wrong_top_level_type_is_reported() -> void:
@@ -119,6 +133,8 @@ func test_wrong_top_level_type_is_reported() -> void:
 		[
 			"economy.json: top level must be an object",
 			"goods.json: top level must be an array",
+			"ships.json: top level must be an array",
+			"scenario.json: top level must be an object",
 		]
 	)
 

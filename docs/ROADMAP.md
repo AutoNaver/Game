@@ -27,10 +27,11 @@ Work top to bottom unless the owner reprioritizes.
 
 ## M2: Ships and trading
 
-- [ ] Data: ship types (capacity, speed, price)
-- [ ] Player trader state: coins, ships, cargo
-- [ ] Commands: buy, sell (with per-unit price walk), sail to city
-- [ ] Navigation: distance-based travel time, ships in transit update hourly
+- [x] Data: ship types (capacity, speed, price) and the starting scenario (`ships.json`, `scenario.json`)
+- [x] Player trader state: coins, ships, cargo
+- [x] Command layer (`Command`, `Simulation.execute`) and `SailCommand`
+- [ ] Commands: buy and sell (with per-unit price walk)
+- [x] Navigation: distance-based travel time, ships in transit update hourly
 - [ ] Integration test: a scripted profitable voyage makes money, and dumping cargo crashes the price
 
 ## M3: First playable UI

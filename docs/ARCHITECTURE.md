@@ -22,7 +22,7 @@ data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-
 - **`sim/state`** is everything that changes and gets saved. It holds plain data plus small
   helpers, and no rules.
 - **`sim/systems`** are stateless rule functions that mutate state for one tick or day.
-- **`sim/commands`** (from M2) are the only way actions enter the simulation. Each command has
+- **`sim/commands`** are the only way actions enter the simulation. Each command has
   `validate(state) -> String` (an empty string means OK) and `apply(state)`. The UI and the future AI
   both use them.
 - **`ui/`** holds Godot scenes. They observe state after each tick and send commands. They never
@@ -30,7 +30,7 @@ data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-
 
 ## Time
 
-`Simulation.tick()` advances one hour. Every 24 ticks it runs the daily systems in a fixed order:
+`Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24 ticks it runs the daily systems in a fixed order:
 production, then consumption. Prices are not stored. `Pricing` derives them from current stock
 whenever they are needed, so they can never go stale. The UI's speed setting decides how many ticks
 run per real second, so pausing is simply running zero ticks.

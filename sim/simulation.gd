@@ -1,7 +1,8 @@
 class_name Simulation
 extends RefCounted
-## Owns the world and advances it. One tick is one in-game hour; the daily systems run whenever a
-## tick completes a day, in a fixed order: production, then consumption.
+## Owns the world and advances it. One tick is one in-game hour: ships move every tick, and the
+## daily systems run whenever a tick completes a day, in a fixed order: production, then
+## consumption. Actions enter only through execute().
 ##
 ## Prices are not stored: they are derived from stock on demand (see Pricing, CityEconomy).
 
@@ -16,7 +17,8 @@ func _init(p_data: GameData, p_world: WorldState) -> void:
 	world = p_world
 
 
-## Starts a new game: every city holds its target stock of every good, so prices start at base.
+## Starts a new game: every city holds its target stock of every good, so prices start at base,
+## and the player starts as described in data/scenario.json.
 static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	var world := WorldState.new()
 	world.rng.seed = seed_value
@@ -28,6 +30,11 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 			city.consumption_carry[good.id] = 0.0
 			city.shortage[good.id] = 0
 		world.add_city(city)
+	var scenario := p_data.scenario
+	var player := TraderState.new(WorldState.PLAYER_ID, "Player", scenario.coins)
+	world.traders.append(player)
+	for ship in scenario.ships:
+		world.add_ship(player, ship.type_id, ship.name, scenario.start_city)
 	return Simulation.new(p_data, world)
 
 
@@ -37,8 +44,17 @@ func day() -> int:
 	return world.hour / HOURS_PER_DAY
 
 
+## Validates and applies a command. Returns "" on success, otherwise why nothing happened.
+func execute(command: Command) -> String:
+	var error := command.validate(self)
+	if error.is_empty():
+		command.apply(self)
+	return error
+
+
 func tick() -> void:
 	world.hour += 1
+	MovementSystem.run_hour(world)
 	if world.hour % HOURS_PER_DAY == 0:
 		ProductionSystem.run_day(data, world)
 		ConsumptionSystem.run_day(data, world)
