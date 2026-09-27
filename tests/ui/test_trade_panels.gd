@@ -45,9 +45,24 @@ func test_fleet_summary_and_cargo_manifest_follow_trades() -> void:
 	)
 	assert_string_contains(_text("FleetSummary"), "Cargo 10/50")
 	assert_string_contains(_text("CargoManifest"), "10 Beer · %d coins" % revenue)
-	assert_string_contains(_text("CargoManifest"), "Sell here now: %d coins total" % revenue)
+	assert_string_contains(
+		_text("CargoManifest"), "Sell here now, 10 at a time: %d coins total" % revenue
+	)
 	_press("Sell_beer")
 	assert_string_contains(_text("CargoManifest"), "Empty hold")
+
+
+func test_manifest_total_is_what_the_sell_clicks_pay() -> void:
+	_press("Quantity_25")
+	_press("Buy_beer")
+	_press("Buy_beer")
+	assert_eq(_ship().cargo, {"beer": 50})
+	var manifest := _text("CargoManifest")
+	var coins := _session.player().coins
+	_press("Sell_beer")
+	_press("Sell_beer")
+	var paid := _session.player().coins - coins
+	assert_string_contains(manifest, "Sell here now, 25 at a time: %d coins total" % paid)
 
 
 func test_cargo_manifest_hides_distant_prices_until_docking() -> void:
@@ -60,7 +75,7 @@ func test_cargo_manifest_hides_distant_prices_until_docking() -> void:
 	assert_false(_text("CargoManifest").contains("coins"))
 	_session.advance(_ship().voyage_hours)
 	assert_string_contains(_text("FleetSummary"), "Docked 1 · Sailing 0")
-	assert_string_contains(_text("CargoManifest"), "Sell here now:")
+	assert_string_contains(_text("CargoManifest"), "Sell here now,")
 
 
 func test_buying_stops_at_free_cargo_space() -> void:

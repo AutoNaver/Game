@@ -120,15 +120,35 @@ func _refresh_manifest(ship: ShipState) -> void:
 			continue
 		var line := "%d %s" % [units, good.name]
 		if port != null:
-			var revenue := CityEconomy.sell_revenue(_session.sim.data.economy, port, good, units)
+			var economy := _session.sim.data.economy
+			var revenue := batched_revenue(economy, port, good, units, _session.trade_quantity)
 			line += " · %d coins" % revenue
 			total += revenue
 		lines.append(line)
 	if port != null:
-		lines.append("Sell here now: %d coins total" % total)
+		var batch := _session.trade_quantity
+		lines.append("Sell here now, %d at a time: %d coins total" % [batch, total])
 	else:
 		lines.append("Sale prices available when docked")
 	_manifest.text = "\n".join(lines)
+
+
+## Coins for selling `units` of `good` in `city` with Sell clicks of `batch` units each, as the
+## market panel sells them: each click is priced and rounded down on its own (SellCommand), so
+## small batches can pay a coin or two less than one large sale.
+static func batched_revenue(
+	economy: EconomyDef, city: CityState, good: GoodDef, units: int, batch: int
+) -> int:
+	var target := CityEconomy.target_stock(economy, city, good)
+	var stock: int = city.stock[good.id]
+	var total := 0
+	var left := units
+	while left > 0:
+		var quantity := mini(batch, left)
+		total += Pricing.sell_revenue(economy, good.base_price, target, stock, quantity)
+		stock += quantity
+		left -= quantity
+	return total
 
 
 func _refresh_route(ship: ShipState) -> void:
