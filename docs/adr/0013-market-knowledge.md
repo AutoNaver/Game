@@ -1,4 +1,4 @@
-# ADR 0012: Market knowledge per trading house
+# ADR 0013: Market knowledge per trading house
 
 - Status: accepted
 - Date: 2026-09-27
@@ -29,9 +29,10 @@ ships move, and the same information limits for rival houses.
   route editor use the player's book. They show the observation day and age, or an unknown marker.
   Active city events are shown only with live presence. Rivals use their own books to value remote
   destinations; local trades still execute against the real current market.
-- Save version 7 stores every house's book and each ship's departure news. Loading versions 1 to
-  6 gives each house a one-time report of all current markets, preserving information that those
-  versions exposed globally. Newly started games only know cities with initial presence.
+- Save version 8 stores every house's book and each ship's departure news. Loading versions 1 to
+  7 gives each house a one-time report of all current markets (after older saves have grown into
+  the larger world, ADR 0012), preserving information that those versions exposed globally.
+  Newly started games only know cities with initial presence.
   Save validation checks report shape, ids, days and bounds.
 - The old world price history remains in saves for compatibility. Charts read the trader's
   observation history, so the global series does not leak unseen prices.
@@ -42,13 +43,25 @@ With the prior off-map import rate of 1.5, a 365-day no-player soak at seed 1 le
 0.74 times its home population, below the required 0.80 floor; the same seed on M10 ended at
 0.93. The changed rival trading pattern exposed a need for more background supply. Raising
 `data/economy.json`'s `import_rate` to 2.0 kept all cities within the 0.80 to 1.25 band in
-one-year soaks for seeds 1 to 5; Stockholm ended between 0.84 and 0.95.
+one-year soaks for seeds 1 to 5 of the four-city world.
 
-With that tuning, the 365-day `tools/balance.gd` probe (seeds 1 to 5) ended day 360 with 58,170
-to 110,303 player coins, averaging 83,997, versus about 89,600 before M12 (ADR 0011). The bot
-now explores an unknown city when it has no known profitable trade. Rival houses continued to
-sail and expand; their final net worths ranged from 98,942 to 230,808. The stronger background
-imports offset some lost player trading opportunities while keeping the information constraint.
+**On the larger world of M11 (ADR 0012)** two more changes were needed:
+
+- Lübeck is no rival house's home port, so under market knowledge the houses rarely learned its
+  prices and never supplied it: five-year soaks left it at 0.74x on two of four seeds. Lübeck
+  gets `import_factor` 1.5 for its overland link to Hamburg and the North Sea, like Bergen and
+  Novgorod (ADR 0012).
+- A house that stopped visiting a city never learned it paid again, so Stockholm ended at about
+  0.69x or about 1.04x depending on the seed. Rival ships now explore: with `explore_chance` (0.15,
+  `data/rivals.json` ai, optional) a ship leaving port sails for the city its house knows least
+  recently (unknown first, then the oldest report) with the best known load there if one pays,
+  drawing on the world RNG like every rival choice.
+
+Five-year soaks (seeds 1, 2, 3 and 7) then end every city between 0.88x and 1.13x its home
+population. `tools/balance.gd` (seeds 1 to 5): the bot has about 9,400 coins after a month,
+29,300 after 90 days and 99,400 after a year (M11 with full knowledge: 12,800 and 108,500). The
+five houses average 197,500 net worth (M11: 234,000). Knowing less costs everyone something,
+most of all in the first month, before the bot's book fills.
 
 ## Consequences
 

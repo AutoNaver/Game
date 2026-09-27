@@ -301,7 +301,8 @@ func _explain_price(record: MarketRecord, good: GoodDef, live: bool) -> String:
 		lines.append("Local workshops make up to %.1f a day" % produced)
 	if record.shortage[good.id] > 0:
 		lines.append("Ran short by %d yesterday" % record.shortage[good.id])
-	var flow := OffMapTradeSystem.expected_flow(economy, city, good)
+	var import_factor := _session.sim.data.get_city(city.id).import_factor
+	var flow := OffMapTradeSystem.expected_flow(economy, city, good, import_factor)
 	if flow >= 0.05:
 		lines.append("Overland traders bring about %.1f a day" % flow)
 	elif flow <= -0.05:

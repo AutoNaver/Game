@@ -129,10 +129,18 @@ static func _trade_and_sail(sim: Simulation, trader: TraderState, ship: ShipStat
 	)
 	var choice := pick_option(sim.world.rng, options, sim.data.rival_ai.top_choices)
 	var destination := ""
+	# Always draw, so whether a ship explores never shifts later draws.
+	if sim.world.rng.randf() < sim.data.rival_ai.explore_chance:
+		destination = stalest_city(trader, sim.data, ship.docked_at)
+		choice = null
+		for option in options:
+			if option.destination == destination:
+				choice = option
+				break
 	if choice != null:
 		sim.execute(BuyCommand.new(trader.id, ship.id, choice.good_id, choice.quantity))
 		destination = choice.destination
-	else:
+	elif destination.is_empty():
 		destination = _random_other_city(sim, ship.docked_at)
 	if not destination.is_empty():
 		sim.execute(SailCommand.new(trader.id, ship.id, destination))
@@ -155,6 +163,24 @@ static func pick_option(
 		if roll < 0.0:
 			return options[i]
 	return options[count - 1]
+
+
+## The city other than `city_id` that `trader` knows least recently: one with no report first,
+## then the oldest report, in data order among equals. Exploring ships sail there (with the best
+## known load there, if any pays), because a house that stopped visiting a city would otherwise
+## never learn that it now pays. "" in a world with only one city.
+static func stalest_city(trader: TraderState, data: GameData, city_id: String) -> String:
+	var stalest := ""
+	var stalest_day := 0
+	for city in data.cities:
+		if city.id == city_id:
+			continue
+		var report: MarketRecord = trader.market_book.get(city.id)
+		var day := -1 if report == null else report.day
+		if stalest.is_empty() or day < stalest_day:
+			stalest = city.id
+			stalest_day = day
+	return stalest
 
 
 ## A random city other than `city_id`, or "" in a world with only one city (the ship stays).

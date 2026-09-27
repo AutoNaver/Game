@@ -13,6 +13,9 @@ var base_price: int
 var consumption_per_1000: float
 ## Share of the units stored in ships and kontors that spoils each day (0 for goods that keep).
 var spoilage_per_day: float = 0.0
+## First save version whose world has this entry (data "since_save", default 1). Saves from before
+## it get the entry added as a new game starts it; later saves must contain it (SaveGame).
+var since_save: int = 1
 
 
 func _init(

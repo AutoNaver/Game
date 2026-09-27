@@ -1,0 +1,5 @@
+[
+  { "id": "gale", "name": "Gale", "kind": "storm", "chance_per_day": 0.05, "min_days": 1, "max_days": 3, "slowdown": 3 },
+  { "id": "blight", "name": "Blight", "kind": "harvest_failure", "chance_per_day": 0.01, "min_days": 10, "max_days": 20, "goods": ["grain"], "factor": 0.5 },
+  { "id": "fire", "name": "Fire", "kind": "fire", "chance_per_day": 0.002, "min_days": 2, "max_days": 2, "loss_share": 0.1 }
+]

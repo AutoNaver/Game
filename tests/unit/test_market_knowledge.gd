@@ -78,7 +78,7 @@ func test_market_books_save_and_old_saves_get_initial_reports() -> void:
 	assert_not_null(loaded)
 	assert_eq(SaveGame.to_dict(loaded), save)
 	var old: Dictionary = save.duplicate(true)
-	old["save_version"] = 6
+	old["save_version"] = 7
 	for trader: Dictionary in old["traders"]:
 		trader.erase("market_book")
 		for ship: Dictionary in trader["ships"]:

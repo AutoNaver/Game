@@ -125,7 +125,7 @@ func test_zoom_keeps_the_point_under_the_cursor() -> void:
 func test_zoom_and_pan_stay_within_the_map() -> void:
 	var map := _find("Map") as MapView
 	map.zoom_at(Vector2.ZERO, 0.1)
-	assert_eq(map.zoom(), 1.0, "cannot zoom out past the map covering the view")
+	assert_eq(map.zoom(), 1.0, "cannot zoom out past the whole map")
 	map.zoom_at(Vector2.ZERO, 100.0)
 	assert_eq(map.zoom(), MapView.MAX_ZOOM)
 	map.pan(Vector2(10_000, 10_000))
@@ -137,6 +137,14 @@ func test_side_panel_scrolls_instead_of_stretching_the_screen() -> void:
 	var body := _find("Map").get_parent() as Control
 	assert_true(body.size.y <= SCREEN_SIZE.y, "the body fits the window")
 	assert_true(_find("SidePanel").find_child("Scroll", true, false) is ScrollContainer)
+
+
+func test_the_whole_map_fits_at_the_start() -> void:
+	await wait_process_frames(2)
+	var map := _find("Map") as MapView
+	for city in _session.sim.data.cities:
+		var at := map.to_screen(city.map_position)
+		assert_true(Rect2(Vector2.ZERO, map.size).has_point(at), "%s is on screen" % city.id)
 
 
 func test_open_sea_is_not_a_city() -> void:

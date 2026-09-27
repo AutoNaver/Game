@@ -2,8 +2,9 @@
 
 A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4.
 
-Status: **M7**: the MVP (trade, ships, kontors, workshops, save/load) plus readable markets, cargo
-ideas, notifications, save slots and trade routes. See [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: **M11**: the MVP (trade, ships, kontors, workshops, save/load) plus readable markets, cargo
+ideas, notifications, save slots, trade routes, rival houses, growing cities, events and spoilage,
+and nine cities from Bergen to Novgorod. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 The fleet panel summarizes ship locations and capacity. Select a ship to see its cargo and, while
 docked, what selling that cargo in the current port would pay at today's prices.

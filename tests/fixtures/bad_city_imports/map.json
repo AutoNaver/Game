@@ -1,7 +1,7 @@
 {
   "image": "res://assets/map/baltic.png",
-  "west_lon": 4.0,
-  "east_lon": 33.0,
+  "west_lon": 8.0,
+  "east_lon": 30.5,
   "south_lat": 53.2,
   "north_lat": 61.5,
   "reference_lat": 57.0

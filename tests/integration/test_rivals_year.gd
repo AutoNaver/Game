@@ -16,7 +16,7 @@ func test_rivals_grow_for_a_year_without_breaking_invariants() -> void:
 		sim.advance_days(mini(CHECK_EVERY_DAYS, DAYS - sim.day()))
 		var day := sim.day()
 		assert_eq(EconomyInvariants.check(data, sim.world), PackedStringArray(), "day %d" % day)
-	assert_eq(data.rivals.size(), 3)
+	assert_eq(data.rivals.size(), 5)
 	for rival in data.rivals:
 		var trader := sim.world.get_trader(rival.id)
 		var worth := HouseValue.net_worth(data, trader)
