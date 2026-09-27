@@ -189,6 +189,8 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 				Simulation.add_rival(world, rival)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
+		_check_trader_order(data, world)
+	if errors.is_empty():
 		errors.append_array(EconomyInvariants.check(data, world))
 	return world if errors.is_empty() else null
 
@@ -228,6 +230,21 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 			errors.append("%s id '%s' is not of the form %s_<number>" % [kind, id, kind])
 		elif number >= next_numbers[kind]:
 			errors.append("id '%s' is not below the next free number %d" % [id, next_numbers[kind]])
+
+
+## The player comes first, then the rival houses in data order (WorldState.traders). The systems
+## act in that order every hour and day, so a reordered save would play out differently.
+func _check_trader_order(data: GameData, world: WorldState) -> void:
+	var expected := PackedStringArray([WorldState.PLAYER_ID])
+	for rival in data.rivals:
+		if world.get_trader(rival.id) != null:
+			expected.append(rival.id)
+	var actual := PackedStringArray()
+	for trader in world.traders:
+		actual.append(trader.id)
+	if actual != expected:
+		var order := [", ".join(expected), ", ".join(actual)]
+		errors.append("traders must be in the order %s (got %s)" % order)
 
 
 func _see_id(seen: Dictionary[String, String], id: String, kind: String) -> void:

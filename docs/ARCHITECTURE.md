@@ -77,7 +77,9 @@ version 1 and 2 saves get no trade routes, version 1 to 3 saves get the rival ho
 start, version 1 to 4 saves get neutral city satisfaction, and version 1 to 5 saves get no world
 events or spoilage carries). City populations change in play, so saves check them against the
 bounds in `data/population.json` rather than `data/cities.json`. Every trader in a save must be
-the player or a house from `data/rivals.json`. Saves are named slots in `user://saves`, plus an autosave every few in-game days.
+the player or a house from `data/rivals.json`, in that order (the player first, then the houses in
+data order), since the systems act in that order. Saves are named slots in `user://saves`, plus an
+autosave every few in-game days.
 
 ## Testing
 
