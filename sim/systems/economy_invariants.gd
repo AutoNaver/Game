@@ -25,7 +25,38 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			var price := Pricing.mid_price(economy, good.base_price, target, maxi(stock, 0))
 			if not is_finite(price) or price < low - 0.001 or price > high + 0.001:
 				violations.append("%s: price %f outside [%f, %f]" % [where, price, low, high])
+	for trader in world.traders:
+		if trader.coins < 0:
+			violations.append(
+				"hour %d, %s: negative coins %d" % [world.hour, trader.id, trader.coins]
+			)
+		for ship in trader.ships:
+			violations.append_array(_check_ship(data, world.hour, ship))
 	violations.append_array(_check_conservation(data, world))
+	return violations
+
+
+static func _check_ship(data: GameData, hour: int, ship: ShipState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	var where := "hour %d, %s" % [hour, ship.id]
+	for good_id: String in ship.cargo.keys():
+		if not data.has_good(good_id) or ship.cargo[good_id] <= 0:
+			violations.append("%s: bad cargo entry %s=%d" % [where, good_id, ship.cargo[good_id]])
+	if not data.has_ship(ship.type_id):
+		violations.append("%s: unknown ship type '%s'" % [where, ship.type_id])
+	elif ship.cargo_total() > data.get_ship(ship.type_id).capacity:
+		var capacity := data.get_ship(ship.type_id).capacity
+		violations.append("%s: cargo %d over capacity %d" % [where, ship.cargo_total(), capacity])
+	if ship.is_docked():
+		if not data.has_city(ship.docked_at):
+			violations.append("%s: docked at unknown city '%s'" % [where, ship.docked_at])
+	elif (
+		not data.has_city(ship.origin)
+		or not data.has_city(ship.destination)
+		or ship.hours_sailed < 0
+		or ship.hours_sailed >= ship.voyage_hours
+	):
+		violations.append("%s: invalid voyage %s -> %s" % [where, ship.origin, ship.destination])
 	return violations
 
 
@@ -37,6 +68,9 @@ static func _check_conservation(data: GameData, world: WorldState) -> PackedStri
 		var total := 0
 		for city in world.cities:
 			total += city.stock[good.id]
+		for trader in world.traders:
+			for ship in trader.ships:
+				total += ship.cargo_of(good.id)
 		var expected: int = world.goods_ledger[good.id]
 		if total != expected:
 			var message := "hour %d, %s: %d units exist but production and consumption account for %d"

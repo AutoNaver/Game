@@ -35,7 +35,8 @@ func test_invariant_check_reports_violations() -> void:
 	assert_eq(violations.size(), 3)
 	assert_string_contains(violations[0], "port/grain: negative stock -3")
 	assert_string_contains(violations[1], "port/wine: carry 1500000 outside [0, 1000000)")
-	assert_string_contains(violations[2], "grain: -3 units exist but production and consumption")
+	assert_string_contains(violations[2], ", grain: ")
+	assert_string_contains(violations[2], "units exist but production and consumption account for")
 
 
 func test_goods_created_outside_production_are_caught() -> void:

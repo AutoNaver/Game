@@ -13,6 +13,8 @@ const DEFAULT_DIR: String = "res://data"
 const ECONOMY_FILE: String = "economy.json"
 const GOODS_FILE: String = "goods.json"
 const CITIES_FILE: String = "cities.json"
+const SHIPS_FILE: String = "ships.json"
+const SCENARIO_FILE: String = "scenario.json"
 
 const ECONOMY_FIELDS: PackedStringArray = [
 	"days_of_cover",
@@ -25,10 +27,17 @@ const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
 ]
 const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "population", "production"]
+const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
+const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
+const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
 const MAX_PRODUCTION_PER_DAY: float = 10000.0
+const MAX_SHIP_SPEED: float = 1000.0
+## Slowest allowed speed. With coordinates within ±MAX_MAP_COORDINATE the longest route is about
+## 283k map units, so the longest voyage stays near 2.8M hours: far inside int range.
+const MIN_SHIP_SPEED: float = 0.1
 
 ## Upper bounds for plain numbers. JSON allows values like 1e100 that overflow int or Vector2
 ## (32-bit floats in the standard build), so anything beyond these is rejected as a data error.
@@ -72,6 +81,21 @@ func load_dir(dir: String) -> GameData:
 		else:
 			data.add_city(city)
 			_check_stock_caps(city, data, ctx)
+
+	var ships := _read_array(dir.path_join(SHIPS_FILE))
+	for i in ships.size():
+		var ctx := "%s[%d]" % [SHIPS_FILE, i]
+		var ship := _parse_ship(ships[i], ctx)
+		if ship == null:
+			continue
+		if data.has_ship(ship.id):
+			_error(ctx, "duplicate id '%s'" % ship.id)
+		else:
+			data.add_ship(ship)
+
+	var scenario: Variant = _read_json(dir.path_join(SCENARIO_FILE), TYPE_DICTIONARY)
+	if scenario != null:
+		data.scenario = _parse_scenario(scenario as Dictionary, SCENARIO_FILE, data)
 
 	if not errors.is_empty():
 		return null
@@ -190,6 +214,62 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 		if _check_rate_resolution(rate, field, ctx):
 			production[good_id] = rate
 	return production
+
+
+func _parse_ship(raw: Variant, ctx: String) -> ShipDef:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	_check_fields(entry, SHIP_FIELDS, ctx)
+	var id := _get_id(entry, ctx)
+	var ship_name := _get_string(entry, "name", ctx)
+	var capacity := _get_positive_int(entry, "capacity", ctx)
+	var speed := _get_float_between(entry, "speed", MIN_SHIP_SPEED, MAX_SHIP_SPEED, ctx, true)
+	var price := _get_positive_int(entry, "price", ctx)
+	if errors.size() > error_count:
+		return null
+	return ShipDef.new(id, ship_name, capacity, speed, price)
+
+
+## Cities and ships must already be loaded into `data`.
+func _parse_scenario(entry: Dictionary, ctx: String, data: GameData) -> ScenarioDef:
+	var error_count := errors.size()
+	_check_fields(entry, SCENARIO_FIELDS, ctx)
+	var start_city := _get_string(entry, "start_city", ctx)
+	if not start_city.is_empty() and not data.has_city(start_city):
+		_error(ctx, "'start_city' is not a known city: '%s'" % start_city)
+	var coins := _get_positive_int(entry, "coins", ctx)
+	var ships: Array[ScenarioDef.StartingShip] = []
+	if entry.has("ships"):
+		if not entry["ships"] is Array or (entry["ships"] as Array).is_empty():
+			_error(ctx, "'ships' must be a non-empty array")
+		else:
+			var raw_ships: Array = entry["ships"]
+			for i in raw_ships.size():
+				var ship := _parse_starting_ship(raw_ships[i], "%s ships[%d]" % [ctx, i], data)
+				if ship != null:
+					ships.append(ship)
+	if errors.size() > error_count:
+		return null
+	return ScenarioDef.new(start_city, coins, ships)
+
+
+func _parse_starting_ship(raw: Variant, ctx: String, data: GameData) -> ScenarioDef.StartingShip:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	_check_fields(entry, STARTING_SHIP_FIELDS, ctx)
+	var type_id := _get_string(entry, "type", ctx)
+	if not type_id.is_empty() and not data.has_ship(type_id):
+		_error(ctx, "'type' is not a known ship type: '%s'" % type_id)
+	var ship_name := _get_string(entry, "name", ctx)
+	if errors.size() > error_count:
+		return null
+	return ScenarioDef.StartingShip.new(type_id, ship_name)
 
 
 ## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would
