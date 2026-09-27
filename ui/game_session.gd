@@ -6,11 +6,15 @@ extends Node
 
 signal changed
 signal message_posted(text: String)
+## A new entry in the notification log (already dated).
+signal notified(entry: String)
 
 ## Selectable game speeds, as multipliers of HOURS_PER_SECOND. 0 is paused.
 const SPEEDS: Array[int] = [0, 1, 2, 4]
 ## In-game hours per real second at 1× speed.
 const HOURS_PER_SECOND: float = 2.0
+## Notification log entries kept.
+const MAX_LOG: int = 50
 
 var sim: Simulation
 var speed: int = 1
@@ -20,6 +24,11 @@ var selected_ship: String = ""
 var save_slot: String = "quicksave"
 ## Units per click for trades and transfers, chosen in the market panel.
 var trade_quantity: int = 1
+## Pause the game when one of the player's ships arrives, so arrivals aren't missed at speed.
+var pause_on_arrival: bool = true
+## Dated notifications, oldest first: arrivals and workshops that stopped. Kept for the session;
+## the last MAX_LOG entries only.
+var notification_log: PackedStringArray = []
 
 var _pending_hours: float = 0.0
 
@@ -67,18 +76,36 @@ func set_speed(value: int) -> void:
 	changed.emit()
 
 
-## Runs `hours` ticks immediately, regardless of speed. Announces ships that arrive.
+## Runs `hours` ticks immediately, regardless of speed. Notifies about ships that arrive and
+## workshops that stop working, and pauses on arrivals if pause_on_arrival is set.
 func advance(hours: int) -> void:
 	var at_sea: Array[ShipState] = []
 	for ship in player().ships:
 		if not ship.is_docked():
 			at_sea.append(ship)
+	var statuses := _workshop_statuses()
 	for i in hours:
 		sim.tick()
+	var arrived := false
 	for ship in at_sea:
 		if ship.is_docked():
-			message_posted.emit("%s arrived in %s" % [ship.name, _city_name(ship.docked_at)])
+			arrived = true
+			notify("%s arrived in %s" % [ship.name, _city_name(ship.docked_at)])
+	_notify_stopped_workshops(statuses)
+	if arrived and pause_on_arrival and speed != 0:
+		speed = 0
+		_pending_hours = 0.0
 	changed.emit()
+
+
+## Adds a dated entry to the notification log and shows it as the latest message.
+func notify(text: String) -> void:
+	var entry := "Day %d: %s" % [sim.day() + 1, text]
+	notification_log.append(entry)
+	if notification_log.size() > MAX_LOG:
+		notification_log = notification_log.slice(notification_log.size() - MAX_LOG)
+	message_posted.emit(text)
+	notified.emit(entry)
 
 
 ## Executes a player command. Failures are posted as a message instead of changing anything.
@@ -124,6 +151,32 @@ func _process(delta: float) -> void:
 	if hours > 0:
 		_pending_hours -= hours
 		advance(hours)
+
+
+## "status/missing good" per workshop id of the player's, to spot changes across a step.
+func _workshop_statuses() -> Dictionary[String, String]:
+	var statuses: Dictionary[String, String] = {}
+	for kontor in player().kontors_in_order(sim.data.cities):
+		for workshop in kontor.workshops:
+			statuses[workshop.id] = "%d/%s" % [workshop.status, workshop.missing_good]
+	return statuses
+
+
+## Notifies once when a workshop goes idle, or idles for a different reason than before.
+func _notify_stopped_workshops(before: Dictionary[String, String]) -> void:
+	var idle: Array[WorkshopState.Status] = [
+		WorkshopState.Status.NO_INPUTS,
+		WorkshopState.Status.KONTOR_FULL,
+		WorkshopState.Status.UNPAID,
+	]
+	for kontor in player().kontors_in_order(sim.data.cities):
+		for workshop in kontor.workshops:
+			var now := "%d/%s" % [workshop.status, workshop.missing_good]
+			if not idle.has(workshop.status) or before.get(workshop.id, now) == now:
+				continue
+			var workshop_type := sim.data.get_workshop(workshop.type_id)
+			var status := KontorPanel.status_text(sim.data, workshop)
+			notify("%s in %s: %s" % [workshop_type.name, _city_name(kontor.city_id), status])
 
 
 func _city_name(city_id: String) -> String:

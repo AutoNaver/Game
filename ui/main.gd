@@ -51,6 +51,15 @@ func _ready() -> void:
 	hints.position = Vector2(12, 12)
 	map.add_child(hints)
 	hints.setup(session)
+	var log_panel := LogPanel.new()
+	log_panel.name = "Log"
+	map.add_child(log_panel)
+	log_panel.setup(session)
+	# Bottom-left corner of the map, growing upwards as entries wrap.
+	log_panel.set_anchors_and_offsets_preset(
+		Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 12
+	)
+	log_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 
 func _show_fatal(text: String) -> void:

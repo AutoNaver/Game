@@ -126,15 +126,17 @@ func _refresh_workshops(kontor: KontorState) -> void:
 	for i in kontor.workshops.size():
 		var workshop := kontor.workshops[i]
 		var workshop_type := _session.sim.data.get_workshop(workshop.type_id)
-		_workshop_labels[i].text = "%s: %s" % [workshop_type.name, _status_text(workshop)]
+		var status := status_text(_session.sim.data, workshop)
+		_workshop_labels[i].text = "%s: %s" % [workshop_type.name, status]
 
 
-func _status_text(workshop: WorkshopState) -> String:
+## How the workshop's last day went, in words. Shared with the notification log.
+static func status_text(data: GameData, workshop: WorkshopState) -> String:
 	match workshop.status:
 		WorkshopState.Status.WORKED:
 			return "working"
 		WorkshopState.Status.NO_INPUTS:
-			return "idle, needs %s" % _session.sim.data.get_good(workshop.missing_good).name
+			return "idle, needs %s" % data.get_good(workshop.missing_good).name
 		WorkshopState.Status.KONTOR_FULL:
 			return "idle, kontor full"
 		WorkshopState.Status.UNPAID:
