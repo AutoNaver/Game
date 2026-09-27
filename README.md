@@ -2,7 +2,7 @@
 
 A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4.
 
-Status: **M0 foundation**. See [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: **MVP (M0–M5)**: trade, ships, kontors, workshops, save/load. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Requirements
 
@@ -12,6 +12,13 @@ Status: **M0 foundation**. See [docs/ROADMAP.md](docs/ROADMAP.md).
 ## Run
 
 Open the folder in Godot and press F5, or run `godot` from the repo root.
+
+## Download a build
+
+Every CI run on a PR or on `main` exports a Windows build. Open the run under the repository's
+Actions tab and download the `hanse-windows` artifact; it holds a single `Hanse.exe`.
+
+Saves go to `%APPDATA%\Godot\app_userdata\Hanse (working title)\saves\`.
 
 ## Check
 

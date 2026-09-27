@@ -27,7 +27,7 @@ is fun, and every milestone ends in something a human can play.
 | `ui/` | Godot scenes and scripts. Read sim state and issue commands, nothing else. |
 | `data/` | JSON definitions (goods, cities, and later buildings and ships). Balance lives here. |
 | `tests/` | GUT tests. `unit/` for single classes, `integration/` for multi-day runs. `fixtures/` for test data. |
-| `tools/` | Headless dev tools (`soak.gd`). Same rules as `sim/`: typed, deterministic. |
+| `tools/` | Headless dev tools (`soak.gd`, `balance.gd`) and map scripts. Same rules as `sim/`: typed, deterministic. |
 | `scripts/check.sh` | Every check CI runs, in one command. |
 | `addons/gut/` | Vendored test framework (GUT 9.7.1). Never edit it. |
 | `docs/` | Design, roadmap, architecture, ADRs. |
@@ -40,6 +40,7 @@ Toolchain: **Godot 4.7.2** (standard build, not .NET), **gdtoolkit 4.5.0** (`pip
 scripts/check.sh                                     # everything CI runs; must pass before pushing
 godot --headless -s addons/gut/gut_cmdln.gd          # tests only (config: .gutconfig.json)
 godot --headless -s res://tools/soak.gd -- --days 365 --seed 1   # economy soak + market summary
+godot --headless -s res://tools/balance.gd -- --days 365          # greedy-bot money curve (ADR 0005)
 gdformat sim ui tests                                # format (tabs, 100 cols)
 gdlint sim ui tests                                  # lint
 godot                                                # run the game (main scene: ui/main.tscn)
@@ -66,7 +67,8 @@ stdout. The first run after a fresh clone needs `godot --headless --import`; `ch
    Any change to the saved shape bumps the version and ships a migration or an explicit decision
    to break old saves.
 7. **Economy invariants.** Stock and money never go negative. Prices are always finite and clamped.
-   Goods are only created by production and only destroyed by consumption, never by trading.
+   Goods are only created by production and off-map imports, and only destroyed by consumption and
+   off-map exports (ADR 0005), all booked in the goods ledger. Trading never creates or destroys them.
 
 ## 5. Coding conventions
 
@@ -151,8 +153,8 @@ Flag these as **P0/P1**:
 - Nondeterminism: the global RNG (`randf`, `randi`, `randomize`), iteration over dictionaries where
   order affects results, float accumulation that makes outcomes depend on tick batching.
 - Broken economy invariants: stock or money can go negative, prices can become NaN, infinite or
-  unclamped, and goods or money are created or destroyed outside production, consumption and explicit
-  income or costs.
+  unclamped, and goods or money are created or destroyed outside production, consumption, off-map
+  trade (booked in the goods ledger) and explicit income or costs.
 - Validation holes: data or save input that can crash the game or silently produce wrong state
   instead of a clear error.
 - A save-format change without a `save_version` bump and a migration or explicit decision.

@@ -175,3 +175,16 @@ func test_stock_cap_is_exact_for_whole_results() -> void:
 	assert_eq(CityEconomy.stock_cap(economy, city, good), 55)
 	economy.stock_cap_factor = 1.111
 	assert_eq(CityEconomy.stock_cap(economy, city, good), 56, "55.55 rounds up")
+
+
+func test_workers_hired_by_traders_reduce_city_production() -> void:
+	var sim := SmallWorld.simulation()
+	var port := sim.world.get_city("port")
+	sim.world.player().coins = 5000
+	assert_eq(sim.execute(BuyKontorCommand.new(WorldState.PLAYER_ID, "port")), "")
+	assert_eq(sim.execute(BuildWorkshopCommand.new(WorldState.PLAYER_ID, "port", "vintner")), "")
+	# 30 of 100 workers hired: 1.5 grain a day becomes 1.05.
+	for day in 10:
+		ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["grain"], 20 + 10, "10.5 units over 10 days instead of 15")
+	assert_eq(port.production_carry["grain"], 500_000)
