@@ -149,6 +149,24 @@ func test_understaffed_workshops_work_slower_and_pay_less() -> void:
 	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
 
 
+func test_understaffed_output_keeps_the_remainder_between_batches() -> void:
+	var workshop := _set_up(20)
+	_sim.data.population.min_factor = 0.1
+	# 180 people: a workforce of 18 for 30 jobs, 60% staffed.
+	var port := _sim.world.get_city("port")
+	port.population = 180
+	assert_eq(CityEconomy.staffing(_sim.data, _sim.world, port), 600_000)
+	var wine: Array[int] = []
+	var progress: Array[int] = []
+	for day in 5:
+		WorkshopSystem.run_day(_sim.data, _sim.world)
+		wine.append(_kontor().cargo_of("wine"))
+		progress.append(workshop.progress)
+	assert_eq(wine, [0, 2, 2, 4, 6], "three batches in five days")
+	assert_eq(progress, [600_000, 200_000, 800_000, 400_000, 0])
+	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
+
+
 func test_understaffed_wages_round_up() -> void:
 	var vintner := _sim.data.get_workshop("vintner")
 	assert_eq(WorkshopSystem.wages(vintner, CityEconomy.PARTS_PER_UNIT), 10)

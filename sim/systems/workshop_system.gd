@@ -8,8 +8,9 @@ extends RefCounted
 ##
 ## When a city has shrunk below the workers its workshops employ (CityEconomy.staffing), each
 ## workshop there pays only the workers it has (wages × staffing, rounded up) and adds its
-## staffing to its progress; it makes a full batch on the days progress reaches a whole one. So a
-## workshop at 50% makes a batch every other day, with whole units and an exact goods ledger.
+## staffing to its progress; it makes a full batch on the days progress reaches a whole one and
+## keeps the remainder. So a workshop at 60% makes three batches in five days, with whole units and
+## an exact goods ledger.
 
 
 static func run_day(data: GameData, world: WorldState) -> void:
@@ -43,8 +44,7 @@ static func _run(
 		workshop.status = WorkshopState.Status.UNPAID
 		return
 	trader.coins -= due
-	# Capped at one batch: a workshop that can't finish (no inputs, kontor full) doesn't bank days.
-	workshop.progress = mini(workshop.progress + staffing, CityEconomy.PARTS_PER_UNIT)
+	workshop.progress += staffing
 	if workshop.progress < CityEconomy.PARTS_PER_UNIT:
 		workshop.status = WorkshopState.Status.WORKED
 		return
@@ -55,11 +55,13 @@ static func _run(
 		if kontor.cargo_of(good.id) < needed:
 			workshop.status = WorkshopState.Status.NO_INPUTS
 			workshop.missing_good = good.id
+			_stall(workshop)
 			return
 		inputs_total += needed
 	var room := data.kontor.capacity - kontor.cargo_total() + inputs_total
 	if workshop_type.output_per_day > room:
 		workshop.status = WorkshopState.Status.KONTOR_FULL
+		_stall(workshop)
 		return
 
 	for good in data.goods:
@@ -69,5 +71,13 @@ static func _run(
 			world.goods_ledger[good.id] -= needed
 	kontor.change_cargo(workshop_type.output, workshop_type.output_per_day)
 	world.goods_ledger[workshop_type.output] += workshop_type.output_per_day
-	workshop.progress = 0
+	# Keep the remainder: at 60% staffing progress runs 0.6, 1.2 (batch, 0.2 left), 0.8, 1.4
+	# (batch, 0.4 left), 1.0 (batch), so three batches in five days.
+	workshop.progress -= CityEconomy.PARTS_PER_UNIT
 	workshop.status = WorkshopState.Status.WORKED
+
+
+## A workshop that has a batch due but can't make it keeps at most that one batch, so it doesn't
+## bank days for a burst once inputs or room return.
+static func _stall(workshop: WorkshopState) -> void:
+	workshop.progress = mini(workshop.progress, CityEconomy.PARTS_PER_UNIT)

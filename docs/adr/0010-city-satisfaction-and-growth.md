@@ -37,9 +37,10 @@ gives no brake on growth for such a city.
   Nobody is kept in town for that: every workshop in the city gets the same share of its workers
   (`CityEconomy.staffing` = workforce / jobs) and works that much slower. Each day it pays that
   share of its wages (rounded up) and adds the share to its `progress`; it makes one full batch
-  whenever progress reaches a whole batch, so a half-staffed workshop makes a batch every other
-  day with whole units and an exact goods ledger. Progress is capped at one batch, so a stalled
-  workshop doesn't bank days. City workshops get no workers while traders' jobs are unfilled.
+  whenever progress reaches a whole batch and keeps the remainder, so a workshop at 60% makes
+  three batches in five days with whole units and an exact goods ledger. A workshop that can't
+  make a due batch (no inputs, kontor full) keeps at most that one batch, so it doesn't bank
+  days. City workshops get no workers while traders' jobs are unfilled.
   `free_workers` is never negative, so no new workshop can be built there. The player is told
   when their workshops in a city run short of workers and when they are fully staffed again,
   and the kontor panel shows the staffing. The former invariant "employed ≤ workforce" is
