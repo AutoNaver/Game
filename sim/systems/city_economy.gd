@@ -2,10 +2,14 @@ class_name CityEconomy
 extends RefCounted
 ## Derived per-city economy numbers. Nothing here is stored; it is recomputed from state + data.
 ##
-## Daily flows are counted in integer thousandths of a unit ("millis") so fractional rates add up
+## Daily flows are counted in integer millionths of a unit ("parts") so fractional rates add up
 ## exactly over many days; floats would drift (7.2/day summing to 35.9999 after 5 days).
+## Data rates are multiples of 0.001 (enforced by the loader), so every flow is an exact number
+## of parts: production is rate × 1e6, and demand is population × (per-1000 rate × 1000).
 
-const MILLIS_PER_UNIT: int = 1000
+const PARTS_PER_UNIT: int = 1_000_000
+## Data rates are given in multiples of 1 / RATE_STEPS.
+const RATE_STEPS: int = 1000
 
 
 ## Units of `good` the city's population wants per day.
@@ -13,21 +17,31 @@ static func daily_demand(city: CityState, good: GoodDef) -> float:
 	return city.population / 1000.0 * good.consumption_per_1000
 
 
-## Thousandths of a unit of `good` the population wants per day, rounded to the nearest
-## thousandth. The rounding is deterministic and at most 0.0005 units a day.
-static func daily_demand_millis(city: CityState, good: GoodDef) -> int:
-	return roundi(city.population * good.consumption_per_1000)
+## Millionths of a unit of `good` the population wants per day. Exact: population / 1000 ×
+## consumption_per_1000 units is population × (consumption_per_1000 × 1000) millionths.
+static func daily_demand_parts(city: CityState, good: GoodDef) -> int:
+	return city.population * rate_steps(good.consumption_per_1000)
 
 
-## Converts a per-day rate in units to thousandths of a unit.
-static func to_millis(units_per_day: float) -> int:
-	return roundi(units_per_day * MILLIS_PER_UNIT)
+## Converts a per-day production rate in units to millionths of a unit (exact for valid data).
+static func to_parts(units_per_day: float) -> int:
+	return rate_steps(units_per_day) * (PARTS_PER_UNIT / RATE_STEPS)
 
 
-## Whole units contained in an amount of thousandths (rounding down).
-static func whole_units(millis: int) -> int:
+## A data rate as a whole number of 1/RATE_STEPS steps.
+static func rate_steps(rate: float) -> int:
+	return roundi(rate * RATE_STEPS)
+
+
+## True if `rate` is an exact multiple of 1/RATE_STEPS (within float noise).
+static func is_valid_rate(rate: float) -> bool:
+	return absf(rate * RATE_STEPS - roundf(rate * RATE_STEPS)) <= 1e-6
+
+
+## Whole units contained in an amount of parts (rounding down).
+static func whole_units(parts: int) -> int:
 	@warning_ignore("integer_division")
-	return millis / MILLIS_PER_UNIT
+	return parts / PARTS_PER_UNIT
 
 
 ## The stock at which the good trades at its base price (ADR 0003). At least 1.
