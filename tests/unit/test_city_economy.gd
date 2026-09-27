@@ -42,8 +42,13 @@ func test_production_stops_at_stock_cap() -> void:
 	var port := sim.world.get_city("port")
 	port.stock["grain"] = 39
 	ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["grain"], 40)
+	assert_eq(port.production_carry["grain"], 0.0, "reaching the cap exactly drops the 0.5")
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 40)
+	port.stock["grain"] = 30
+	ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["grain"], 31, "no stored half unit after the cap was reached")
 
 
 func test_idle_days_at_cap_make_no_progress() -> void:
