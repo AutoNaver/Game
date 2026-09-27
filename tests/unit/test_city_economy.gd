@@ -164,3 +164,14 @@ func test_target_stock_is_exact_for_whole_results() -> void:
 	var good := GoodDef.new("salt", "Salt", "raw", 50, 0.1)
 	assert_eq(CityEconomy.target_stock(economy, CityState.new("port", 3000), good), 3)
 	assert_eq(CityEconomy.target_stock(economy, CityState.new("port", 3001), good), 4, "rounds up")
+
+
+func test_stock_cap_is_exact_for_whole_results() -> void:
+	# Target 50 x factor 1.1 is exactly 55; as floats it was 55.00000000000001 -> 56.
+	var economy := EconomyDef.new(10, 1.1, 2.5, 0.35, 0.1)
+	var good := GoodDef.new("salt", "Salt", "raw", 50, 5.0)
+	var city := CityState.new("port", 1000)
+	assert_eq(CityEconomy.target_stock(economy, city, good), 50)
+	assert_eq(CityEconomy.stock_cap(economy, city, good), 55)
+	economy.stock_cap_factor = 1.111
+	assert_eq(CityEconomy.stock_cap(economy, city, good), 56, "55.55 rounds up")
