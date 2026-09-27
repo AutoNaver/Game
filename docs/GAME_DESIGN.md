@@ -54,10 +54,12 @@ until your trading house shapes the prices of the whole sea.
 - Formulas: [ADR 0003](adr/0003-market-pricing-curve.md). Tuning: `data/economy.json`,
   `data/goods.json` (`consumption_per_1000`), `data/cities.json` (`production`).
 
-**Known and intended (for now):** there are no other traders yet, so cities that don't produce a
-good drain to empty (maximum price) within about `days_of_cover` days, and producer cities fill up
-to their cap. That gap is the player's opportunity. Background trade arrives with the AI traders
-after the MVP.
+**Off-map trade.** Overland traders and foreign ships that the game doesn't model individually
+bring goods to cities that are short and take away surpluses, in proportion to how far the stock is
+from its target. A city that makes nothing settles near a third of its target stock (about 1.4× base
+price), and producers settle below their cap. The gap between them is the player's opportunity.
+AI competitors come after the MVP. Details and balance targets:
+[ADR 0005](adr/0005-off-map-trade-and-balance.md).
 
 ## Player progression (MVP)
 

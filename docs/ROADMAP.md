@@ -56,10 +56,10 @@ Work top to bottom unless the owner reprioritizes.
 
 ## M5: Save/load and MVP polish
 
-- [ ] Save/load with `save_version`, plus a round-trip test
-- [ ] First-time hints (tutorial-lite)
-- [ ] Windows export preset, with the build as a CI artifact on `main`
-- [ ] Balance pass driven by soak runs and play-tests
+- [x] Save/load with `save_version`, plus a round-trip test: HUD Save/Load (quick-save slot), validated loading (`SaveGame`)
+- [x] First-time hints (tutorial-lite): a banner that follows buy, sail, sell, kontor and workshop (`HintPanel`)
+- [x] Windows export preset, with the build as a CI artifact (`export-windows` job, artifact `hanse-windows`)
+- [x] Balance pass: off-map trade, prices 0.55×–1.8×, workforce effect on city production, `tools/balance.gd` (ADR 0005)
 
 ## Backlog (deferred review findings and small follow-ups)
 

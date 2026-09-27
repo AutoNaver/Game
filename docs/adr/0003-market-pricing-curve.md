@@ -26,10 +26,10 @@ mid(p) = base_price × max(min_mult, max_mult ^ (1 − p / target))
 
 | Stock vs. target | Multiplier |
 |---|---|
-| empty (p = 0) | `max_mult` (2.5) |
+| empty (p = 0) | `max_mult` (1.8) |
 | at target | 1.0 |
-| 2 × target | 1 / max_mult (0.4) |
-| beyond ~2.15 × target | `min_mult` (0.35), the floor |
+| 2 × target | 1 / max_mult (0.56) |
+| beyond ~2 × target | `min_mult` (0.55), the floor |
 
 The curve is exponential, so it's smooth, monotone, bounded above without a clamp, and tops out at
 a finite value when the market is empty.
@@ -43,8 +43,9 @@ positions, so the round trip loses exactly the spread.
 **Rounding.** Totals are computed in floats. Buy costs round up and sell revenues round down, so
 rounding never creates money for a trader.
 
-Starting values (`data/economy.json`): `days_of_cover` 20, `price_max_multiplier` 2.5,
-`price_min_multiplier` 0.35, `spread` 0.1. `stock_cap_factor` (3.0) is used by city production and
+Current values (`data/economy.json`): `days_of_cover` 20, `price_max_multiplier` 1.8,
+`price_min_multiplier` 0.55, `spread` 0.1. These were narrowed from 2.5 and 0.35 in the M5 balance
+pass (ADR 0005). `stock_cap_factor` (3.0) is used by city production and
 is explained in the economy systems.
 
 ## Consequences
