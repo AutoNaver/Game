@@ -106,6 +106,12 @@ func player() -> TraderState:
 
 ## Changes how fast time runs from now on. Time already accumulated towards the next hour is
 ## kept, so switching speeds never loses or stalls time.
+## Sets how many units a Buy or Sell click trades; panels that show per-click values refresh.
+func set_trade_quantity(value: int) -> void:
+	trade_quantity = value
+	changed.emit()
+
+
 func set_speed(value: int) -> void:
 	assert(SPEEDS.has(value), "unsupported speed %d" % value)
 	speed = value

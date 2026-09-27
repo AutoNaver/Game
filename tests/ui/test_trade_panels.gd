@@ -65,6 +65,14 @@ func test_manifest_total_is_what_the_sell_clicks_pay() -> void:
 	assert_string_contains(manifest, "Sell here now, 25 at a time: %d coins total" % paid)
 
 
+func test_manifest_follows_the_trade_quantity() -> void:
+	_press("Quantity_10")
+	_press("Buy_beer")
+	assert_string_contains(_text("CargoManifest"), "10 at a time")
+	_press("Quantity_5")
+	assert_string_contains(_text("CargoManifest"), "5 at a time")
+
+
 func test_cargo_manifest_hides_distant_prices_until_docking() -> void:
 	_press("Quantity_10")
 	_press("Buy_beer")
