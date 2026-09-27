@@ -58,8 +58,8 @@ unchanged.
 ## Consequences
 
 - Long hauls now exist: a cog takes about 6 days from Lübeck to Bergen, Riga or Reval and 9.5 to
-  Novgorod, so spoilage (fish,
-  beer) and storms matter more on them. Furs and wax from Novgorod are the classic high-value run.
+  Novgorod, so spoilage (fish, beer) and storms matter more on them. Furs and wax from Novgorod
+  are the classic high-value run.
 - More event targets. Harvest failures can hit the new grain producers.
 - Any later map growth follows the same pattern: append cities and goods to the data files, and
   saves from before grow into the new world.
