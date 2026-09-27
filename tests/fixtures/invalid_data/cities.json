@@ -1,5 +1,6 @@
 [
   { "id": "lubeck", "name": "Lübeck", "map_position": [136], "population": 12000, "production": { "grain": 10 } },
   { "id": "visby", "name": "Visby", "map_position": [744, 340], "population": 0, "production": { "amber": 5, "grain": -2 } },
-  { "id": "stockholm", "name": "Stockholm", "map_position": [726, 167], "population": 7000, "production": "lots" }
+  { "id": "stockholm", "name": "Stockholm", "map_position": [726, 167], "population": 7000, "production": "lots" },
+  { "id": "riga", "name": "Riga", "map_position": [1e100, 0], "population": 1e12, "production": {} }
 ]

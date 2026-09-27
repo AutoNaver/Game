@@ -32,7 +32,10 @@ until your trading house shapes the prices of the whole sea.
 
 - **Cities:** Lübeck, Danzig, Visby, Stockholm.
 - **Goods:** grain, fish, salt, timber, wool, iron (raw); beer, cloth, tools (processed); wine
-  (luxury, import only). Definitions are in `data/goods.json`.
+  (luxury, imported). Definitions are in `data/goods.json`.
+- **Wine** isn't made in the Baltic. It arrives through Lübeck's trade with the west, and for now
+  that import is modeled as Lübeck "production" (`data/cities.json`), a small, steady trickle that
+  makes Lübeck the only wine source. It becomes a real off-map import when off-map trade exists.
 - **Time:** 1 tick = 1 in-game hour. Markets, consumption and production resolve daily.
 
 ## Economy model (first version, refined in M1)

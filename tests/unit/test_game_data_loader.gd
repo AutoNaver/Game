@@ -78,6 +78,8 @@ func test_invalid_data_reports_every_problem() -> void:
 		"cities.json[1]: 'production' has unknown good 'amber'",
 		"cities.json[1]: 'production.grain' must be a number greater than 0.0 and less than 10000.0",
 		"cities.json[2]: 'production' must be an object",
+		"cities.json[3]: 'map_position' coordinates must be within ±100000",
+		"cities.json[3]: 'population' must be at most 1000000000",
 	]
 	assert_eq(Array(loader.errors), expected)
 
