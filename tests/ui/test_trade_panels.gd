@@ -3,6 +3,7 @@ extends GutTest
 
 const MainScene := preload("res://ui/main.tscn")
 const TestSaves := preload("res://tests/support/test_saves.gd")
+const SmallWorld := preload("res://tests/support/small_world.gd")
 const SCREEN_SIZE: Vector2 = Vector2(1280, 720)
 
 var _main: Control
@@ -163,6 +164,25 @@ func test_cargo_ideas_load_the_suggested_cargo() -> void:
 func test_cargo_ideas_need_a_ship_in_port() -> void:
 	_session.select_city("visby")
 	assert_string_contains(_text("PlannerNote"), "Dock a ship here")
+
+
+func test_cargo_destination_sails_to_a_better_market() -> void:
+	assert_string_contains(_text("DestinationNote"), "no cargo")
+	_press("Quantity_10")
+	_press("Buy_beer")
+	SmallWorld.set_stock(_session.sim, "danzig", "beer", 0)
+	_session.changed.emit()
+	var options := CargoDestinationPlanner.plan(_session.sim.data, _session.sim.world, _ship())
+	assert_gt(options.size(), 0)
+	var row := _main.find_child("Destination_0", true, false) as HBoxContainer
+	assert_true(row.visible)
+	assert_string_contains(
+		(row.get_node("Text") as Label).text,
+		_session.sim.data.get_city(options[0].destination).name,
+	)
+	_press("SailToCargo_0")
+	assert_eq(_ship().destination, options[0].destination)
+	assert_false(row.visible)
 
 
 func test_sparklines_scale_to_their_values_and_base_price() -> void:

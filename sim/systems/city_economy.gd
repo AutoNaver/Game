@@ -119,6 +119,19 @@ static func workers_employed(data: GameData, world: WorldState, city_id: String)
 	return employed
 
 
-## Workforce not yet employed; a new workshop needs at least its worker count.
+## Workforce not yet employed; a new workshop needs at least its worker count. Never negative:
+## a shrinking city can leave fewer people than jobs (see staffing).
 static func free_workers(data: GameData, world: WorldState, city: CityState) -> int:
-	return workforce(data.economy, city) - workers_employed(data, world, city.id)
+	return maxi(0, workforce(data.economy, city) - workers_employed(data, world, city.id))
+
+
+## Share of the traders' workshop jobs in the city that are filled, in millionths. Full unless the
+## city has shrunk below the workers its workshops employ; then every workshop there gets the same
+## share of its workers and works that much slower (WorkshopSystem).
+static func staffing(data: GameData, world: WorldState, city: CityState) -> int:
+	var employed := workers_employed(data, world, city.id)
+	var available := workforce(data.economy, city)
+	if employed <= available:
+		return PARTS_PER_UNIT
+	@warning_ignore("integer_division")
+	return available * PARTS_PER_UNIT / employed

@@ -1,0 +1,3 @@
+[
+  { "id": "lubeck", "name": "Lübeck", "coordinates": [10.687, 53.866], "population": 10000000, "production": { "grain": 10 } }
+]

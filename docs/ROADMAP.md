@@ -91,9 +91,9 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 ## M9: City needs and growth
 
-- [ ] City satisfaction from recent shortages, shown in the city panel
-- [ ] Population grows or shrinks with satisfaction, changing demand and workforce (saves validate a range instead of matching data)
-- [ ] Soak and balance checks that cities neither explode nor starve without the player
+- [x] City satisfaction from recent shortages, shown in the city panel (supply score weighted by spending, `PopulationSystem`, ADR 0010; scarce goods and tooltips in the side panel)
+- [x] Population grows or shrinks with satisfaction, changing demand and workforce (saves validate a range instead of matching data; `data/population.json`, save version 5)
+- [x] Soak and balance checks that cities neither explode nor starve without the player (`tools/soak.gd` fails outside 0.8×–1.25× of home; `tools/balance.gd` reports cities; `test_city_growth.gd`)
 
 ## M10: Events and spoilage
 

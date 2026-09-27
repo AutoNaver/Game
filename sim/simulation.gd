@@ -3,8 +3,9 @@ extends RefCounted
 ## Owns the world and advances it. One tick is one in-game hour: ships move every tick, then ships
 ## on trade routes act at their stops (RouteSystem), then the rival houses' docked ships trade and
 ## sail (RivalSystem); both act through commands. The daily systems run whenever a tick completes
-## a day, in a fixed order: city production, traders' workshops, consumption, off-map trade, price
-## history, then the rivals' kontors and expansion. Actions enter only through execute().
+## a day, in a fixed order: city production, traders' workshops, consumption, city satisfaction and
+## population, off-map trade, price history, then the rivals' kontors and expansion. Actions
+## enter only through execute().
 ##
 ## Current prices are not stored: they are derived from stock on demand (see Pricing,
 ## CityEconomy). Only the daily closing prices are kept, for the UI (PriceHistorySystem).
@@ -20,8 +21,9 @@ func _init(p_data: GameData, p_world: WorldState) -> void:
 	world = p_world
 
 
-## Starts a new game: every city holds its target stock of every good, so prices start at base,
-## and the player starts as described in data/scenario.json.
+## Starts a new game: every city has its home population at neutral satisfaction and holds its
+## target stock of every good, so prices start at base, and the player starts as described in
+## data/scenario.json.
 static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	var world := WorldState.new()
 	world.rng.seed = seed_value
@@ -29,6 +31,7 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 		world.goods_ledger[good.id] = 0
 	for city_def in p_data.cities:
 		var city := CityState.new(city_def.id, city_def.population)
+		city.satisfaction = CityEconomy.to_parts(p_data.population.neutral_satisfaction)
 		for good in p_data.goods:
 			city.stock[good.id] = CityEconomy.target_stock(p_data.economy, city, good)
 			world.goods_ledger[good.id] += city.stock[good.id]
@@ -80,6 +83,7 @@ func tick() -> void:
 		ProductionSystem.run_day(data, world)
 		WorkshopSystem.run_day(data, world)
 		ConsumptionSystem.run_day(data, world)
+		PopulationSystem.run_day(data, world)
 		OffMapTradeSystem.run_day(data, world)
 		PriceHistorySystem.run_day(data, world)
 		RivalSystem.run_day(self)

@@ -5,7 +5,12 @@ extends RefCounted
 ## Every dictionary has an entry for every good in GameData, created by Simulation.new_game().
 
 var id: String
+## People living here. Changes daily with satisfaction (PopulationSystem), within the bounds of
+## data/population.json around the city's home population in data/cities.json.
 var population: int
+## How content the townsfolk are, in millionths (0..PARTS_PER_UNIT): a smoothed record of how well
+## the market covered their needs on recent days (PopulationSystem).
+var satisfaction: int = 0
 ## Units in the city market, by good id. Never negative.
 var stock: Dictionary[String, int] = {}
 ## Fractions of a unit carried to the next day, in millionths (0..999999), so fractional daily

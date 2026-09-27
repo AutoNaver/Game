@@ -32,6 +32,7 @@ func setup(session: GameSession) -> void:
 	_details.add_child(UiStyle.label("Workshops", UiStyle.HEADER_LABEL))
 	_workforce.name = "Workforce"
 	_workforce.theme_type_variation = UiStyle.MUTED_LABEL
+	_workforce.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_details.add_child(_workforce)
 	_details.add_child(_workshop_list)
 	var build_row := HFlowContainer.new()
@@ -63,7 +64,17 @@ func refresh() -> void:
 	_refresh_transfers(kontor)
 	var city := _session.sim.world.get_city(_session.selected_city)
 	var free := CityEconomy.free_workers(data, _session.sim.world, city)
-	_workforce.text = "Free workers: %d" % free
+	var staffing := CityEconomy.staffing(data, _session.sim.world, city)
+	if staffing < CityEconomy.PARTS_PER_UNIT:
+		var percent := roundi(staffing * 100.0 / CityEconomy.PARTS_PER_UNIT)
+		_workforce.text = (
+			"Short of workers: workshops here are %d%% staffed, so they work and pay slower"
+			% percent
+		)
+		_workforce.modulate = UiStyle.WARNING
+	else:
+		_workforce.text = "Free workers: %d" % free
+		_workforce.modulate = Color.WHITE
 	_refresh_workshops(kontor)
 	for workshop_type in data.workshops:
 		_build_buttons[workshop_type.id].disabled = (
