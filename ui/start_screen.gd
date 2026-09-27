@@ -5,6 +5,7 @@ extends ColorRect
 var _session: GameSession
 var _menu: SaveMenu
 var _continue: Button = Button.new()
+var _title: Label
 
 
 func setup(session: GameSession, menu: SaveMenu) -> void:
@@ -18,7 +19,8 @@ func setup(session: GameSession, menu: SaveMenu) -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 12)
 	center.add_child(column)
-	column.add_child(UiStyle.label("Hanse", UiStyle.TITLE_LABEL))
+	_title = UiStyle.label("Hanse", UiStyle.TITLE_LABEL)
+	column.add_child(_title)
 	column.add_child(UiStyle.label("A trading house in the Baltic, 1400", UiStyle.MUTED_LABEL))
 	var new_game := Button.new()
 	new_game.name = "NewGame"
@@ -39,10 +41,17 @@ func setup(session: GameSession, menu: SaveMenu) -> void:
 
 func show_screen() -> void:
 	_session.set_speed(0)
+	_title.text = "Hanse"
 	var saves := _session.list_saves()
 	_continue.disabled = saves.is_empty()
 	_continue.text = "Continue" if saves.is_empty() else "Continue (%s)" % saves[0]
 	visible = true
+
+
+## A failed house may restart or load a saved game.
+func show_game_over() -> void:
+	show_screen()
+	_title.text = "Bankrupt · Game over"
 
 
 func _continue_newest() -> void:
@@ -57,5 +66,7 @@ func _on_menu_closed(loaded: bool) -> void:
 
 
 func _begin() -> void:
+	if _session.player().bankrupt:
+		_session.start(_session.sim.data, 1)
 	visible = false
 	_session.set_speed(1)

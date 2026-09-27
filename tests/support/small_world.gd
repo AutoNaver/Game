@@ -34,6 +34,7 @@ const RIVAL_INPUT_DAYS: int = 3
 static func data() -> GameData:
 	var game_data := GameData.new()
 	game_data.economy = EconomyDef.new(DAYS_OF_COVER, STOCK_CAP_FACTOR, 2.5, 0.35, 0.1)
+	game_data.captains = CaptainDef.new(2, 2, 10, 2, 10, 5, 14)
 	game_data.population = PopulationDef.new(0.1, 0.5, 1.0, 0.0, 0.5, 2.0)
 	game_data.add_good(GoodDef.new("grain", "Grain", "raw", 40, 2.0))
 	game_data.add_good(GoodDef.new("wine", "Wine", "luxury", 220, 0.5))

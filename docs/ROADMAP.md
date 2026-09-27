@@ -125,12 +125,12 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 
 ## M13: Captains
 
-- [ ] The player as a person: aboard a ship or ashore in a city; moving between ships in port
-- [ ] Ships need a captain to sail; tavern pools per city (weekly, world RNG), hiring and daily wages
-- [ ] Captain skills (seamanship: voyage time, trading: spread) that improve with voyages
-- [ ] Only captained ships follow routes; rivals hire from the same taverns
-- [ ] Saves migrate old games (a captain for every ship); rebalance
-- [ ] Bankruptcy: unpaid wages put a house in debt, a grace period, then bankruptcy; a warning in the UI; game over for the player (load or new game), a bankrupt rival leaves the game and its assets are sold off (to buyers from M15)
+- [x] The player as a person: aboard a ship or ashore in a city; moving between ships in port
+- [x] Ships need a captain to sail; tavern pools per city (weekly, world RNG), hiring and daily wages
+- [x] Captain skills (seamanship: voyage time, trading: spread) that improve with voyages
+- [x] Only captained ships follow routes; rivals hire from the same taverns
+- [x] Saves migrate old games (a captain for every ship); rebalance (ADR 0013)
+- [x] Bankruptcy: unpaid wages put a house in debt, a grace period, then bankruptcy; a warning in the UI; game over for the player (load or new game), a bankrupt rival leaves the game and its goods return to city markets (buyers follow in M15)
 
 ## M14: Reputation, ranks and factors
 

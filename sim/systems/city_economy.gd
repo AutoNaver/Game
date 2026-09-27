@@ -68,15 +68,21 @@ static func mid_price(economy: EconomyDef, city: CityState, good: GoodDef) -> fl
 
 
 ## Coins a trader pays to buy `quantity` units of `good` here (walks the price, ADR 0003).
-static func buy_cost(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
+static func buy_cost(
+	economy: EconomyDef, city: CityState, good: GoodDef, quantity: int, spread: float = -1.0
+) -> int:
 	var target := target_stock(economy, city, good)
-	return Pricing.buy_cost(economy, good.base_price, target, city.stock[good.id], quantity)
+	return Pricing.buy_cost(economy, good.base_price, target, city.stock[good.id], quantity, spread)
 
 
 ## Coins a trader receives for selling `quantity` units of `good` here.
-static func sell_revenue(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
+static func sell_revenue(
+	economy: EconomyDef, city: CityState, good: GoodDef, quantity: int, spread: float = -1.0
+) -> int:
 	var target := target_stock(economy, city, good)
-	return Pricing.sell_revenue(economy, good.base_price, target, city.stock[good.id], quantity)
+	return Pricing.sell_revenue(
+		economy, good.base_price, target, city.stock[good.id], quantity, spread
+	)
 
 
 ## Units of `good` a trader can buy here: up to `most`, while each unit's price after the spread

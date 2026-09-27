@@ -13,6 +13,7 @@ static func run_hour(data: GameData, world: WorldState) -> void:
 				continue
 			ship.hours_sailed += 1
 			if ship.hours_sailed >= ship.voyage_hours:
+				CaptainSystem.complete_voyage(data, trader, ship)
 				ship.docked_at = ship.destination
 				ship.origin = ""
 				ship.destination = ""

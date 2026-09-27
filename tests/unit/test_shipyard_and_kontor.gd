@@ -47,6 +47,7 @@ func test_invalid_ship_purchases_change_nothing() -> void:
 
 
 func test_selling_a_ship_refunds_the_resale_price() -> void:
+	_ok(MovePersonCommand.new())
 	_ok(SellShipCommand.new(PLAYER, SHIP))
 	assert_eq(_player().coins, SmallWorld.START_COINS + 300, "60% of 500")
 	assert_null(_player().get_ship(SHIP))

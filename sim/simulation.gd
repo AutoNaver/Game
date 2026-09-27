@@ -48,6 +48,9 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 		world.add_ship(player, ship.type_id, ship.name, scenario.start_city)
 	for rival in p_data.rivals:
 		add_rival(world, rival)
+	player.person_ship_id = player.ships[0].id if not player.ships.is_empty() else ""
+	player.person_city_id = scenario.start_city if player.ships.is_empty() else ""
+	CaptainSystem.crew_starting_ships(p_data, world)
 	return Simulation.new(p_data, world)
 
 
@@ -85,6 +88,7 @@ func tick() -> void:
 		SpoilageSystem.run_day(data, world)
 		ProductionSystem.run_day(data, world)
 		WorkshopSystem.run_day(data, world)
+		CaptainSystem.run_day(data, world, day())
 		ConsumptionSystem.run_day(data, world)
 		PopulationSystem.run_day(data, world)
 		OffMapTradeSystem.run_day(data, world)

@@ -26,6 +26,7 @@ func validate(sim: Simulation) -> String:
 func apply(sim: Simulation) -> void:
 	var city := _market(sim)
 	var good := sim.data.get_good(good_id)
-	_trader(sim).coins += CityEconomy.sell_revenue(sim.data.economy, city, good, quantity)
+	var spread := CaptainSystem.trade_spread(sim.data, _trader(sim), ship_id)
+	_trader(sim).coins += CityEconomy.sell_revenue(sim.data.economy, city, good, quantity, spread)
 	city.stock[good_id] += quantity
 	_hold(sim).change_cargo(good_id, -quantity)

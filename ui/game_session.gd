@@ -5,6 +5,7 @@ extends Node
 ## they never modify simulation state themselves.
 
 signal changed
+signal game_over
 signal message_posted(text: String)
 ## A new entry in the notification log (already dated).
 signal notified(entry: String)
@@ -48,6 +49,9 @@ var _pending_hours: float = 0.0
 
 func start(data: GameData, seed_value: int) -> void:
 	sim = Simulation.new_game(data, seed_value)
+	notification_log.clear()
+	save_slot = ""
+	_pending_hours = 0.0
 	selected_city = data.scenario.start_city
 	var ships := sim.world.player().ships
 	selected_ship = ships[0].id if not ships.is_empty() else ""
@@ -140,6 +144,12 @@ func advance(hours: int) -> void:
 	for i in hours:
 		var notes := _route_notes()
 		sim.tick()
+		if player().bankrupt:
+			speed = 0
+			_pending_hours = 0.0
+			notify("Your trading house is bankrupt")
+			game_over.emit()
+			break
 		_notify_route_problems(notes)
 		var arrived := false
 		for ship: ShipState in at_sea.duplicate():
@@ -182,6 +192,9 @@ func notify(text: String) -> void:
 
 ## Executes a player command. Failures are posted as a message instead of changing anything.
 func execute(command: Command) -> bool:
+	if player().bankrupt:
+		message_posted.emit("Your trading house is bankrupt")
+		return false
 	var error := sim.execute(command)
 	if error.is_empty():
 		# A sold ship may have been the selected one.
@@ -381,6 +394,9 @@ func _rival_assets() -> Dictionary[String, PackedStringArray]:
 ## Notifies when a rival house bought a ship or opened or closed a workshop.
 func _notify_rival_news(before: Dictionary[String, PackedStringArray]) -> void:
 	var now := _rival_assets()
+	for rival in sim.data.rivals:
+		if before.has(rival.id) and not now.has(rival.id):
+			notify("%s has gone bankrupt" % rival.name)
 	for trader in sim.world.traders:
 		if not before.has(trader.id) or not now.has(trader.id):
 			continue

@@ -23,7 +23,7 @@ func test_closing_frees_the_workers_and_stops_the_wages() -> void:
 	assert_eq(CityEconomy.free_workers(_sim.data, _sim.world, port), 100)
 	assert_eq(_sim.world.player().coins, coins, "no refund")
 	_sim.advance_days(1)
-	assert_eq(_sim.world.player().coins, coins, "no wages")
+	assert_eq(_sim.world.player().coins, coins - _sim.data.captains.daily_wage, "crew only")
 
 
 func test_closing_is_validated() -> void:
