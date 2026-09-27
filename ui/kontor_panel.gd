@@ -12,6 +12,9 @@ var _transfer_rows: Dictionary[String, Array] = {}
 var _workforce: Label = Label.new()
 var _workshop_list: VBoxContainer = VBoxContainer.new()
 var _workshop_key: String = ""
+## Labels for the shown kontor's workshops, in build order. Kept as references because queued
+## deletions of old labels stay in the tree until the frame ends.
+var _workshop_labels: Array[Label] = []
 var _build_buttons: Dictionary[String, Button] = {}
 
 
@@ -111,17 +114,19 @@ func _refresh_workshops(kontor: KontorState) -> void:
 	var key := "%s:%d" % [kontor.city_id, kontor.workshops.size()]
 	if key != _workshop_key:
 		_workshop_key = key
-		for child in _workshop_list.get_children():
-			child.queue_free()
+		for label in _workshop_labels:
+			_workshop_list.remove_child(label)
+			label.queue_free()
+		_workshop_labels.clear()
 		for workshop in kontor.workshops:
 			var label := Label.new()
 			label.name = "Workshop_%s" % workshop.id
 			_workshop_list.add_child(label)
+			_workshop_labels.append(label)
 	for i in kontor.workshops.size():
 		var workshop := kontor.workshops[i]
 		var workshop_type := _session.sim.data.get_workshop(workshop.type_id)
-		var label := _workshop_list.get_child(i) as Label
-		label.text = "%s: %s" % [workshop_type.name, _status_text(workshop)]
+		_workshop_labels[i].text = "%s: %s" % [workshop_type.name, _status_text(workshop)]
 
 
 func _status_text(workshop: WorkshopState) -> String:

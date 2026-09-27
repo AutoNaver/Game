@@ -62,6 +62,27 @@ func test_building_a_workshop_and_watching_it_work() -> void:
 	assert_string_contains(_text("Workforce"), "Free workers: ")
 
 
+func test_building_several_workshops_in_one_frame_labels_each_one() -> void:
+	_press("BuyKontor")
+	_press("Build_brewery")
+	_session.advance(Simulation.HOURS_PER_DAY)
+	_press("Build_smithy")
+	_press("Build_weaving_mill")
+	var list := (_main.find_child("Workshop_workshop_1", true, false) as Label).get_parent()
+	var texts: Array[String] = []
+	for label in list.get_children():
+		if not label.is_queued_for_deletion():
+			texts.append((label as Label).text)
+	assert_eq(
+		texts,
+		[
+			"Brewery: idle, needs Grain",
+			"Smithy: starts tomorrow",
+			"Weaving Mill: starts tomorrow",
+		]
+	)
+
+
 func test_build_buttons_need_coins() -> void:
 	_press("BuyKontor")
 	_player().coins = 100
