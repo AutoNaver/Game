@@ -52,12 +52,14 @@ func test_goods_created_outside_production_are_caught() -> void:
 	assert_string_contains(violations[0], expected % [ledger + 2, ledger])
 
 
+## Every command must succeed, or both runs would take the same no-op path and prove nothing.
 func _play_scripted_turns(sim: Simulation) -> void:
 	var player := WorldState.PLAYER_ID
-	sim.execute(BuyCommand.new(player, SmallWorld.SHIP_ID, "grain", 6))
-	sim.execute(SailCommand.new(player, SmallWorld.SHIP_ID, "town"))
+	assert_eq(sim.execute(BuyCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.execute(SailCommand.new(player, SmallWorld.SHIP_ID, "town")), "")
 	sim.advance_days(1)
-	sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6))
+	assert_eq(sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.world.player().get_ship(SmallWorld.SHIP_ID).cargo, {}, "the trip really happened")
 
 
 func _fingerprint(sim: Simulation) -> Array:
