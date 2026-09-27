@@ -31,6 +31,10 @@ func test_slowest_allowed_ship_on_the_longest_possible_route_fits_in_int() -> vo
 	var none: Dictionary[String, float] = {}
 	data.add_city(CityDef.new("a", "A", Vector2.ZERO, 1, none))
 	data.add_city(CityDef.new("b", "B", Vector2(20_000, 0), 1, none))
+	data.sea_chart = SeaChart.new()
+	data.sea_chart.add_node("a", Vector2.ZERO)
+	data.sea_chart.add_node("b", Vector2(20_000, 0))
+	data.sea_chart.add_lane("a", "b")
 	var slowest := ShipDef.new("slow", "Slow", 1, GameDataLoader.MIN_SHIP_SPEED, 1)
 	assert_eq(Navigation.travel_hours(data, slowest, "a", "b"), 200_000)
 

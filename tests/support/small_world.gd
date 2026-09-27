@@ -7,7 +7,7 @@ extends RefCounted
 ## Goods:
 ## - grain: consumed 2.0/day, target stock 20, cap 40
 ## - wine: consumed 0.5/day, target stock 5, cap 10
-## Ship type "boat": capacity 10, speed 10 (port <-> town takes 10 hours).
+## A direct sea lane joins them. Ship type "boat": capacity 10, speed 10 (10 hours per trip).
 ## The player starts in port with 1000 coins and one boat, ship_1 "Test".
 
 const DAYS_OF_COVER: int = 10
@@ -25,6 +25,10 @@ static func data() -> GameData:
 	game_data.add_city(CityDef.new("port", "Port", Vector2.ZERO, 1000, production))
 	var no_production: Dictionary[String, float] = {}
 	game_data.add_city(CityDef.new("town", "Town", Vector2(100, 0), 1000, no_production))
+	game_data.sea_chart = SeaChart.new()
+	for city in game_data.cities:
+		game_data.sea_chart.add_node(city.id, city.map_position)
+	game_data.sea_chart.add_lane("port", "town")
 	game_data.add_ship(ShipDef.new("boat", "Boat", 10, 10.0, 500))
 	var ships: Array[ScenarioDef.StartingShip] = [ScenarioDef.StartingShip.new("boat", "Test")]
 	game_data.scenario = ScenarioDef.new("port", START_COINS, ships)

@@ -14,6 +14,7 @@ const ECONOMY_FILE: String = "economy.json"
 const GOODS_FILE: String = "goods.json"
 const MAP_FILE: String = "map.json"
 const CITIES_FILE: String = "cities.json"
+const SEA_LANES_FILE: String = "sea_lanes.json"
 const SHIPS_FILE: String = "ships.json"
 const SCENARIO_FILE: String = "scenario.json"
 
@@ -33,6 +34,8 @@ const MAP_FIELDS: PackedStringArray = [
 const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population", "production"]
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
+const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
+const WAYPOINT_FIELDS: PackedStringArray = ["id", "coordinates"]
 const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
@@ -88,6 +91,10 @@ func load_dir(dir: String) -> GameData:
 		else:
 			data.add_city(city)
 			_check_stock_caps(city, data, ctx)
+
+	var sea_lanes: Variant = _read_json(dir.path_join(SEA_LANES_FILE), TYPE_DICTIONARY)
+	if sea_lanes != null:
+		data.sea_chart = _parse_sea_lanes(sea_lanes as Dictionary, SEA_LANES_FILE, data)
 
 	var ships := _read_array(dir.path_join(SHIPS_FILE))
 	for i in ships.size():
@@ -242,6 +249,74 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 		if _check_rate_resolution(rate, field, ctx):
 			production[good_id] = rate
 	return production
+
+
+## Cities and the map must already be loaded. Every pair of cities must be connected by lanes.
+func _parse_sea_lanes(entry: Dictionary, ctx: String, data: GameData) -> SeaChart:
+	var error_count := errors.size()
+	_check_fields(entry, SEA_LANES_FIELDS, ctx)
+	var chart := SeaChart.new()
+	for city in data.cities:
+		chart.add_node(city.id, city.map_position)
+	for i in _get_array(entry, "waypoints", ctx).size():
+		_parse_waypoint(entry["waypoints"][i], "%s waypoints[%d]" % [ctx, i], chart, data)
+	for i in _get_array(entry, "lanes", ctx).size():
+		_parse_lane(entry["lanes"][i], "%s lanes[%d]" % [ctx, i], chart)
+	for a in data.cities.size():
+		for b in range(a + 1, data.cities.size()):
+			var from_id := data.cities[a].id
+			var to_id := data.cities[b].id
+			if chart.route(from_id, to_id).is_empty():
+				_error(ctx, "no sea route from %s to %s" % [from_id, to_id])
+	if errors.size() > error_count:
+		return null
+	return chart
+
+
+func _parse_waypoint(raw: Variant, ctx: String, chart: SeaChart, data: GameData) -> void:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	_check_fields(entry, WAYPOINT_FIELDS, ctx)
+	var id := _get_id(entry, ctx)
+	var position := _get_map_position(entry, ctx, data)
+	if errors.size() > error_count:
+		return
+	if chart.has_node(id):
+		_error(ctx, "duplicate id '%s' (ids are shared with cities)" % id)
+		return
+	chart.add_node(id, position)
+
+
+func _parse_lane(raw: Variant, ctx: String, chart: SeaChart) -> void:
+	if not raw is Array or (raw as Array).size() != 2:
+		_error(ctx, "a lane must be an array of two node ids")
+		return
+	var ends: Array = raw
+	var a := str(ends[0])
+	var b := str(ends[1])
+	for id: String in [a, b]:
+		if not chart.has_node(id):
+			_error(ctx, "unknown node '%s'" % id)
+			return
+	if a == b:
+		_error(ctx, "a lane must join two different nodes")
+	elif chart.has_lane(a, b):
+		_error(ctx, "duplicate lane %s-%s" % [a, b])
+	else:
+		chart.add_lane(a, b)
+
+
+## Returns the array in `field`, or an empty one after reporting that it is not an array.
+func _get_array(entry: Dictionary, field: String, ctx: String) -> Array:
+	if not entry.has(field):
+		return []
+	if not entry[field] is Array:
+		_error(ctx, "'%s' must be an array" % field)
+		return []
+	return entry[field] as Array
 
 
 func _parse_ship(raw: Variant, ctx: String) -> ShipDef:

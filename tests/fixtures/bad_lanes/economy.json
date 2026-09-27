@@ -1,0 +1,7 @@
+{
+  "days_of_cover": 20,
+  "stock_cap_factor": 3.0,
+  "price_max_multiplier": 2.5,
+  "price_min_multiplier": 0.35,
+  "spread": 0.1
+}

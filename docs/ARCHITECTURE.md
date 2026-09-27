@@ -35,6 +35,11 @@ and projected to **map units = kilometres** from the frame's north-west corner, 
 km/h. `tools/map/render_map.py` renders `assets/map/baltic.png` from Natural Earth coastlines with
 the same projection, so the picture and the simulation always line up.
 
+Ships sail along **sea lanes** (`data/sea_lanes.json`): cities and open-sea waypoints joined by
+straight lanes. `SeaChart` finds the shortest route (Dijkstra, deterministic tie-break) and
+`Navigation` moves ships along it at a steady pace. `tools/map/check_lanes.py` and
+`tests/unit/test_sea_lanes.gd` check that no lane crosses land away from a harbour.
+
 ## Time
 
 `Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24 ticks it runs the daily systems in a fixed order:
