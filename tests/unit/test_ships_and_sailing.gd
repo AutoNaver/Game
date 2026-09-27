@@ -133,3 +133,33 @@ func test_change_cargo_rejects_removing_more_than_aboard() -> void:
 	assert_false(ship.change_cargo("grain", -2))
 	assert_false(ship.change_cargo("wine", -1))
 	assert_eq(ship.cargo, {"grain": 1}, "a refused change leaves the cargo as it was")
+
+
+func test_invariants_catch_malformed_voyages() -> void:
+	var sim := SmallWorld.simulation()
+	var ship := sim.world.player().get_ship(SHIP)
+	sim.execute(SailCommand.new(WorldState.PLAYER_ID, SHIP, "town"))
+	assert_eq(EconomyInvariants.check(sim.data, sim.world), PackedStringArray())
+	var broken := {
+		"unknown destination": func() -> void: ship.destination = "atlantis",
+		"unknown origin": func() -> void: ship.origin = "atlantis",
+		"negative hours": func() -> void: ship.hours_sailed = -1,
+		"voyage already complete": func() -> void: ship.hours_sailed = ship.voyage_hours,
+	}
+	for case: String in broken:
+		# Restore the valid voyage, then break one thing.
+		ship.origin = "port"
+		ship.destination = "town"
+		ship.hours_sailed = 3
+		(broken[case] as Callable).call()
+		var violations := EconomyInvariants.check(sim.data, sim.world)
+		assert_eq(violations.size(), 1, case)
+		assert_string_contains(violations[0], "ship_1: invalid voyage", case)
+
+
+func test_invariants_catch_docking_at_an_unknown_city() -> void:
+	var sim := SmallWorld.simulation()
+	sim.world.player().get_ship(SHIP).docked_at = "atlantis"
+	var violations := EconomyInvariants.check(sim.data, sim.world)
+	assert_eq(violations.size(), 1)
+	assert_string_contains(violations[0], "ship_1: docked at unknown city 'atlantis'")
