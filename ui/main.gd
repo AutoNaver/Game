@@ -1,8 +1,9 @@
 extends Control
-## Entry scene: loads the game data, starts a session and lays out the HUD, map and side panel.
+## Entry scene: loads the game data, starts a session and lays out the HUD, map and side panel,
+## with the start screen and save menu on top.
 ## If the data is broken, shows every loader error instead of a half-working game.
 
-## Fixed until there is a new-game menu; nothing draws from the RNG yet.
+## Fixed for now: nothing draws from the RNG yet, so every new game is the same.
 const NEW_GAME_SEED: int = 1
 const SIDE_PANEL_WIDTH: float = 420.0
 
@@ -51,6 +52,26 @@ func _ready() -> void:
 	hints.position = Vector2(12, 12)
 	map.add_child(hints)
 	hints.setup(session)
+	var log_panel := LogPanel.new()
+	log_panel.name = "Log"
+	map.add_child(log_panel)
+	log_panel.setup(session)
+	# Bottom-left corner of the map, growing upwards as entries wrap.
+	log_panel.set_anchors_and_offsets_preset(
+		Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 12
+	)
+	log_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+
+	var save_menu := SaveMenu.new()
+	save_menu.name = "SaveMenu"
+	var start := StartScreen.new()
+	start.name = "StartScreen"
+	add_child(start)
+	# The menu goes last so it also shows on top of the start screen.
+	add_child(save_menu)
+	save_menu.setup(session)
+	start.setup(session, save_menu)
+	session.save_menu_requested.connect(save_menu.open)
 
 
 func _show_fatal(text: String) -> void:

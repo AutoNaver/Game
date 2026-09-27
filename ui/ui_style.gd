@@ -22,6 +22,7 @@ const HEADER_LABEL: StringName = &"HeaderLabel"
 const MUTED_LABEL: StringName = &"MutedLabel"
 const MESSAGE_LABEL: StringName = &"MessageLabel"
 const HUD_PANEL: StringName = &"HudPanel"
+const DIALOG_PANEL: StringName = &"DialogPanel"
 
 
 ## Builds the theme applied to the main scene's root.
@@ -38,6 +39,8 @@ static func make_theme() -> Theme:
 	theme.set_stylebox("panel", "PanelContainer", _box(PANEL, BORDER, 0, [1, 0, 0, 0]))
 	theme.set_type_variation(HUD_PANEL, "PanelContainer")
 	theme.set_stylebox("panel", HUD_PANEL, _box(PANEL_RAISED, GOLD, 0, [0, 0, 0, 2]))
+	theme.set_type_variation(DIALOG_PANEL, "PanelContainer")
+	theme.set_stylebox("panel", DIALOG_PANEL, _box(PANEL_RAISED, GOLD, 6, [2, 2, 2, 2]))
 
 	theme.set_stylebox("normal", "Button", _box(BUTTON, BORDER, 4, [1, 1, 1, 1]))
 	theme.set_stylebox("hover", "Button", _box(BUTTON_HOVER, GOLD, 4, [1, 1, 1, 1]))

@@ -2,6 +2,7 @@ extends GutTest
 ## Smoke tests of the real main scene on the shipped data.
 
 const MainScene := preload("res://ui/main.tscn")
+const TestSaves := preload("res://tests/support/test_saves.gd")
 ## The headless test window is tiny; lay the scene out as on a real screen.
 const SCREEN_SIZE: Vector2 = Vector2(1280, 720)
 
@@ -15,8 +16,13 @@ func before_each() -> void:
 	_main.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_main.size = SCREEN_SIZE
 	_session = _main.get_node("Session")
+	TestSaves.use(_session)
 	_session.set_speed(0)
 	await wait_process_frames(1)
+
+
+func after_each() -> void:
+	TestSaves.clear()
 
 
 func test_starts_a_game_from_the_scenario() -> void:

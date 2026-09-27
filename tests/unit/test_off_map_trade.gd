@@ -49,3 +49,14 @@ func test_without_off_map_trade_the_town_runs_empty() -> void:
 	var sim := SmallWorld.simulation()
 	sim.advance_days(30)
 	assert_eq(sim.world.get_city("town").stock["grain"], 0)
+
+
+func test_expected_flow_matches_the_formula() -> void:
+	var sim := _trading_simulation()
+	var town := sim.world.get_city("town")
+	var grain := sim.data.get_good("grain")
+	# grain: demand 2/day, target 20. Imports 2 x 1.5 x 15/20, exports 2 x 1.0 x 10/20.
+	for case: Array in [[5, 2.25], [20, 0.0], [30, -1.0]]:
+		SmallWorld.set_stock(sim, "town", "grain", case[0])
+		var flow := OffMapTradeSystem.expected_flow(sim.data.economy, town, grain)
+		assert_almost_eq(flow, case[1] as float, 1e-9, "stock %d" % case[0])

@@ -42,10 +42,17 @@ straight lanes. `SeaChart` finds the shortest route (Dijkstra, deterministic tie
 
 ## Time
 
-`Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24 ticks it runs the daily systems in a fixed order:
-city production, then the traders' workshops (`WorkshopSystem`), then consumption. Prices are not stored. `Pricing` derives them from current stock
-whenever they are needed, so they can never go stale. The UI's speed setting decides how many ticks
-run per real second, so pausing is simply running zero ticks.
+`Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24
+ticks it runs the daily systems in a fixed order: city production, the traders' workshops
+(`WorkshopSystem`), consumption, off-map trade (`OffMapTradeSystem`), and finally
+`PriceHistorySystem`, which records each market's closing price for the UI's charts. Current
+prices are not stored: `Pricing` derives them from current stock whenever they are needed, so they
+can never go stale. The UI's speed setting decides how many ticks run per real second, so pausing
+is simply running zero ticks.
+
+Read-only queries such as `TradePlanner` (cargo suggestions) also live in `sim/`, so they are
+tested headless, but they never change state. Notifications (ship arrived, workshop stopped) are
+found by the UI's `GameSession`, which compares state before and after each step.
 
 ## Determinism
 
@@ -55,9 +62,11 @@ identical state. A test will enforce this from M1.
 
 ## Saving
 
-`WorldState.to_dict()` / `from_dict()` produce plain JSON-compatible dictionaries with
-`save_version`. Definitions are *not* saved. Saves reference goods and cities by id and are
-validated against the loaded `GameData` on load.
+`SaveGame.to_dict()` / `from_dict()` turn a `WorldState` into a plain JSON-compatible dictionary
+with `save_version` and back. Definitions are *not* saved. Saves reference goods and cities by id
+and are validated against the loaded `GameData` on load, then checked with `EconomyInvariants`.
+Older versions are migrated in `from_dict()` (version 1 saves get an empty price history). Saves
+are named slots in `user://saves`, plus an autosave every few in-game days.
 
 ## Testing
 

@@ -66,11 +66,11 @@ Work top to bottom unless the owner reprioritizes.
 
 Pillar 3: the player can always see why a price is what it is, and doesn't have to babysit ships.
 
-- [ ] Price history: daily mid price per city and good for the last 30 days, saved (`save_version` 2, migrating version 1 saves with an empty history)
-- [ ] Market panel: sparkline and trend arrow per good, and a tooltip explaining the price (stock vs target, daily demand, last shortage, off-map flow)
-- [ ] Trade planner: for a docked ship, the best goods to carry to each other city, with margin and profit per day of sailing
-- [ ] Notifications: the sim records events (ship arrived, workshop idle and why, kontor full) that the UI lists; optional auto-pause on arrival
-- [ ] Saves: several named slots, an autosave every few days, and a start screen with New game / Continue / Load
+- [x] Price history: daily mid price per city and good for the last 30 days, saved (`save_version` 2, migrating version 1 saves with an empty history) (`PriceHistorySystem`)
+- [x] Market panel: sparkline and trend arrow per good, and a tooltip explaining the price (stock vs target, daily demand, last shortage, off-map flow)
+- [x] Trade planner: for a docked ship, the best goods to carry to each other city, with margin and profit per day of sailing ("Cargo ideas", `TradePlanner`, with a Load button)
+- [x] Notifications: the UI compares state around each step and logs ship arrivals and workshops going idle and why (including kontor full); pause on arrival, on by default (`LogPanel`)
+- [x] Saves: several named slots, an autosave every 3 days, and a start screen with New game / Continue / Load (`SaveMenu`, `StartScreen`)
 
 ## M7: Trade routes
 
