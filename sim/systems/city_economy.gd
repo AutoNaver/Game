@@ -46,7 +46,11 @@ static func whole_units(parts: int) -> int:
 
 ## The stock at which the good trades at its base price (ADR 0003). At least 1.
 static func target_stock(economy: EconomyDef, city: CityState, good: GoodDef) -> int:
-	return maxi(1, ceili(daily_demand(city, good) * economy.days_of_cover))
+	# Integer ceiling division on exact parts: floats would turn 3.0 into 3.0000000000000004 -> 4.
+	var parts := daily_demand_parts(city, good) * economy.days_of_cover
+	@warning_ignore("integer_division")
+	var units := (parts + PARTS_PER_UNIT - 1) / PARTS_PER_UNIT
+	return maxi(1, units)
 
 
 ## City workshops stop producing a good once stock reaches this.
