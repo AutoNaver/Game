@@ -10,11 +10,16 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			var rate := city_def.production_of(good.id)
 			if rate <= 0.0:
 				continue
+			# Workshops idle rather than overfill the market, so no goods are destroyed, and an
+			# idle day makes no progress (no burst of stored output when the market reopens).
+			var room := CityEconomy.stock_cap(data.economy, city, good) - city.stock[good.id]
+			if room <= 0:
+				continue
 			var output := rate + city.production_carry[good.id]
 			var units := floori(output)
-			city.production_carry[good.id] = output - units
-			# Workshops idle rather than overfill the market, so no goods are destroyed.
-			var room := maxi(
-				0, CityEconomy.stock_cap(data.economy, city, good) - city.stock[good.id]
-			)
-			city.stock[good.id] += mini(units, room)
+			if units > room:
+				city.stock[good.id] += room
+				city.production_carry[good.id] = 0.0
+			else:
+				city.stock[good.id] += units
+				city.production_carry[good.id] = output - units

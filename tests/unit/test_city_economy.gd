@@ -46,6 +46,28 @@ func test_production_stops_at_stock_cap() -> void:
 	assert_eq(port.stock["grain"], 40)
 
 
+func test_idle_days_at_cap_make_no_progress() -> void:
+	var sim := SmallWorld.simulation()
+	var port := sim.world.get_city("port")
+	port.stock["grain"] = 40
+	for i in 3:
+		ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.production_carry["grain"], 0.0)
+	port.stock["grain"] = 30
+	ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["grain"], 31, "1.5/day yields 1 unit, not a burst from idle days")
+
+
+func test_output_beyond_cap_is_discarded_not_banked() -> void:
+	var sim := SmallWorld.simulation()
+	var port := sim.world.get_city("port")
+	port.stock["grain"] = 39
+	port.production_carry["grain"] = 0.9
+	ProductionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["grain"], 40)
+	assert_eq(port.production_carry["grain"], 0.0)
+
+
 func test_consumption_accumulates_fractions_across_days() -> void:
 	var sim := SmallWorld.simulation()
 	var port := sim.world.get_city("port")
