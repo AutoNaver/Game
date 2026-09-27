@@ -43,7 +43,7 @@ func test_production_stops_at_stock_cap() -> void:
 	port.stock["grain"] = 39
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 40)
-	assert_eq(port.production_carry["grain"], 0.0, "reaching the cap exactly drops the 0.5")
+	assert_eq(port.production_carry["grain"], 0, "reaching the cap exactly drops the 0.5")
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 40)
 	port.stock["grain"] = 30
@@ -57,7 +57,7 @@ func test_idle_days_at_cap_make_no_progress() -> void:
 	port.stock["grain"] = 40
 	for i in 3:
 		ProductionSystem.run_day(sim.data, sim.world)
-	assert_eq(port.production_carry["grain"], 0.0)
+	assert_eq(port.production_carry["grain"], 0)
 	port.stock["grain"] = 30
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 31, "1.5/day yields 1 unit, not a burst from idle days")
@@ -67,10 +67,10 @@ func test_output_beyond_cap_is_discarded_not_banked() -> void:
 	var sim := SmallWorld.simulation()
 	var port := sim.world.get_city("port")
 	port.stock["grain"] = 39
-	port.production_carry["grain"] = 0.9
+	port.production_carry["grain"] = 900
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 40)
-	assert_eq(port.production_carry["grain"], 0.0)
+	assert_eq(port.production_carry["grain"], 0)
 
 
 func test_consumption_accumulates_fractions_across_days() -> void:
@@ -116,3 +116,29 @@ func test_advance_days_nets_production_against_consumption() -> void:
 	assert_eq(sim.world.hour, 10 * Simulation.HOURS_PER_DAY)
 	# Grain: +1.5 -2.0 per day; wine: -0.5 per day.
 	assert_eq(sim.world.get_city("port").stock, {"grain": 15, "wine": 0})
+
+
+func test_fractional_rates_do_not_drift() -> void:
+	# 12000 people x 0.6/1000 = 7.2 a day; as floats, 5 days summed to 35.999... and took only 35.
+	var data := SmallWorld.data()
+	var salt := GoodDef.new("salt", "Salt", "raw", 50, 0.6)
+	data.add_good(salt)
+	var sim := Simulation.new_game(data, 1)
+	var port := sim.world.get_city("port")
+	port.population = 12000
+	port.stock["salt"] = 100
+	for day in 5:
+		ConsumptionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["salt"], 64, "exactly 36 consumed")
+	assert_eq(port.consumption_carry["salt"], 0)
+
+
+func test_production_of_a_tenth_per_day_yields_one_unit_every_ten_days() -> void:
+	var sim := SmallWorld.simulation()
+	var data := sim.data
+	data.get_city("port").production["grain"] = 0.1
+	var port := sim.world.get_city("port")
+	for day in 10:
+		ProductionSystem.run_day(data, sim.world)
+	assert_eq(port.stock["grain"], 21)
+	assert_eq(port.production_carry["grain"], 0)

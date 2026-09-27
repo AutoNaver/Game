@@ -32,10 +32,11 @@ func player() -> TraderState:
 	return sim.world.player()
 
 
+## Changes how fast time runs from now on. Time already accumulated towards the next hour is
+## kept, so switching speeds never loses or stalls time.
 func set_speed(value: int) -> void:
 	assert(SPEEDS.has(value), "unsupported speed %d" % value)
 	speed = value
-	_pending_hours = 0.0
 	changed.emit()
 
 

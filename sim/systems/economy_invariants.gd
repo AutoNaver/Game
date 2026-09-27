@@ -15,9 +15,10 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 				violations.append("%s: negative stock %d" % [where, stock])
 			if city.shortage[good.id] < 0:
 				violations.append("%s: negative shortage %d" % [where, city.shortage[good.id]])
-			for carry: float in [city.production_carry[good.id], city.consumption_carry[good.id]]:
-				if not (carry >= 0.0 and carry < 1.0):
-					violations.append("%s: carry %f outside [0, 1)" % [where, carry])
+			for carry: int in [city.production_carry[good.id], city.consumption_carry[good.id]]:
+				if carry < 0 or carry >= CityEconomy.MILLIS_PER_UNIT:
+					var limit := CityEconomy.MILLIS_PER_UNIT
+					violations.append("%s: carry %d outside [0, %d)" % [where, carry, limit])
 			var target := CityEconomy.target_stock(economy, city, good)
 			var low := good.base_price * economy.price_min_multiplier
 			var high := good.base_price * economy.price_max_multiplier
@@ -40,8 +41,10 @@ static func _check_ship(data: GameData, hour: int, ship: ShipState) -> PackedStr
 	for good_id: String in ship.cargo.keys():
 		if not data.has_good(good_id) or ship.cargo[good_id] <= 0:
 			violations.append("%s: bad cargo entry %s=%d" % [where, good_id, ship.cargo[good_id]])
-	var capacity := data.get_ship(ship.type_id).capacity
-	if ship.cargo_total() > capacity:
+	if not data.has_ship(ship.type_id):
+		violations.append("%s: unknown ship type '%s'" % [where, ship.type_id])
+	elif ship.cargo_total() > data.get_ship(ship.type_id).capacity:
+		var capacity := data.get_ship(ship.type_id).capacity
 		violations.append("%s: cargo %d over capacity %d" % [where, ship.cargo_total(), capacity])
 	if ship.is_docked():
 		if not data.has_city(ship.docked_at):

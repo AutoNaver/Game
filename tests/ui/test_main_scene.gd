@@ -47,6 +47,15 @@ func test_only_the_active_speed_button_is_pressed() -> void:
 	assert_eq(pressed, ["2×"])
 
 
+func test_switching_speed_keeps_partial_hours() -> void:
+	_session.set_speed(1)
+	# 0.4 s at 1x is 0.8 of an hour; switching to 2x must not throw that away.
+	_session._process(0.4)
+	_session.set_speed(2)
+	_session._process(0.05)
+	assert_eq(_session.sim.world.hour, 1)
+
+
 func test_running_game_advances() -> void:
 	_session.set_speed(4)
 	await wait_seconds(0.5)
