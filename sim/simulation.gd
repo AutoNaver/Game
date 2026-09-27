@@ -1,8 +1,8 @@
 class_name Simulation
 extends RefCounted
 ## Owns the world and advances it. One tick is one in-game hour: ships move every tick, and the
-## daily systems run whenever a tick completes a day, in a fixed order: production, then
-## consumption. Actions enter only through execute().
+## daily systems run whenever a tick completes a day, in a fixed order: city production, traders'
+## workshops, then consumption. Actions enter only through execute().
 ##
 ## Prices are not stored: they are derived from stock on demand (see Pricing, CityEconomy).
 
@@ -60,6 +60,7 @@ func tick() -> void:
 	MovementSystem.run_hour(world)
 	if world.hour % HOURS_PER_DAY == 0:
 		ProductionSystem.run_day(data, world)
+		WorkshopSystem.run_day(data, world)
 		ConsumptionSystem.run_day(data, world)
 
 

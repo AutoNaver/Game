@@ -1,0 +1,8 @@
+{
+  "kontor": { "price": 0, "capacity": 300, "rent": 5 },
+  "workshops": [
+    { "id": "brewery", "name": "Brewery", "output": "beer", "output_per_day": 20, "inputs": { "grain": 16 }, "workers": 30, "build_cost": 4000, "wages_per_day": 150 },
+    { "id": "mill", "name": "Mill", "output": "flour", "output_per_day": 0, "inputs": { "amber": 1, "grain": 2.5 }, "workers": 5, "build_cost": 100, "wages_per_day": 10 },
+    "not an object"
+  ]
+}

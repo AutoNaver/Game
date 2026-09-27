@@ -84,18 +84,18 @@ stdout. The first run after a fresh clone needs `godot --headless --import`; `ch
 
 ## 6. Workflow for the implementing agent
 
-1. Pick the next unchecked item in [docs/ROADMAP.md](docs/ROADMAP.md). One item, or a tight group, per PR.
-2. Branch from an up-to-date `main`: `feat/<area>-<topic>`, `fix/<area>-<topic>`, `docs/<topic>`, or
-   `chore/<topic>`.
-3. Keep PRs reviewable: about 400 changed lines or fewer, not counting data, fixtures and vendored code.
-   Split bigger work.
-4. Write or update tests with the change. Any `sim/` behavior change needs a test that would fail
+1. **One PR per milestone** (or per self-contained feature outside the roadmap), branched from an
+   up-to-date `main`: `feat/<area>-<topic>`, `fix/<area>-<topic>`, `docs/<topic>`, or
+   `chore/<topic>`. **No stacked PRs**: finish and merge one before branching the next.
+2. Open the PR as a **draft** early and push as you go. Codex does not review drafts.
+3. Write or update tests with the change. Any `sim/` behavior change needs a test that would fail
    without it.
-5. Run `scripts/check.sh`. It must pass before you push.
-6. Tick the roadmap checkbox in the same PR, and update docs or ADRs if a design decision changed.
-7. Open the PR with the template. Commit messages are imperative, for example "Add pricing curve for
-   city markets".
-8. Go through the Codex review loop and merge (see CLAUDE.md for the exact commands).
+4. Run `scripts/check.sh`. It must pass before you push.
+5. Tick the roadmap checkboxes in the same PR, and update docs or ADRs if a design decision changed.
+6. Before marking ready, **self-review** the whole diff against the Review guidelines below and fix
+   what you find. Commit messages are imperative, for example "Add pricing curve for city markets".
+7. Mark the PR ready. That triggers one full Codex review. Then follow the review rounds in the
+   merge policy (commands in CLAUDE.md).
 
 ## 7. Merge policy
 
@@ -105,13 +105,20 @@ stdout. The first run after a fresh clone needs `godot --headless --import`; `ch
 - All review conversations must be resolved. Zero approvals are required.
 - The rules apply to admins too. No force pushes, no branch deletion, no direct pushes.
 
+**Review rounds (at most two):**
+
+1. **Round 1:** the full Codex review after the PR is marked ready. Fix every P0/P1 in one batch.
+   Fix P2s in the same batch if cheap; otherwise reply "deferred", add the item to the roadmap's
+   backlog, and resolve the thread. P2s never block a merge.
+2. **Round 2:** request one re-review of the fixes (`@codex review`). It only verifies the fixes.
+3. After round 2, merge unless a P0/P1 is still open. Anything new that round 2 raises is handled
+   like round 1, but only P0/P1s justify another round.
+
 **An agent may merge its own PR (squash)** once all of these hold:
 
-- `ci` is green.
-- The branch is up to date.
-- Codex has reviewed the current head commit. The one exception is when the only later commits are
-  conflict-free merges of `main` into the branch, which leave the PR's own diff unchanged.
-- Every review thread is resolved: fixed, or answered with a concrete reason.
+- `ci` is green and the branch is up to date.
+- The review rounds above are done: no P0/P1 open, and every thread resolved (fixed, answered with a
+  concrete reason, or "deferred" for P2s).
 
 A P0/P1 finding that the agent disagrees with is **not** self-resolved. It's escalated to the human
 owner. Never bypass protection (`--admin`, force push, disabling rules).
@@ -127,7 +134,17 @@ owner. Never bypass protection (`--admin`, force push, disabling rules).
 
 These instructions are for Codex (and any other reviewer) reviewing PRs in this repo.
 
-Focus on correctness and the rules in this file. Flag these as **P0/P1**:
+**How to review.** Review the whole diff in one pass and report everything in that review. Don't
+hold findings back for later rounds. On a re-review (`@codex review` after fixes), only check that
+the earlier findings are fixed and that the fix commits didn't introduce problems. Don't raise new
+issues about code the fixes didn't touch.
+
+**Severity.** P0/P1 means a real defect that the shipped data (`data/`), a player action, or a save
+file can trigger, or a violation of the architecture rules. Robustness against *hypothetical* data
+(values far outside what `data/` uses, such as `1e100` coordinates or rates finer than the
+documented resolution) is P2, unless the loader would crash on it.
+
+Flag these as **P0/P1**:
 
 - `sim/` code that depends on `Node`, the scene tree, UI scripts, `Input`, `Time`/OS clocks, or does
   file I/O outside the data loader and save code.
@@ -139,13 +156,15 @@ Focus on correctness and the rules in this file. Flag these as **P0/P1**:
 - Validation holes: data or save input that can crash the game or silently produce wrong state
   instead of a clear error.
 - A save-format change without a `save_version` bump and a migration or explicit decision.
-- A `sim/` behavior change without a test that exercises it, or tests that pass without really
-  asserting the behavior (asserting on mocks, missing asserts, over-broad tolerances).
+- A new `sim/` behavior with no test at all, or tests that pass without really asserting the
+  behavior (asserting on mocks, missing asserts, over-broad tolerances).
 - Player actions that bypass the command layer, or UI code that mutates sim state directly.
 - Untyped GDScript declarations in new code (CI should catch these, so flag any that slip through).
 
-Also worth a comment (P2): unclear naming, missing doc comments on public `sim/` APIs, magic numbers
-that should be data or constants, and duplication with an existing helper.
+Also worth a comment, as **P2** (never blocking): unclear naming, missing doc comments on public
+`sim/` APIs, magic numbers that should be data or constants, duplication with an existing helper,
+missing tests for trivial branches, UI polish and accessibility details, and hypothetical-data
+robustness as described above.
 
 Don't comment on formatting (gdformat enforces it), on files under `addons/`, or on work that is out
 of scope for the PR's roadmap item. Suggest follow-ups instead of asking for scope growth.

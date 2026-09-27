@@ -71,3 +71,26 @@ static func buy_cost(economy: EconomyDef, city: CityState, good: GoodDef, quanti
 static func sell_revenue(economy: EconomyDef, city: CityState, good: GoodDef, quantity: int) -> int:
 	var target := target_stock(economy, city, good)
 	return Pricing.sell_revenue(economy, good.base_price, target, city.stock[good.id], quantity)
+
+
+## People in the city available to work in traders' workshops.
+static func workforce(economy: EconomyDef, city: CityState) -> int:
+	@warning_ignore("integer_division")
+	return city.population * rate_steps(economy.workforce_share) / RATE_STEPS
+
+
+## Workers all traders' workshops in the city employ.
+static func workers_employed(data: GameData, world: WorldState, city_id: String) -> int:
+	var employed := 0
+	for trader in world.traders:
+		var kontor := trader.get_kontor(city_id)
+		if kontor == null:
+			continue
+		for workshop in kontor.workshops:
+			employed += data.get_workshop(workshop.type_id).workers
+	return employed
+
+
+## Workforce not yet employed; a new workshop needs at least its worker count.
+static func free_workers(data: GameData, world: WorldState, city: CityState) -> int:
+	return workforce(data.economy, city) - workers_employed(data, world, city.id)

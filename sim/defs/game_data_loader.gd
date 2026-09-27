@@ -16,6 +16,7 @@ const MAP_FILE: String = "map.json"
 const CITIES_FILE: String = "cities.json"
 const SEA_LANES_FILE: String = "sea_lanes.json"
 const SHIPS_FILE: String = "ships.json"
+const BUILDINGS_FILE: String = "buildings.json"
 const SCENARIO_FILE: String = "scenario.json"
 
 const ECONOMY_FIELDS: PackedStringArray = [
@@ -24,6 +25,8 @@ const ECONOMY_FIELDS: PackedStringArray = [
 	"price_max_multiplier",
 	"price_min_multiplier",
 	"spread",
+	"ship_resale_factor",
+	"workforce_share",
 ]
 const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
@@ -36,6 +39,11 @@ const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "pric
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
 const WAYPOINT_FIELDS: PackedStringArray = ["id", "coordinates"]
+const BUILDINGS_FIELDS: PackedStringArray = ["kontor", "workshops"]
+const KONTOR_FIELDS: PackedStringArray = ["price", "capacity"]
+const WORKSHOP_FIELDS: PackedStringArray = [
+	"id", "name", "output", "output_per_day", "inputs", "workers", "build_cost", "wages_per_day"
+]
 const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
@@ -107,6 +115,10 @@ func load_dir(dir: String) -> GameData:
 		else:
 			data.add_ship(ship)
 
+	var buildings: Variant = _read_json(dir.path_join(BUILDINGS_FILE), TYPE_DICTIONARY)
+	if buildings != null:
+		_parse_buildings(buildings as Dictionary, BUILDINGS_FILE, data)
+
 	var scenario: Variant = _read_json(dir.path_join(SCENARIO_FILE), TYPE_DICTIONARY)
 	if scenario != null:
 		data.scenario = _parse_scenario(scenario as Dictionary, SCENARIO_FILE, data)
@@ -149,9 +161,15 @@ func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
 	var max_multiplier := _get_float_between(entry, "price_max_multiplier", 1.0, 100.0, ctx)
 	var min_multiplier := _get_float_between(entry, "price_min_multiplier", 0.0, 1.0, ctx)
 	var spread := _get_float_between(entry, "spread", 0.0, 1.0, ctx)
+	var resale := _get_float_between(entry, "ship_resale_factor", 0.0, 1.0, ctx, true)
+	_check_rate_resolution(resale, "ship_resale_factor", ctx)
+	var workforce := _get_float_between(entry, "workforce_share", 0.0, 1.0, ctx, true)
+	_check_rate_resolution(workforce, "workforce_share", ctx)
 	if errors.size() > error_count:
 		return null
-	return EconomyDef.new(days_of_cover, stock_cap_factor, max_multiplier, min_multiplier, spread)
+	return EconomyDef.new(
+		days_of_cover, stock_cap_factor, max_multiplier, min_multiplier, spread, resale, workforce
+	)
 
 
 func _parse_good(raw: Variant, ctx: String) -> GoodDef:
@@ -317,6 +335,69 @@ func _get_array(entry: Dictionary, field: String, ctx: String) -> Array:
 		_error(ctx, "'%s' must be an array" % field)
 		return []
 	return entry[field] as Array
+
+
+## Goods must already be loaded. Sets data.kontor and adds the workshop types.
+func _parse_buildings(entry: Dictionary, ctx: String, data: GameData) -> void:
+	_check_fields(entry, BUILDINGS_FIELDS, ctx)
+	if entry.has("kontor"):
+		if entry["kontor"] is Dictionary:
+			var kontor: Dictionary = entry["kontor"]
+			var kontor_ctx := "%s kontor" % ctx
+			var error_count := errors.size()
+			_check_fields(kontor, KONTOR_FIELDS, kontor_ctx)
+			var price := _get_positive_int(kontor, "price", kontor_ctx)
+			var capacity := _get_positive_int(kontor, "capacity", kontor_ctx)
+			if errors.size() == error_count:
+				data.kontor = KontorDef.new(price, capacity)
+		else:
+			_error(ctx, "'kontor' must be an object")
+	var workshops := _get_array(entry, "workshops", ctx)
+	for i in workshops.size():
+		var workshop_ctx := "%s workshops[%d]" % [ctx, i]
+		var workshop := _parse_workshop(workshops[i], workshop_ctx, data)
+		if workshop == null:
+			continue
+		if data.has_workshop(workshop.id):
+			_error(workshop_ctx, "duplicate id '%s'" % workshop.id)
+		else:
+			data.add_workshop(workshop)
+
+
+func _parse_workshop(raw: Variant, ctx: String, data: GameData) -> WorkshopDef:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	_check_fields(entry, WORKSHOP_FIELDS, ctx)
+	var id := _get_id(entry, ctx)
+	var workshop_name := _get_string(entry, "name", ctx)
+	var output := _get_string(entry, "output", ctx)
+	if not output.is_empty() and not data.has_good(output):
+		_error(ctx, "'output' is not a known good: '%s'" % output)
+	var output_per_day := _get_positive_int(entry, "output_per_day", ctx)
+	var inputs: Dictionary[String, int] = {}
+	if entry.has("inputs"):
+		if entry["inputs"] is Dictionary:
+			var raw_inputs: Dictionary = entry["inputs"]
+			for key: Variant in raw_inputs.keys():
+				var good_id := str(key)
+				if not data.has_good(good_id):
+					_error(ctx, "'inputs' has unknown good '%s'" % good_id)
+					continue
+				var field := "inputs.%s" % good_id
+				inputs[good_id] = _get_positive_int({field: raw_inputs[key]}, field, ctx)
+		else:
+			_error(ctx, "'inputs' must be an object")
+	var workers := _get_positive_int(entry, "workers", ctx)
+	var build_cost := _get_positive_int(entry, "build_cost", ctx)
+	var wages := _get_positive_int(entry, "wages_per_day", ctx)
+	if errors.size() > error_count:
+		return null
+	return WorkshopDef.new(
+		id, workshop_name, output, output_per_day, inputs, workers, build_cost, wages
+	)
 
 
 func _parse_ship(raw: Variant, ctx: String) -> ShipDef:

@@ -32,7 +32,34 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			)
 		for ship in trader.ships:
 			violations.append_array(_check_ship(data, world.hour, ship))
+		for kontor in trader.kontors_in_order(data.cities):
+			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
+	for city in world.cities:
+		var employed := CityEconomy.workers_employed(data, world, city.id)
+		var workforce := CityEconomy.workforce(data.economy, city)
+		if employed > workforce:
+			var message := "hour %d, %s: %d workers employed of a workforce of %d"
+			violations.append(message % [world.hour, city.id, employed, workforce])
 	violations.append_array(_check_conservation(data, world))
+	return violations
+
+
+static func _check_kontor(
+	data: GameData, hour: int, trader: TraderState, kontor: KontorState
+) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	var where := "hour %d, %s kontor in %s" % [hour, trader.id, kontor.city_id]
+	if trader.kontors.get(kontor.city_id) != kontor or not data.has_city(kontor.city_id):
+		violations.append("%s: filed under the wrong city" % where)
+	for good_id: String in kontor.cargo.keys():
+		if not data.has_good(good_id) or kontor.cargo[good_id] <= 0:
+			violations.append("%s: bad entry %s=%d" % [where, good_id, kontor.cargo[good_id]])
+	if kontor.cargo_total() > data.kontor.capacity:
+		var sizes := [where, kontor.cargo_total(), data.kontor.capacity]
+		violations.append("%s: holds %d, over capacity %d" % sizes)
+	for workshop in kontor.workshops:
+		if not data.has_workshop(workshop.type_id):
+			violations.append("%s: unknown workshop type '%s'" % [where, workshop.type_id])
 	return violations
 
 
@@ -71,6 +98,8 @@ static func _check_conservation(data: GameData, world: WorldState) -> PackedStri
 		for trader in world.traders:
 			for ship in trader.ships:
 				total += ship.cargo_of(good.id)
+			for kontor in trader.kontors_in_order(data.cities):
+				total += kontor.cargo_of(good.id)
 		var expected: int = world.goods_ledger[good.id]
 		if total != expected:
 			var message := "hour %d, %s: %d units exist but production and consumption account for %d"

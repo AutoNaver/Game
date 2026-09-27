@@ -16,6 +16,8 @@ var sim: Simulation
 var speed: int = 1
 var selected_city: String = ""
 var selected_ship: String = ""
+## Units per click for trades and transfers, chosen in the market panel.
+var trade_quantity: int = 1
 
 var _pending_hours: float = 0.0
 
@@ -58,6 +60,9 @@ func advance(hours: int) -> void:
 func execute(command: Command) -> bool:
 	var error := sim.execute(command)
 	if error.is_empty():
+		# A sold ship may have been the selected one.
+		if player().get_ship(selected_ship) == null:
+			selected_ship = player().ships[0].id if not player().ships.is_empty() else ""
 		changed.emit()
 		return true
 	message_posted.emit(error)

@@ -1,0 +1,35 @@
+{
+  "kontor": { "price": 3000, "capacity": 300 },
+  "workshops": [
+    {
+      "id": "brewery",
+      "name": "Brewery",
+      "output": "beer",
+      "output_per_day": 20,
+      "inputs": { "grain": 16 },
+      "workers": 30,
+      "build_cost": 4000,
+      "wages_per_day": 150
+    },
+    {
+      "id": "weaving_mill",
+      "name": "Weaving Mill",
+      "output": "cloth",
+      "output_per_day": 4,
+      "inputs": { "wool": 5 },
+      "workers": 25,
+      "build_cost": 4500,
+      "wages_per_day": 110
+    },
+    {
+      "id": "smithy",
+      "name": "Smithy",
+      "output": "tools",
+      "output_per_day": 4,
+      "inputs": { "iron": 3, "timber": 2 },
+      "workers": 20,
+      "build_cost": 5000,
+      "wages_per_day": 120
+    }
+  ]
+}

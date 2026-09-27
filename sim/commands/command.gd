@@ -16,6 +16,12 @@ func apply(_sim: Simulation) -> void:
 	assert(false, "command does not implement apply()")
 
 
+## A city's display name for messages, or its raw id if the city is unknown.
+static func city_name(sim: Simulation, city_id: String) -> String:
+	var city := sim.data.get_city(city_id)
+	return city.name if city != null else "'%s'" % city_id
+
+
 ## Looks up a trader's ship, returning null if either does not exist.
 static func find_ship(sim: Simulation, trader_id: String, ship_id: String) -> ShipState:
 	var trader := sim.world.get_trader(trader_id)
