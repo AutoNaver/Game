@@ -90,7 +90,7 @@ func test_invalid_data_reports_every_problem() -> void:
 		"cities.json[3]: 'map_position' coordinates must be within ±100000",
 		"cities.json[3]: 'population' must be at most 1000000000",
 		"ships.json[1]: 'capacity' must be a positive integer",
-		"ships.json[1]: 'speed' must be a number greater than 0.0 and less than 1000.0",
+		"ships.json[1]: 'speed' must be a number at least 0.1 and less than 1000.0",
 		"scenario.json: 'start_city' is not a known city: 'atlantis'",
 		"scenario.json ships[0]: 'type' is not a known ship type: 'galleon'",
 		"scenario.json ships[1]: missing field 'name'",
