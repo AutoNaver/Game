@@ -12,14 +12,9 @@ var _sail_buttons: Dictionary[String, Button] = {}
 
 func setup(session: GameSession) -> void:
 	_session = session
-	var title := Label.new()
-	title.text = "Fleet"
-	title.add_theme_font_size_override("font_size", 20)
-	add_child(title)
+	add_child(UiStyle.label("Fleet", UiStyle.HEADER_LABEL))
 	add_child(_ship_list)
-	var sail_label := Label.new()
-	sail_label.text = "Sail to:"
-	_sail_row.add_child(sail_label)
+	_sail_row.add_child(UiStyle.label("Sail to:", UiStyle.MUTED_LABEL))
 	for city in _session.sim.data.cities:
 		var button := Button.new()
 		button.name = "Sail_%s" % city.id

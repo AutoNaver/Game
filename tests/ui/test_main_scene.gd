@@ -28,6 +28,14 @@ func test_starts_a_game_from_the_scenario() -> void:
 	assert_eq(_text("SidePanel", "CityTitle"), "Lübeck")
 
 
+func test_the_game_uses_the_shared_theme() -> void:
+	assert_not_null(_main.theme)
+	assert_eq((_find("Hud") as Control).theme_type_variation, UiStyle.HUD_PANEL)
+	var title := _find("SidePanel").find_child("CityTitle", true, false) as Label
+	assert_eq(title.theme_type_variation, UiStyle.TITLE_LABEL)
+	assert_eq(title.get_theme_color("font_color"), UiStyle.GOLD)
+
+
 func test_time_advances_and_the_hud_follows() -> void:
 	_session.advance(Simulation.HOURS_PER_DAY + 5)
 	assert_eq(_text("Hud", "DateLabel"), "Day 2, 05:00")
@@ -108,6 +116,13 @@ func test_zoom_and_pan_stay_within_the_map() -> void:
 	assert_eq(map.zoom(), MapView.MAX_ZOOM)
 	map.pan(Vector2(10_000, 10_000))
 	assert_eq(map.to_screen(Vector2.ZERO), Vector2.ZERO, "north-west corner stops at the edge")
+
+
+func test_side_panel_scrolls_instead_of_stretching_the_screen() -> void:
+	await wait_process_frames(2)
+	var body := _find("Map").get_parent() as Control
+	assert_true(body.size.y <= SCREEN_SIZE.y, "the body fits the window")
+	assert_true(_find("SidePanel").find_child("Scroll", true, false) is ScrollContainer)
 
 
 func test_open_sea_is_not_a_city() -> void:

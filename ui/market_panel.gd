@@ -32,19 +32,18 @@ var _note: Label = Label.new()
 
 func setup(session: GameSession) -> void:
 	_session = session
+	add_child(UiStyle.label("Market", UiStyle.HEADER_LABEL))
 	add_child(_build_quantity_picker())
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS.size()
 	grid.add_theme_constant_override("h_separation", 12)
 	add_child(grid)
 	for heading in COLUMNS:
-		var label := Label.new()
-		label.text = heading
-		label.modulate = Color(1, 1, 1, 0.6)
-		grid.add_child(label)
+		grid.add_child(UiStyle.label(heading, UiStyle.MUTED_LABEL))
 	for good in _session.sim.data.goods:
 		_rows[good.id] = _build_row(grid, good)
 	_note.name = "TradeNote"
+	_note.theme_type_variation = UiStyle.MUTED_LABEL
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	add_child(_note)
 	_session.changed.connect(refresh)

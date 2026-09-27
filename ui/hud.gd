@@ -22,7 +22,7 @@ func setup(session: GameSession) -> void:
 	row.add_child(_date_label)
 	_message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_message_label.modulate = Color(1.0, 0.75, 0.4)
+	_message_label.theme_type_variation = UiStyle.MESSAGE_LABEL
 	row.add_child(_message_label)
 	var group := ButtonGroup.new()
 	for speed in GameSession.SPEEDS:

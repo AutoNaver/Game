@@ -9,14 +9,21 @@ var _details: Label = Label.new()
 
 func setup(session: GameSession) -> void:
 	_session = session
-	var margin := UiStyle.add_padding(self, 12)
+	# Scroll rather than grow: a tall panel must never stretch the window and push the map away.
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
+	var margin := UiStyle.add_padding(scroll, 12)
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
 	margin.add_child(column)
 	_title.name = "CityTitle"
-	_title.add_theme_font_size_override("font_size", 24)
+	_title.theme_type_variation = UiStyle.TITLE_LABEL
 	column.add_child(_title)
 	_details.name = "CityDetails"
+	_details.theme_type_variation = UiStyle.MUTED_LABEL
 	column.add_child(_details)
 	var market := MarketPanel.new()
 	market.name = "Market"

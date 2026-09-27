@@ -18,6 +18,7 @@ func _ready() -> void:
 		_show_fatal("Game data failed to load:\n%s" % "\n".join(loader.errors))
 		return
 
+	theme = UiStyle.make_theme()
 	session.name = "Session"
 	add_child(session)
 	# Start first: panels build their rows from the running game in setup().
@@ -28,6 +29,7 @@ func _ready() -> void:
 
 	var hud := Hud.new()
 	hud.name = "Hud"
+	hud.theme_type_variation = UiStyle.HUD_PANEL
 	layout.add_child(hud)
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL

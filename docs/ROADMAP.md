@@ -42,7 +42,7 @@ Work top to bottom unless the owner reprioritizes.
 - [x] HUD: coins, date; time controls (pause, 1×, 2×, 4×); last command error (`Hud`, `GameSession`)
 - [x] Real Baltic map: Natural Earth coastline rendered by `tools/map/render_map.py`; cities at real coordinates; map units are km; zoom and pan
 - [x] Sea lanes: ships follow the shortest waypoint route around the coasts (`data/sea_lanes.json`, `SeaChart`); a test checks every lane against the rendered coastline
-- [ ] UI theme pass: consistent Hanseatic look for panels and buttons
+- [x] UI theme pass: dark slate and gold theme built in `UiStyle.make_theme()`, label variations instead of ad-hoc overrides, scrolling side panel
 - [ ] **Owner play-test**, with feedback turned into roadmap items
 
 ## M4: Player production
