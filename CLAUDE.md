@@ -12,34 +12,28 @@ AGENTS.md above is the contract. This section only adds the mechanics of the PR 
 
 ## PR and Codex review loop
 
-1. Push the branch and `gh pr create --fill`, or with a body following the PR template. End the body with
-   the attribution line from the current session instructions.
-2. Wait for `ci` (`gh pr checks <n> --watch`) and for the Codex review. Codex auto-reviews new PRs.
-   If no review from the Codex bot shows up for the head commit within about 10 minutes, comment
-   `@codex review`. A clean pass isn't a review: it's an issue comment ("Didn't find any major
-   issues", which names the reviewed commit) or a 👍 reaction on the PR.
+1. Branch from `main`, push early, and open a **draft** PR (`gh pr create --draft`). Use a body that
+   follows the PR template and ends with the attribution line from the session instructions.
+2. When the milestone is complete: run `scripts/check.sh`, self-review the full diff
+   (`git diff main...HEAD`) against the AGENTS.md Review guidelines, fix what you find, then run
+   `gh pr ready <n>`. That triggers Codex's round-1 review. If nothing arrives for the head commit
+   within about 10 minutes, comment `@codex review`. A clean pass isn't a review: it's an issue
+   comment ("Didn't find any major issues", naming the reviewed commit) or a 👍 reaction.
 3. Read the findings:
-   - `gh pr view <n> --comments`
-   - `gh api repos/AutoNaver/Game/pulls/<n>/comments` (inline comments)
+   - `gh api repos/AutoNaver/Game/pulls/<n>/comments` (inline comments; the P0/P1/P2 badge is in the body)
    - `gh api repos/AutoNaver/Game/pulls/<n>/reviews` (check `commit_id` matches the head)
-4. For each thread, either push a fix and reply naming the commit, or reply with a concrete reason for
-   not changing it. Only then resolve it:
+4. Fix all P0/P1s, and cheap P2s, in **one batch** of commits. Reply on every thread with the fixing
+   commit, a concrete reason, or "deferred" plus the backlog entry for P2s. Then resolve them:
    ```bash
    gh api graphql -f query='query { repository(owner:"AutoNaver", name:"Game") { pullRequest(number: <n>) {
      reviewThreads(first: 100) { nodes { id isResolved comments(first: 1) { nodes { body path } } } } } } }'
    gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "<id>"}) { thread { isResolved } } }'
    ```
    Escalate P0/P1 findings you disagree with to the owner and leave them unresolved.
-5. After pushing fixes, comment `@codex review` so the new head commit gets reviewed.
+5. Comment `@codex review` once for round 2, which verifies the fixes.
 6. Merge once the AGENTS.md merge policy holds:
    ```bash
    gh pr update-branch <n>              # if main moved on; then wait for ci again
    gh pr merge <n> --squash --delete-branch
    ```
-   A conflict-free `update-branch` merge doesn't need a new Codex review. A merge with conflict
-   resolutions does. Never use `--admin`.
-7. Stacked PRs: **before** merging a PR another PR is stacked on, retarget the child first
-   (`gh pr edit <child> --base main`). Otherwise `--delete-branch` deletes the child's base and
-   GitHub closes the child. After the merge, merge `origin/main` into the child's branch (no force
-   push needed). Conflicts there come from the squash; the child already contains the base's
-   commits, so keep the child's side and check that `git diff HEAD~1 HEAD` is empty.
+   Never use `--admin`.
