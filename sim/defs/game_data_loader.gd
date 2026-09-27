@@ -170,6 +170,7 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 	var consumption := _get_float_between(
 		entry, "consumption_per_1000", 0.0, MAX_CONSUMPTION_PER_1000, ctx, true
 	)
+	_check_rate_resolution(consumption, "consumption_per_1000", ctx)
 	if errors.size() > error_count:
 		return null
 	return GoodDef.new(id, good_name, category, base_price, consumption)
@@ -181,6 +182,8 @@ func _parse_map(entry: Dictionary, ctx: String) -> MapDef:
 	var image := _get_string(entry, "image", ctx)
 	if not image.is_empty() and not ResourceLoader.exists(image):
 		_error(ctx, "'image' not found: %s" % image)
+	elif not image.is_empty() and not load(image) is Texture2D:
+		_error(ctx, "'image' must be a texture: %s" % image)
 	var west := _get_float_between(entry, "west_lon", -180.0, 180.0, ctx, true)
 	var east := _get_float_between(entry, "east_lon", -180.0, 180.0, ctx, true)
 	var south := _get_float_between(entry, "south_lat", -85.0, 85.0, ctx, true)
@@ -242,12 +245,8 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 		var rate := _get_float_between({field: rates[key]}, field, 0.0, MAX_PRODUCTION_PER_DAY, ctx)
 		if rate <= 0.0:
 			continue
-		# The simulation counts thousandths of a unit; finer rates would silently be rounded.
-		var millis := rate * CityEconomy.MILLIS_PER_UNIT
-		if absf(millis - roundf(millis)) > 1e-6:
-			_error(ctx, "'%s' must be a multiple of 0.001 (got %s)" % [field, rate])
-			continue
-		production[good_id] = rate
+		if _check_rate_resolution(rate, field, ctx):
+			production[good_id] = rate
 	return production
 
 
@@ -373,6 +372,15 @@ func _parse_starting_ship(raw: Variant, ctx: String, data: GameData) -> Scenario
 	if errors.size() > error_count:
 		return null
 	return ScenarioDef.StartingShip.new(type_id, ship_name)
+
+
+## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would
+## silently be rounded. Returns false after reporting a violation.
+func _check_rate_resolution(rate: float, field: String, ctx: String) -> bool:
+	if CityEconomy.is_valid_rate(rate):
+		return true
+	_error(ctx, "'%s' must be a multiple of 0.001 (got %s)" % [field, rate])
+	return false
 
 
 ## Reports missing and unknown fields. The typed getters below skip missing fields so each

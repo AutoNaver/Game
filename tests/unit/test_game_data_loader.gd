@@ -83,6 +83,7 @@ func test_invalid_data_reports_every_problem() -> void:
 		"goods.json[3]: 'consumption_per_1000' must be a number at least 0.0 and less than 1000.0",
 		"goods.json[4]: unknown field 'colour'",
 		"goods.json[4]: 'base_price' must be a positive integer",
+		"goods.json[4]: 'consumption_per_1000' must be a multiple of 0.001 (got 0.0004)",
 		"goods.json[5]: missing field 'base_price'",
 		"goods.json[6]: entry must be an object",
 		"cities.json[0]: 'coordinates' must be an array of two numbers [lon, lat]",
@@ -165,6 +166,12 @@ func test_shipped_sea_lanes_connect_every_city() -> void:
 			if from_city != to_city:
 				var route := data.sea_chart.route(from_city.id, to_city.id)
 				assert_gt(route.size(), 2, "%s-%s goes via waypoints" % [from_city.id, to_city.id])
+
+
+func test_map_image_must_be_a_texture() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_map_type"))
+	assert_eq(Array(loader.errors), ["map.json: 'image' must be a texture: res://ui/main.tscn"])
 
 
 func test_map_frame_must_be_ordered() -> void:

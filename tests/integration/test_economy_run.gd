@@ -31,11 +31,11 @@ func test_invariant_check_reports_violations() -> void:
 	var sim := SmallWorld.simulation()
 	var port := sim.world.get_city("port")
 	port.stock["grain"] = -3
-	port.consumption_carry["wine"] = 1500
+	port.consumption_carry["wine"] = 1_500_000
 	var violations := EconomyInvariants.check(sim.data, sim.world)
 	assert_eq(violations.size(), 3)
 	assert_string_contains(violations[0], "port/grain: negative stock -3")
-	assert_string_contains(violations[1], "port/wine: carry 1500 outside [0, 1000)")
+	assert_string_contains(violations[1], "port/wine: carry 1500000 outside [0, 1000000)")
 	assert_string_contains(violations[2], ", grain: ")
 	assert_string_contains(violations[2], "units exist but production and consumption account for")
 
@@ -52,12 +52,14 @@ func test_goods_created_outside_production_are_caught() -> void:
 	assert_string_contains(violations[0], expected % [ledger + 2, ledger])
 
 
+## Every command must succeed, or both runs would take the same no-op path and prove nothing.
 func _play_scripted_turns(sim: Simulation) -> void:
 	var player := WorldState.PLAYER_ID
-	sim.execute(BuyCommand.new(player, SmallWorld.SHIP_ID, "grain", 6))
-	sim.execute(SailCommand.new(player, SmallWorld.SHIP_ID, "town"))
+	assert_eq(sim.execute(BuyCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.execute(SailCommand.new(player, SmallWorld.SHIP_ID, "town")), "")
 	sim.advance_days(1)
-	sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6))
+	assert_eq(sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.world.player().get_ship(SmallWorld.SHIP_ID).cargo, {}, "the trip really happened")
 
 
 func _fingerprint(sim: Simulation) -> Array:
