@@ -69,6 +69,8 @@ func test_invalid_data_reports_every_problem() -> void:
 		"goods.json[6]: entry must be an object",
 		"cities.json[0]: 'map_position' must be an array of two numbers",
 		"cities.json[1]: 'population' must be a positive integer",
+		"cities.json[2]: 'map_position' coordinates must be within ±100000",
+		"cities.json[2]: 'population' must be at most 1000000000",
 	]
 	assert_eq(Array(loader.errors), expected)
 
