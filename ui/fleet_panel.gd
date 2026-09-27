@@ -28,7 +28,11 @@ func setup(session: GameSession) -> void:
 
 func refresh() -> void:
 	var ships := _session.player().ships
-	if _ship_buttons.size() != ships.size():
+	# Rebuild when the set of ships changed (bought, sold or a game loaded), not just the count.
+	var ids := PackedStringArray()
+	for ship in ships:
+		ids.append(ship.id)
+	if ids != PackedStringArray(_ship_buttons.keys()):
 		_rebuild_ship_buttons(ships)
 	for ship in ships:
 		var button := _ship_buttons[ship.id]

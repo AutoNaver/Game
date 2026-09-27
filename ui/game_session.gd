@@ -16,6 +16,8 @@ var sim: Simulation
 var speed: int = 1
 var selected_city: String = ""
 var selected_ship: String = ""
+## The save slot used by the HUD's Save and Load buttons (tests point this elsewhere).
+var save_slot: String = "quicksave"
 ## Units per click for trades and transfers, chosen in the market panel.
 var trade_quantity: int = 1
 
@@ -28,6 +30,29 @@ func start(data: GameData, seed_value: int) -> void:
 	var ships := sim.world.player().ships
 	selected_ship = ships[0].id if not ships.is_empty() else ""
 	changed.emit()
+
+
+## Writes the running game to `save_slot`. Posts the outcome as a message.
+func save_game() -> bool:
+	var error := SaveGame.save_file(sim.world, SaveGame.path_for(save_slot))
+	message_posted.emit("Game saved" if error.is_empty() else "Save failed: %s" % error)
+	return error.is_empty()
+
+
+## Replaces the running game with a saved one, if it loads cleanly. Posts the outcome.
+func load_game() -> bool:
+	var loader := SaveGame.new()
+	var world := loader.load_file(sim.data, SaveGame.path_for(save_slot))
+	if world == null:
+		message_posted.emit("Load failed: %s" % loader.errors[0])
+		return false
+	sim = Simulation.new(sim.data, world)
+	var ships := player().ships
+	if player().get_ship(selected_ship) == null:
+		selected_ship = ships[0].id if not ships.is_empty() else ""
+	message_posted.emit("Game loaded (day %d)" % (sim.day() + 1))
+	changed.emit()
+	return true
 
 
 func player() -> TraderState:

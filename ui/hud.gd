@@ -1,6 +1,6 @@
 class_name Hud
 extends PanelContainer
-## Top bar: the player's coins, the date, time controls and the latest message.
+## Top bar: the player's coins, the date, the latest message, quick save/load and time controls.
 
 var _session: GameSession
 var _coins_label: Label = Label.new()
@@ -24,6 +24,15 @@ func setup(session: GameSession) -> void:
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message_label.theme_type_variation = UiStyle.MESSAGE_LABEL
 	row.add_child(_message_label)
+	for action: Array in [
+		["SaveGame", "Save", _session.save_game], ["LoadGame", "Load", _session.load_game]
+	]:
+		var file_button := Button.new()
+		file_button.name = action[0]
+		file_button.text = action[1]
+		file_button.pressed.connect(func() -> void: (action[2] as Callable).call())
+		row.add_child(file_button)
+	row.add_child(VSeparator.new())
 	var group := ButtonGroup.new()
 	for speed in GameSession.SPEEDS:
 		var button := Button.new()
