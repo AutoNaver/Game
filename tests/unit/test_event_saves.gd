@@ -32,7 +32,7 @@ func _load(sim: Simulation, save: Dictionary) -> WorldState:
 
 func test_events_and_spoilage_carries_round_trip() -> void:
 	var sim := _played_simulation()
-	sim.world.events.append(EventState.new("event_1", "storm", "town", 2, 5))
+	sim.world.events.append(EventState.new("event_1", "storm", "town", 1, 4))
 	sim.world.next_event_number = 2
 	sim.world.player().get_kontor("port").spoil_carry["grain"] = 300_000
 	sim.world.player().ships[0].spoil_carry["grain"] = 7
@@ -74,5 +74,24 @@ func test_bad_events_and_carries_are_rejected() -> void:
 			"events[0]: days 3 to 3 are not a span",
 			"traders[0] ships[0] spoil_carry: grain 1000000 outside 1 to 999999",
 			"traders[0] ships[0] spoil_carry: unknown good 'amber'",
+		]
+	)
+
+
+func test_events_outside_today_are_rejected() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	save["next_event_number"] = 3
+	save["events"] = [
+		{"id": "event_1", "type": "storm", "city": "town", "start_day": 5, "end_day": 8},
+		{"id": "event_2", "type": "storm", "city": "port", "start_day": 0, "end_day": 1},
+	]
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_eq(
+		Array(loader.errors),
+		[
+			"hour 24, event_1: days 5 to 8 don't include day 1",
+			"hour 24, event_2: days 0 to 1 don't include day 1",
 		]
 	)

@@ -74,6 +74,17 @@ func test_a_fraction_does_not_follow_new_goods_after_the_hold_empties() -> void:
 	assert_false(_ship().spoil_carry.has("grain"))
 
 
+func test_selling_out_drops_the_fraction_at_once() -> void:
+	SmallWorld.give_cargo(_sim, _ship(), "grain", 5)
+	SpoilageSystem.run_day(_sim.data, _sim.world)
+	assert_eq(_ship().spoil_carry["grain"], 500_000)
+	assert_eq(_sim.execute(SellCommand.new(PLAYER, SmallWorld.SHIP_ID, "grain", 5)), "")
+	assert_false(_ship().spoil_carry.has("grain"), "gone before any new grain is loaded")
+	assert_eq(_sim.execute(BuyCommand.new(PLAYER, SmallWorld.SHIP_ID, "grain", 5)), "")
+	SpoilageSystem.run_day(_sim.data, _sim.world)
+	assert_eq(_ship().cargo_of("grain"), 5, "fresh grain starts from nothing: 0.5 of a unit")
+
+
 func test_losses_are_cleared_each_day_with_the_simulation() -> void:
 	SmallWorld.give_cargo(_sim, _ship(), "grain", 10)
 	_sim.advance_days(1)

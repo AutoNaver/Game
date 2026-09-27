@@ -41,9 +41,16 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
 	for city in world.cities:
 		violations.append_array(_check_population(data, world.hour, city))
+	@warning_ignore("integer_division")
+	var day := world.hour / Simulation.HOURS_PER_DAY
 	for event in world.events:
 		if not data.has_event(event.type_id) or not data.has_city(event.city_id):
 			violations.append("hour %d, %s: unknown type or city" % [world.hour, event.id])
+		# EventSystem starts events on their first day and drops them once over, so every event
+		# kept in the world is running today.
+		if not event.is_active(day):
+			var span := [world.hour, event.id, event.start_day, event.end_day, day]
+			violations.append("hour %d, %s: days %d to %d don't include day %d" % span)
 	violations.append_array(_check_conservation(data, world))
 	return violations
 
