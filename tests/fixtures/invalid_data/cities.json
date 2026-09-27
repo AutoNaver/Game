@@ -1,0 +1,4 @@
+[
+  { "id": "lubeck", "name": "Lübeck", "map_position": [136], "population": 12000 },
+  { "id": "visby", "name": "Visby", "map_position": [744, 340], "population": 0 }
+]

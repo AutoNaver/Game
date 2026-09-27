@@ -1,0 +1,9 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40 },
+  { "id": "grain", "name": "Grain Again", "category": "raw", "base_price": 40 },
+  { "id": "Fish", "name": "Fish", "category": "raw", "base_price": 60 },
+  { "id": "salt", "name": " ", "category": "mineral", "base_price": -5 },
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 12.5, "colour": "red" },
+  { "id": "beer", "name": "Beer", "category": "processed" },
+  "not an object"
+]

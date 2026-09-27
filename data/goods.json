@@ -1,0 +1,12 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40 },
+  { "id": "fish", "name": "Fish", "category": "raw", "base_price": 60 },
+  { "id": "salt", "name": "Salt", "category": "raw", "base_price": 50 },
+  { "id": "timber", "name": "Timber", "category": "raw", "base_price": 45 },
+  { "id": "wool", "name": "Wool", "category": "raw", "base_price": 70 },
+  { "id": "iron", "name": "Iron", "category": "raw", "base_price": 110 },
+  { "id": "beer", "name": "Beer", "category": "processed", "base_price": 55 },
+  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140 },
+  { "id": "tools", "name": "Tools", "category": "processed", "base_price": 170 },
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220 }
+]

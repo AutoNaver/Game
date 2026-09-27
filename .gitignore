@@ -1,0 +1,16 @@
+# Godot
+.godot/
+*.tmp
+/build/
+
+# GUT output
+/test_results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python (gdtoolkit)
+__pycache__/
