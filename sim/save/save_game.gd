@@ -383,9 +383,6 @@ static func _market_to_dict(record: MarketRecord) -> Dictionary:
 		"satisfaction": record.satisfaction,
 		"stock": record.stock.duplicate(),
 		"shortage": record.shortage.duplicate(),
-		"buy_price": record.buy_price.duplicate(),
-		"sell_price": record.sell_price.duplicate(),
-		"mid_price": record.mid_price.duplicate(),
 		"history": history,
 	}
 
@@ -553,8 +550,8 @@ func _read_trader(
 	return trader
 
 
-## An untrusted market report: all goods must be present and prices stay within the good's
-## configured bounds. History may contain -1 gaps but no other negative prices.
+## An untrusted market report: all goods must be present. Quotes aren't saved but derived from the
+## remembered stock and population. History may contain -1 gaps but no other negative prices.
 func _read_market(
 	data: GameData, raw_value: Variant, ctx: String, current_day: int
 ) -> MarketRecord:
@@ -579,30 +576,18 @@ func _read_market(
 		or record.population > data.population.max_population(home)
 	):
 		errors.append("%s: population %d outside the city's range" % [ctx, record.population])
-	for field: String in ["stock", "shortage", "buy_price", "sell_price", "mid_price"]:
+	for field: String in ["stock", "shortage"]:
 		var values := _goods(data, _dict(raw, field, ctx), "%s %s" % [ctx, field], true)
 		for good in data.goods:
 			if not values.has(good.id):
-				continue
-			var value := values[good.id]
-			var maximum := ceili(
-				good.base_price * data.economy.price_max_multiplier * (1.0 + data.economy.spread)
-			)
-			if field == "mid_price":
-				maximum = PriceHistorySystem.max_scaled_price(data.economy, good)
-			if value < 0 or (field in ["buy_price", "sell_price", "mid_price"] and value > maximum):
-				errors.append("%s %s %s: value %d is out of range" % [ctx, field, good.id, value])
-		match field:
-			"stock":
-				record.stock = values
-			"shortage":
-				record.shortage = values
-			"buy_price":
-				record.buy_price = values
-			"sell_price":
-				record.sell_price = values
-			"mid_price":
-				record.mid_price = values
+				values[good.id] = 0
+			elif values[good.id] < 0:
+				errors.append("%s %s %s: must not be negative" % [ctx, field, good.id])
+		if field == "stock":
+			record.stock = values
+		else:
+			record.shortage = values
+	MarketKnowledgeSystem.fill_prices(data, record)
 	var history := _dict(raw, "history", ctx)
 	for key: Variant in history.keys():
 		if not data.has_good(str(key)):

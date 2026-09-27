@@ -88,6 +88,26 @@ func test_market_books_save_and_old_saves_get_initial_reports() -> void:
 	assert_eq(migrated.player().market_book.size(), sim.data.cities.size())
 
 
+func test_loaded_quotes_follow_the_remembered_stock() -> void:
+	var sim := SmallWorld.simulation(1)
+	var original: MarketRecord = sim.world.player().market_book["port"]
+	var save := SaveGame.to_dict(sim.world)
+	var saved: Dictionary = save["traders"][0]["market_book"][0]
+	assert_false(saved.has("sell_price"), "quotes are derived, not saved")
+	var loader := SaveGame.new()
+	var loaded: MarketRecord = loader.from_dict(sim.data, save).player().market_book["port"]
+	assert_eq(loaded.buy_price, original.buy_price)
+	assert_eq(loaded.sell_price, original.sell_price)
+	assert_eq(loaded.mid_price, original.mid_price)
+	saved["stock"]["grain"] = saved["stock"]["grain"] * 3 + 10
+	var edited: MarketRecord = SaveGame.new().from_dict(sim.data, save).player().market_book["port"]
+	assert_lt(edited.sell_price["grain"], original.sell_price["grain"])
+	assert_eq(
+		edited.sell_price["grain"],
+		CityEconomy.sell_revenue(sim.data.economy, edited.as_city(), sim.data.get_good("grain"), 1)
+	)
+
+
 func test_bad_market_report_is_rejected() -> void:
 	var sim := SmallWorld.simulation(1)
 	var save := SaveGame.to_dict(sim.world)

@@ -33,7 +33,8 @@ ships move, and the same information limits for rival houses.
   7 gives each house a one-time report of all current markets (after older saves have grown into
   the larger world, ADR 0012), preserving information that those versions exposed globally.
   Newly started games only know cities with initial presence.
-  Save validation checks report shape, ids, days and bounds.
+  Save validation checks report shape, ids, days and bounds. Quotes are not saved: loading
+  derives them from the report's stock and population, so they can't disagree with it.
 - The old world price history remains in saves for compatibility. Charts read the trader's
   observation history, so the global series does not leak unseen prices.
 

@@ -24,6 +24,15 @@ static func current_report(data: GameData, city: CityState, day: int) -> MarketR
 	for good in data.goods:
 		report.stock[good.id] = city.stock[good.id]
 		report.shortage[good.id] = city.shortage[good.id]
+	fill_prices(data, report)
+	return report
+
+
+## Derive a report's quotes from its remembered stock and population. Quotes are never saved, so
+## a loaded report can't disagree with the market it describes.
+static func fill_prices(data: GameData, report: MarketRecord) -> void:
+	var city := report.as_city()
+	for good in data.goods:
 		report.buy_price[good.id] = (
 			CityEconomy.buy_cost(data.economy, city, good, 1) if city.stock[good.id] > 0 else 0
 		)
@@ -31,7 +40,6 @@ static func current_report(data: GameData, city: CityState, day: int) -> MarketR
 		report.mid_price[good.id] = PriceHistorySystem.scaled_price(
 			CityEconomy.mid_price(data.economy, city, good)
 		)
-	return report
 
 
 ## Give all houses a first report wherever they start with presence; ships can carry it away.
