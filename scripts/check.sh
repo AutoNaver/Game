@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Runs every check CI runs: format, lint, headless import, unit tests.
+# Runs every check CI runs: format, lint, headless import, typed parse check, tests, soak.
 # Usage: scripts/check.sh
 # Set GODOT to the Godot binary if `godot` is not on PATH (on Windows use the *_console.exe).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 GODOT="${GODOT:-godot}"
-GD_DIRS=(sim ui tests)
+GD_DIRS=(sim ui tests tools)
+SOAK_DAYS="${SOAK_DAYS:-365}"
 
 echo "== gdformat --check"
 gdformat --check "${GD_DIRS[@]}"
@@ -40,5 +41,8 @@ fi
 echo "== GUT tests"
 mkdir -p test_results
 "$GODOT" --headless -s addons/gut/gut_cmdln.gd
+
+echo "== Soak (${SOAK_DAYS} days)"
+"$GODOT" --headless -s res://tools/soak.gd -- --days "$SOAK_DAYS"
 
 echo "All checks passed."

@@ -38,5 +38,8 @@ AGENTS.md above is the contract. This section only adds the mechanics of the PR 
    ```
    A conflict-free `update-branch` merge doesn't need a new Codex review. A merge with conflict
    resolutions does. Never use `--admin`.
-7. Stacked PRs: after the base PR is squash-merged, GitHub retargets the next PR to `main`. Merge
-   `main` into its branch (no force push needed) and continue from step 6.
+7. Stacked PRs: **before** merging a PR another PR is stacked on, retarget the child first
+   (`gh pr edit <child> --base main`). Otherwise `--delete-branch` deletes the child's base and
+   GitHub closes the child. After the merge, merge `origin/main` into the child's branch (no force
+   push needed). Conflicts there come from the squash; the child already contains the base's
+   commits, so keep the child's side and check that `git diff HEAD~1 HEAD` is empty.
