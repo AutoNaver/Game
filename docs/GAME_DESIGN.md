@@ -72,6 +72,8 @@ AI competitors come after the MVP. Details and balance targets:
 - Buy a **kontor** (warehouse) in a city to store goods between voyages and trade from it.
 - Build **workshops** next to a kontor that turn its inputs into outputs using city workers, for
   daily wages. Unpaid workers stay home. Details: [ADR 0004](adr/0004-player-production.md).
+- Set up **trade routes** (M7): a loop of stops with buy, sell, load and unload orders and price
+  limits, which ships then sail on their own. Details: [ADR 0007](adr/0007-trade-routes.md).
 
 ## After the MVP
 
