@@ -16,7 +16,8 @@ AGENTS.md above is the contract. This section only adds the mechanics of the PR 
    the attribution line from the current session instructions.
 2. Wait for `ci` (`gh pr checks <n> --watch`) and for the Codex review. Codex auto-reviews new PRs.
    If no review from the Codex bot shows up for the head commit within about 10 minutes, comment
-   `@codex review`.
+   `@codex review`. A clean pass isn't a review: it's an issue comment ("Didn't find any major
+   issues", which names the reviewed commit) or a 👍 reaction on the PR.
 3. Read the findings:
    - `gh pr view <n> --comments`
    - `gh api repos/AutoNaver/Game/pulls/<n>/comments` (inline comments)
@@ -35,4 +36,7 @@ AGENTS.md above is the contract. This section only adds the mechanics of the PR 
    gh pr update-branch <n>              # if main moved on; then wait for ci again
    gh pr merge <n> --squash --delete-branch
    ```
-   Never use `--admin`.
+   A conflict-free `update-branch` merge doesn't need a new Codex review. A merge with conflict
+   resolutions does. Never use `--admin`.
+7. Stacked PRs: after the base PR is squash-merged, GitHub retargets the next PR to `main`. Merge
+   `main` into its branch (no force push needed) and continue from step 6.

@@ -107,7 +107,8 @@ stdout. The first run after a fresh clone needs `godot --headless --import`; `ch
 
 - `ci` is green.
 - The branch is up to date.
-- Codex has reviewed the current head commit.
+- Codex has reviewed the current head commit. The one exception is when the only later commits are
+  conflict-free merges of `main` into the branch, which leave the PR's own diff unchanged.
 - Every review thread is resolved: fixed, or answered with a concrete reason.
 
 A P0/P1 finding that the agent disagrees with is **not** self-resolved. It's escalated to the human

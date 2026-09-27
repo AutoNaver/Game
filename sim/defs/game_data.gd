@@ -4,6 +4,7 @@ extends RefCounted
 ##
 ## The arrays keep file order so iteration is deterministic; use the getters for lookups by id.
 
+var economy: EconomyDef
 var goods: Array[GoodDef] = []
 var cities: Array[CityDef] = []
 
