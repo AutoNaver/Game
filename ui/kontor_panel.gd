@@ -90,6 +90,8 @@ func _build_transfer_grid() -> void:
 		_transfers.add_child(UiStyle.label(heading, UiStyle.MUTED_LABEL))
 	for good in _session.sim.data.goods:
 		var name_label := UiStyle.label(good.name)
+		# Labels ignore the mouse by default, which would hide the spoilage tooltip.
+		name_label.mouse_filter = Control.MOUSE_FILTER_PASS
 		var in_ship := Label.new()
 		var in_kontor := Label.new()
 		var unload := Button.new()
@@ -113,12 +115,21 @@ func _refresh_transfers(kontor: KontorState) -> void:
 		var row: Array = _transfer_rows[good.id]
 		var aboard := ship.cargo_of(good.id) if ship != null else 0
 		var stored := kontor.cargo_of(good.id)
+		(row[0] as Label).tooltip_text = _spoilage_text(good, stored)
 		for control: Control in row:
 			control.visible = aboard > 0 or stored > 0
 		(row[1] as Label).text = str(aboard) if ship != null else "-"
 		(row[2] as Label).text = str(stored)
 		(row[3] as Button).disabled = aboard == 0
 		(row[4] as Button).disabled = ship == null or stored == 0
+
+
+## How fast `good` spoils in storage, and about how much of the `stored` units a day.
+static func _spoilage_text(good: GoodDef, stored: int) -> String:
+	if good.spoilage_per_day <= 0.0:
+		return "%s keeps in storage." % good.name
+	var parts := [good.name, good.spoilage_per_day * 100.0, SpoilageSystem.daily_loss(good, stored)]
+	return "%s spoils %.1f%% a day: about %.1f a day of what is stored here." % parts
 
 
 func _refresh_workshops(kontor: KontorState) -> void:

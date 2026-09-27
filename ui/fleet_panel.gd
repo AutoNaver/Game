@@ -124,6 +124,8 @@ func _refresh_manifest(ship: ShipState) -> void:
 			var revenue := batched_revenue(economy, port, good, units, _session.trade_quantity)
 			line += " · %d coins" % revenue
 			total += revenue
+		if good.spoilage_per_day > 0.0:
+			line += " · spoils %.1f a day" % SpoilageSystem.daily_loss(good, units)
 		lines.append(line)
 	if port != null:
 		var batch := _session.trade_quantity
@@ -213,6 +215,9 @@ func _describe(ship: ShipState) -> String:
 	else:
 		var hours_left := ship.voyage_hours - ship.hours_sailed
 		where = "to %s, %dh left" % [data.get_city(ship.destination).name, hours_left]
+		var slowdown := EventSystem.slowdown(data, _session.sim.world, ship)
+		if slowdown > 1:
+			where += " at 1/%d speed (storm)" % slowdown
 	var cargo := "cargo %d/%d" % [ship.cargo_total(), ship_type.capacity]
 	var text := "%s (%s), %s, %s" % [ship.name, ship_type.name, where, cargo]
 	if not ship.route_id.is_empty():

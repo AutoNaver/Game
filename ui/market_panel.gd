@@ -269,6 +269,18 @@ func _explain_price(city: CityState, good: GoodDef) -> String:
 		lines.append("Overland traders bring about %.1f a day" % flow)
 	elif flow <= -0.05:
 		lines.append("Overland traders take about %.1f a day" % -flow)
+	var day := _session.sim.day()
+	for event in EventSystem.active_in(_session.sim.world, city.id, day):
+		if EventText.affects_price(_session.sim.data, event, good.id):
+			var parts := [
+				EventText.headline(_session.sim.data, event),
+				EventText.effect(_session.sim.data, event),
+				EventText.time_left(event, day),
+			]
+			lines.append("%s: %s (%s)" % parts)
+	if good.spoilage_per_day > 0.0:
+		var percent := good.spoilage_per_day * 100.0
+		lines.append("Spoils %.1f%% a day in ships and kontors" % percent)
 	lines.append("Fewer in stock than normal means dearer; more means cheaper.")
 	return "\n".join(lines)
 

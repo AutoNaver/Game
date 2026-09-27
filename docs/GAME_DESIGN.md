@@ -53,9 +53,15 @@ until your trading house shapes the prices of the whole sea.
 - Formulas: [ADR 0003](adr/0003-market-pricing-curve.md). Tuning: `data/economy.json`,
   `data/goods.json` (`consumption_per_1000`), `data/cities.json` (`production`).
 
-**Losses (planned, M10).** Perishable goods such as fish and beer slowly spoil while stored in
-ships and kontors, and events such as fires can destroy stored goods. Both are booked in the goods
-ledger like consumption ([ADR 0006](adr/0006-event-losses-and-spoilage.md)).
+**Losses (M10).** Perishable goods slowly spoil while stored in ships and kontors (fish 2% a
+day, beer 0.5%, grain 0.2%, wool 0.1%; the rest keep), and fires can destroy stored goods. City
+markets don't spoil. Both are booked in the goods ledger like consumption
+([ADR 0006](adr/0006-event-losses-and-spoilage.md), [ADR 0011](adr/0011-events-and-spoilage.md)).
+
+**Events (M10).** Seeded world events hit one city at a time for a while: storms slow ships
+sailing to or from it, harvest failures cut its grain output, wars cut its overland imports, and
+fires burn part of the goods in its kontors. The log announces them, the city panel and price
+tooltip show their effect and time left, and `data/events.json` sets how often they happen.
 
 **Off-map trade.** Overland traders and foreign ships that the game doesn't model individually
 bring goods to cities that are short and take away surpluses, in proportion to how far the stock is

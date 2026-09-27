@@ -2,7 +2,7 @@
 
 - Status: accepted (owner decision, 2026-09-27)
 - Date: 2026-09-27
-- Code: none yet; implemented in M10 (events and spoilage)
+- Code: implemented in M10, see [ADR 0011](0011-events-and-spoilage.md)
 
 ## Context
 

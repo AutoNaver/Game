@@ -13,6 +13,7 @@ var _session: GameSession
 var _title: Label = Label.new()
 var _details: Label = Label.new()
 var _needs: Label = Label.new()
+var _events: Label = Label.new()
 
 
 func setup(session: GameSession) -> void:
@@ -39,6 +40,10 @@ func setup(session: GameSession) -> void:
 	_needs.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_needs.mouse_filter = Control.MOUSE_FILTER_PASS
 	column.add_child(_needs)
+	_events.name = "CityEvents"
+	_events.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_events.modulate = UiStyle.WARNING
+	column.add_child(_events)
 	var market := MarketPanel.new()
 	market.name = "Market"
 	column.add_child(market)
@@ -93,6 +98,17 @@ func refresh() -> void:
 		_needs.text = "Short of %s" % ", ".join(scarce.slice(0, MAX_SCARCE))
 		_needs.modulate = UiStyle.WARNING
 	_needs.tooltip_text = _explain_needs(data, city)
+	var events: PackedStringArray = []
+	var day := _session.sim.day()
+	for event in EventSystem.active_in(_session.sim.world, city.id, day):
+		var parts := [
+			data.get_event(event.type_id).name,
+			EventText.effect(data, event),
+			EventText.time_left(event, day),
+		]
+		events.append("%s: %s (%s)" % parts)
+	_events.text = "\n".join(events)
+	_events.visible = not events.is_empty()
 
 
 ## Why the city grows or shrinks: satisfaction against neutral, and where the population heads.

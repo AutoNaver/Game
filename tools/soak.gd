@@ -43,8 +43,11 @@ func _run() -> int:
 		return 1
 
 	var sim := Simulation.new_game(data, seed_value)
+	var lost: Dictionary[String, int] = {}
 	for day in days:
 		sim.advance_days(1)
+		for loss in sim.world.losses:
+			lost[loss.cause] = lost.get(loss.cause, 0) + loss.units
 		var violations := EconomyInvariants.check(data, sim.world)
 		if not violations.is_empty():
 			printerr("Invariant violations on day %d:\n%s" % [sim.day(), "\n".join(violations)])
@@ -53,6 +56,7 @@ func _run() -> int:
 	print("Final stock/target and price multiplier after %d days, seed %d:" % [days, seed_value])
 	_print_markets(sim)
 	_print_cities(sim)
+	print("  events started: %d; goods lost by cause: %s" % [sim.world.next_event_number - 1, lost])
 	var problems := check_populations(data, sim.world)
 	if not problems.is_empty():
 		printerr("Cities out of balance:\n%s" % "\n".join(problems))

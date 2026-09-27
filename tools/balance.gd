@@ -48,6 +48,7 @@ func _run() -> int:
 			print("day %3d: %6d coins, %d voyages" % [day + 1, sim.world.player().coins, voyages])
 			_print_rivals(sim)
 			_print_cities(sim)
+			print("         events so far: %d" % (sim.world.next_event_number - 1))
 		var violations := EconomyInvariants.check(data, sim.world)
 		if not violations.is_empty():
 			printerr("\n".join(violations))
