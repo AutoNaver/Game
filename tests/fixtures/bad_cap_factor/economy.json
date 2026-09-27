@@ -3,5 +3,7 @@
   "stock_cap_factor": 1.0005,
   "price_max_multiplier": 2.5,
   "price_min_multiplier": 0.35,
-  "spread": 0.1
+  "spread": 0.1,
+  "ship_resale_factor": 0.6,
+  "workforce_share": 0.1
 }

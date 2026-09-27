@@ -8,6 +8,9 @@ var economy: EconomyDef
 var scenario: ScenarioDef
 var map: MapDef
 var sea_chart: SeaChart
+var kontor: KontorDef
+## In file order.
+var workshops: Array[WorkshopDef] = []
 var goods: Array[GoodDef] = []
 var cities: Array[CityDef] = []
 var ships: Array[ShipDef] = []
@@ -15,6 +18,7 @@ var ships: Array[ShipDef] = []
 var _goods_by_id: Dictionary[String, GoodDef] = {}
 var _cities_by_id: Dictionary[String, CityDef] = {}
 var _ships_by_id: Dictionary[String, ShipDef] = {}
+var _workshops_by_id: Dictionary[String, WorkshopDef] = {}
 
 
 func add_good(good: GoodDef) -> void:
@@ -60,3 +64,18 @@ func get_city(id: String) -> CityDef:
 ## Returns null for unknown ids.
 func get_ship(id: String) -> ShipDef:
 	return _ships_by_id.get(id)
+
+
+func add_workshop(workshop: WorkshopDef) -> void:
+	assert(not has_workshop(workshop.id), "duplicate workshop id '%s'" % workshop.id)
+	workshops.append(workshop)
+	_workshops_by_id[workshop.id] = workshop
+
+
+func has_workshop(id: String) -> bool:
+	return _workshops_by_id.has(id)
+
+
+## Returns null for unknown ids.
+func get_workshop(id: String) -> WorkshopDef:
+	return _workshops_by_id.get(id)

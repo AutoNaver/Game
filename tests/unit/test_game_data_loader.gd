@@ -49,6 +49,15 @@ func test_valid_fixture_is_parsed_in_file_order() -> void:
 	assert_eq(lubeck.production_of("grain"), 0.5)
 	assert_eq(lubeck.production_of("wine"), 0.0)
 
+	assert_eq([data.kontor.price, data.kontor.capacity], [3000, 300])
+	assert_eq(data.workshops.size(), 1)
+	var tailor := data.get_workshop("tailor")
+	assert_eq([tailor.name, tailor.output, tailor.output_per_day], ["Tailor", "cloth", 2])
+	assert_eq(tailor.inputs, {"grain": 3})
+	assert_eq([tailor.workers, tailor.build_cost, tailor.wages_per_day], [10, 1000, 20])
+	assert_almost_eq(data.economy.ship_resale_factor, 0.6, 0.0001)
+	assert_almost_eq(data.economy.workforce_share, 0.1, 0.0001)
+
 	var cog := data.get_ship("cog")
 	assert_eq([cog.name, cog.capacity, cog.speed, cog.price], ["Cog", 50, 10.0, 5000])
 	assert_eq(data.scenario.start_city, "lubeck")
@@ -71,6 +80,8 @@ func test_invalid_data_reports_every_problem() -> void:
 	assert_null(data)
 	var expected: Array[String] = [
 		"economy.json: missing field 'price_min_multiplier'",
+		"economy.json: missing field 'ship_resale_factor'",
+		"economy.json: missing field 'workforce_share'",
 		"economy.json: unknown field 'tax'",
 		"economy.json: 'days_of_cover' must be a positive integer",
 		"economy.json: 'stock_cap_factor' must be a number greater than 1.0 and less than 100.0",
@@ -96,6 +107,14 @@ func test_invalid_data_reports_every_problem() -> void:
 		"cities.json[3]: 'production.grain' must be a multiple of 0.001 (got 0.0004)",
 		"ships.json[1]: 'capacity' must be a positive integer",
 		"ships.json[1]: 'speed' must be a number at least 0.1 and less than 1000.0",
+		"buildings.json kontor: unknown field 'rent'",
+		"buildings.json kontor: 'price' must be a positive integer",
+		"buildings.json workshops[0]: 'output' is not a known good: 'beer'",
+		"buildings.json workshops[1]: 'output' is not a known good: 'flour'",
+		"buildings.json workshops[1]: 'output_per_day' must be a positive integer",
+		"buildings.json workshops[1]: 'inputs' has unknown good 'amber'",
+		"buildings.json workshops[1]: 'inputs.grain' must be a positive integer",
+		"buildings.json workshops[2]: entry must be an object",
 		"scenario.json: 'start_city' is not a known city: 'atlantis'",
 		"scenario.json ships[0]: 'type' is not a known ship type: 'galleon'",
 		"scenario.json ships[1]: missing field 'name'",
@@ -141,6 +160,7 @@ func test_missing_directory_reports_each_file() -> void:
 		"cities.json",
 		"sea_lanes.json",
 		"ships.json",
+		"buildings.json",
 		"scenario.json",
 	]
 	assert_eq(files, expected_files)
@@ -211,6 +231,7 @@ func test_wrong_top_level_type_is_reported() -> void:
 			"map.json: top level must be an object",
 			"sea_lanes.json: top level must be an object",
 			"ships.json: top level must be an array",
+			"buildings.json: top level must be an object",
 			"scenario.json: top level must be an object",
 		]
 	)
