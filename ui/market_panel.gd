@@ -111,7 +111,7 @@ func _build_quantity_picker() -> HBoxContainer:
 		button.toggle_mode = true
 		button.button_group = group
 		button.button_pressed = quantity == _session.trade_quantity
-		button.pressed.connect(func() -> void: _session.trade_quantity = quantity)
+		button.pressed.connect(_session.set_trade_quantity.bind(quantity))
 		picker.add_child(button)
 	return picker
 
