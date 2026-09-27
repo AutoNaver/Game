@@ -23,7 +23,7 @@ Work top to bottom unless the owner reprioritizes.
 - [x] Data: city production specialties and per-capita consumption
 - [x] Daily systems: production (idles at the stock cap), then consumption (records shortages). Prices are derived from stock on demand
 - [x] `Simulation` with seeded RNG and a `tick()` / `advance_days()` API
-- [ ] `tools/soak.gd` plus a CI step: 365 days, invariants hold, prices stay within bounds
+- [x] `tools/soak.gd` plus a CI step: 365 days, invariants hold, prices stay within bounds (`EconomyInvariants`), and a determinism test
 
 ## M2: Ships and trading
 
