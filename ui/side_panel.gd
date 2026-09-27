@@ -99,13 +99,13 @@ func refresh() -> void:
 func _explain_city(city_def: CityDef, city: CityState, change: int) -> String:
 	var data := _session.sim.data
 	var neutral := CityEconomy.to_parts(data.population.neutral_satisfaction)
-	var today := PopulationSystem.supply_score(data, city)
-	var direction := "rising" if today > city.satisfaction else "falling or steady"
+	var supply_now := PopulationSystem.supply_score(data, city)
 	var sustained := PopulationSystem.sustainable_population(data, city)
 	var lines: PackedStringArray = [
 		"Satisfaction: how well the market has met the townsfolk's needs lately",
 		"At %d%% the city keeps its usual %d people" % [_percent(neutral), city_def.population],
-		"Today's supply: %d%%, so satisfaction is %s" % [_percent(today), direction],
+		"Market supply right now: %d%%" % _percent(supply_now),
+		"Each day satisfaction moves towards the supply left after the townsfolk have bought",
 		"This satisfaction sustains %d people" % sustained,
 	]
 	if change > 0:
