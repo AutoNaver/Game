@@ -15,7 +15,7 @@
       "name": "Castorp",
       "color": "#5fb37a",
       "start_city": "lubeck",
-      "coins": 4000,
+      "since_save": 99, "coins": 4000,
       "ships": [
         {
           "type": "cog",

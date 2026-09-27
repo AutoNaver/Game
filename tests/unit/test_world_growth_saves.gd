@@ -6,12 +6,18 @@ const SmallWorld := preload("res://tests/support/small_world.gd")
 const PLAYER := WorldState.PLAYER_ID
 
 
-## SmallWorld plus a third city ("cove"), a third good ("honey") and a rival house.
+## SmallWorld plus a third city ("cove"), a third good ("honey") and a rival house, all new in
+## save version 7.
 func _grown_data() -> GameData:
 	var data := SmallWorld.with_rival(SmallWorld.data())
-	data.add_good(GoodDef.new("honey", "Honey", "raw", 80, 1.0))
+	data.rivals[0].since_save = 7
+	var honey := GoodDef.new("honey", "Honey", "raw", 80, 1.0)
+	honey.since_save = 7
+	data.add_good(honey)
 	var none: Dictionary[String, float] = {}
-	data.add_city(CityDef.new("cove", "Cove", Vector2(0, 100), 2000, none))
+	var cove := CityDef.new("cove", "Cove", Vector2(0, 100), 2000, none)
+	cove.since_save = 7
+	data.add_city(cove)
 	data.sea_chart.add_node("cove", Vector2(0, 100))
 	data.sea_chart.add_lane("port", "cove")
 	return data
@@ -61,12 +67,26 @@ func test_current_saves_must_cover_the_whole_world() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(data, save))
 	assert_eq(loader.errors[0], "goods_ledger: missing honey")
-	assert_true(loader.errors.has("save has 2 cities, the game has 3"))
+	assert_true(loader.errors.has("save has 2 cities, its version 7 has 3"))
 
 
-func test_old_saves_with_more_cities_than_the_game_are_rejected() -> void:
+func test_old_saves_must_hold_the_cities_of_their_own_world() -> void:
 	var save := _old_save()
 	save["cities"].append(save["cities"][1].duplicate(true))
 	var loader := SaveGame.new()
-	assert_null(loader.from_dict(SmallWorld.data(), save))
-	assert_eq(Array(loader.errors), ["save has 3 cities, the game has 2"])
+	assert_null(loader.from_dict(_grown_data(), save))
+	assert_eq(Array(loader.errors), ["save has 3 cities, its version 6 has 2"])
+	save = _old_save()
+	save["cities"].remove_at(1)
+	assert_null(loader.from_dict(_grown_data(), save), "a lost old city is not recreated")
+	assert_eq(Array(loader.errors), ["save has 1 cities, its version 6 has 2"])
+
+
+func test_old_saves_must_hold_the_goods_of_their_own_world() -> void:
+	var save := _old_save()
+	save["goods_ledger"].erase("wine")
+	for city: Dictionary in save["cities"]:
+		city["stock"].erase("wine")
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(_grown_data(), save), "a lost old good is not reset")
+	assert_eq(loader.errors[0], "goods_ledger: missing wine")

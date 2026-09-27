@@ -45,7 +45,7 @@ const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
 ]
 ## Optional: goods without it keep forever.
-const GOOD_OPTIONAL_FIELDS: PackedStringArray = ["spoilage_per_day"]
+const GOOD_OPTIONAL_FIELDS: PackedStringArray = ["spoilage_per_day", "since_save"]
 const EVENT_FIELDS: PackedStringArray = [
 	"id", "name", "kind", "chance_per_day", "min_days", "max_days"
 ]
@@ -56,7 +56,7 @@ const MAP_FIELDS: PackedStringArray = [
 	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
 ]
 const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population", "production"]
-const CITY_OPTIONAL_FIELDS: PackedStringArray = ["import_factor"]
+const CITY_OPTIONAL_FIELDS: PackedStringArray = ["import_factor", "since_save"]
 ## Highest import_factor a city may have.
 const MAX_IMPORT_FACTOR: float = 10.0
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
@@ -83,6 +83,7 @@ const RIVAL_AI_FIELDS: PackedStringArray = [
 	"keep_free_workers",
 ]
 const RIVAL_FIELDS: PackedStringArray = ["id", "name", "color", "start_city", "coins", "ships"]
+const RIVAL_OPTIONAL_FIELDS: PackedStringArray = ["since_save"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
@@ -284,9 +285,12 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 	_check_rate_resolution(consumption, "consumption_per_1000", ctx)
 	var spoilage := _get_float_between(entry, "spoilage_per_day", 0.0, 1.0, ctx, true, true)
 	_check_rate_resolution(spoilage, "spoilage_per_day", ctx)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
-	return GoodDef.new(id, good_name, category, base_price, consumption, spoilage)
+	var good := GoodDef.new(id, good_name, category, base_price, consumption, spoilage)
+	good.since_save = since
+	return good
 
 
 ## The fields each event kind needs on top of EVENT_FIELDS.
@@ -394,11 +398,23 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 			entry, "import_factor", 0.0, MAX_IMPORT_FACTOR, ctx, true, true
 		)
 		_check_rate_resolution(import_factor, "import_factor", ctx)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
 	var city := CityDef.new(id, city_name, map_position, population, production)
 	city.import_factor = import_factor
+	city.since_save = since
 	return city
+
+
+## The optional "since_save": the save version whose world first has the entry (1 by default).
+func _get_since_save(entry: Dictionary, ctx: String) -> int:
+	if not entry.has("since_save"):
+		return 1
+	var since := _get_positive_int(entry, "since_save", ctx)
+	if since > SaveGame.SAVE_VERSION:
+		_error(ctx, "'since_save' must be at most the save version %d" % SaveGame.SAVE_VERSION)
+	return since
 
 
 ## Fields that are fine on their own can multiply into a stock cap (population × consumption ×
@@ -679,7 +695,7 @@ func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, RIVAL_FIELDS, ctx)
+	_check_fields(entry, RIVAL_FIELDS, ctx, RIVAL_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	if id == WorldState.PLAYER_ID:
 		_error(ctx, "'id' '%s' is reserved for the player" % id)
@@ -701,9 +717,12 @@ func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
 				var ship := _parse_starting_ship(raw_ships[i], "%s ships[%d]" % [ctx, i], data)
 				if ship != null:
 					ships.append(ship)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
-	return RivalDef.new(id, rival_name, Color.html(color_text), start_city, coins, ships)
+	var rival := RivalDef.new(id, rival_name, Color.html(color_text), start_city, coins, ships)
+	rival.since_save = since
+	return rival
 
 
 ## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would

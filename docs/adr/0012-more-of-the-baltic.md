@@ -39,11 +39,14 @@ and up the Volkhov, where no lane stays on open water.
   half their population without the player, because the rival houses rarely sail that far.
 - **Two more rival houses**, Hildebrand from Riga and Brandes from Stralsund, so the houses still
   cover the larger sea. Three houses over nine cities left even Lübeck and Stockholm short.
-- **Saves.** Version 7 marks the larger world. Older saves hold a leading part of today's cities,
-  goods and houses. Whatever they lack is added as a new game starts it (cities at home population
-  and target stock, goods at target stock in every city, houses with their starting ship), and
-  every added unit is booked in the goods ledger. From version 7 a save must cover the whole
-  world. A house missing from a current save is still not revived.
+- **Saves.** Version 7 marks the larger world. Cities, goods and rival houses may carry
+  `since_save`, the first save version whose world has them (default 1; the M11 additions have 7).
+  A save must hold every city and good of its own version's world, and a corrupted older save
+  that lacks one is refused rather than repaired. Entries newer than the save are added as a new
+  game starts them: cities at home population and target stock, goods at target stock in every
+  city, and houses with their starting ship. Every added unit is booked in the goods ledger. Newer
+  cities come after older ones in data order. A house the save's own world had but the save lacks
+  is still not revived.
 
 ## Balance
 

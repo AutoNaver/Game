@@ -15,6 +15,9 @@ func test_shipped_novgorod_is_reached_up_its_rivers() -> void:
 	assert_gt(Navigation.travel_hours(data, ship, "lubeck", "novgorod"), to_reval)
 	assert_eq(data.get_city("bergen").import_factor, 3.0)
 	assert_eq(data.get_city("lubeck").import_factor, 1.0, "optional: 1 when missing")
+	assert_eq([data.get_city("lubeck").since_save, data.get_city("novgorod").since_save], [1, 7])
+	assert_eq([data.get_good("wine").since_save, data.get_good("furs").since_save], [1, 7])
+	assert_eq(data.get_rival("brandes").since_save, 7)
 
 
 func test_bad_import_factors_and_river_lanes_are_reported() -> void:
@@ -25,6 +28,7 @@ func test_bad_import_factors_and_river_lanes_are_reported() -> void:
 		errors, "cities.json[0]: 'import_factor' must be a number at least 0.0 and at most 10.0"
 	)
 	assert_has(errors, "sea_lanes.json rivers[0]: unknown node 'nowhere'")
+	assert_has(errors, "rivals.json houses[0]: 'since_save' must be at most the save version 7")
 
 
 func test_a_city_with_more_links_beyond_the_map_imports_more() -> void:

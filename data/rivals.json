@@ -54,6 +54,7 @@
       "name": "Hildebrand",
       "color": "#d6a05b",
       "start_city": "riga",
+      "since_save": 7,
       "coins": 5000,
       "ships": [
         {
@@ -67,6 +68,7 @@
       "name": "Brandes",
       "color": "#c65f5f",
       "start_city": "stralsund",
+      "since_save": 7,
       "coins": 5000,
       "ships": [
         {

@@ -21,12 +21,11 @@ extends RefCounted
 ## workshops work slower); older saves load at neutral satisfaction and no progress.
 ## Version 6 added world events, next_event_number and ships' and kontors' spoil_carry (ADR 0011);
 ## older saves load with no events and no spoilage carried.
-## Version 7 marks the larger world of M11 (ADR 0012). Older saves were made with fewer cities,
-## goods and rival houses: whatever they lack is added as a new game starts it (cities appended to
-## data/cities.json, goods to data/goods.json, houses to data/rivals.json). The shape is unchanged.
+## Version 7 marks the larger world of M11 (ADR 0012); the shape is unchanged. Cities, goods and
+## rival houses carry the version that first has them ("since_save" in the data). A save must hold
+## every city and good of its own version's world and is refused otherwise; the newer ones are
+## added as a new game starts them (newer cities come after the older ones in data order).
 const SAVE_VERSION: int = 7
-## The first version whose saves must cover every city, good and house in the data.
-const COMPLETE_WORLD_VERSION: int = 7
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -37,8 +36,8 @@ const ASCII_MAX: int = 127
 ## Problems found by the last from_dict() / load_file() call.
 var errors: PackedStringArray = []
 
-## Goods the save being read covers: every good in the data, or for saves from before the larger
-## world, the goods in its ledger (the rest are added as in a new game).
+## Goods the save being read must hold: those whose since_save is at most its version (the rest
+## are added as in a new game).
 var _save_goods: PackedStringArray = []
 
 
@@ -181,14 +180,13 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 			var event := _read_event(data, events[i], "events[%d]" % i)
 			if event != null:
 				world.events.append(event)
-	var ledger := _dict(save, "goods_ledger", "save")
 	_save_goods.clear()
 	for good in data.goods:
-		if version >= COMPLETE_WORLD_VERSION or ledger.has(good.id):
+		if good.since_save <= version:
 			_save_goods.append(good.id)
-	world.goods_ledger = _goods(data, ledger, "goods_ledger", true)
+	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
 	_read_cities(data, world, _array(save, "cities", "save"), version)
-	if version < COMPLETE_WORLD_VERSION and errors.is_empty():
+	if errors.is_empty():
 		_grow_world(data, world)
 	for i in _array(save, "traders", "save").size():
 		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i, version)
@@ -199,9 +197,12 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	for trader in world.traders:
 		if trader.id != WorldState.PLAYER_ID and not data.has_rival(trader.id):
 			errors.append("unknown trader '%s' (neither the player nor a rival house)" % trader.id)
-	if version < COMPLETE_WORLD_VERSION and errors.is_empty():
+	# Houses newer than the save join as they start; before version 4 there were no houses in
+	# saves at all. A house the save's own world had but the save lacks is not revived.
+	if errors.is_empty():
 		for rival in data.rivals:
-			if world.get_trader(rival.id) == null:
+			var newer := version < 4 or rival.since_save > version
+			if newer and world.get_trader(rival.id) == null:
 				Simulation.add_rival(world, rival)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
@@ -350,8 +351,8 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 	}
 
 
-## Adds what a save from before the larger world lacks: goods to every city it has, then the cities
-## after its last one, all as a new game starts them.
+## Adds what is newer than the save: goods to every city it has, then the cities after its last
+## one, all as a new game starts them. Nothing for a save of the current version.
 func _grow_world(data: GameData, world: WorldState) -> void:
 	for good in data.goods:
 		if _save_goods.has(good.id):
@@ -364,12 +365,14 @@ func _grow_world(data: GameData, world: WorldState) -> void:
 
 
 func _read_cities(data: GameData, world: WorldState, cities: Array, version: int) -> void:
-	var count_ok := cities.size() == data.cities.size()
-	if version < COMPLETE_WORLD_VERSION:
-		# Older saves hold the cities of their day: a leading part of today's list.
-		count_ok = cities.size() <= data.cities.size()
-	if not count_ok:
-		errors.append("save has %d cities, the game has %d" % [cities.size(), data.cities.size()])
+	var expected := 0
+	for city_def in data.cities:
+		if city_def.since_save <= version:
+			expected += 1
+	if cities.size() != expected:
+		errors.append(
+			"save has %d cities, its version %d has %d" % [cities.size(), version, expected]
+		)
 		return
 	for i in cities.size():
 		var ctx := "cities[%d]" % i

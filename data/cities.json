@@ -31,6 +31,7 @@
     "id": "stralsund",
     "name": "Stralsund",
     "coordinates": [13.09, 54.31],
+    "since_save": 7,
     "population": 8000,
     "production": { "grain": 40, "fish": 30, "wool": 8, "beer": 60, "cloth": 12, "tools": 7, "wine": 3 }
   },
@@ -38,6 +39,7 @@
     "id": "riga",
     "name": "Riga",
     "coordinates": [24.106, 56.949],
+    "since_save": 7,
     "population": 8000,
     "production": { "grain": 40, "salt": 12, "timber": 20, "wool": 8, "beer": 25, "cloth": 5, "tools": 6, "furs": 1.5, "wax": 6.5, "honey": 11, "pitch": 10 }
   },
@@ -45,6 +47,7 @@
     "id": "reval",
     "name": "Reval",
     "coordinates": [24.745, 59.437],
+    "since_save": 7,
     "population": 6000,
     "production": { "grain": 45, "fish": 13, "salt": 15, "wool": 7, "beer": 20, "cloth": 6 }
   },
@@ -53,6 +56,7 @@
     "name": "Bergen",
     "coordinates": [5.324, 60.393],
     "import_factor": 3.0,
+    "since_save": 7,
     "population": 7000,
     "production": { "fish": 70, "iron": 6, "wine": 4 }
   },
@@ -61,6 +65,7 @@
     "name": "Novgorod",
     "coordinates": [31.275, 58.522],
     "import_factor": 2.5,
+    "since_save": 7,
     "population": 12000,
     "production": { "timber": 23, "iron": 7, "beer": 30, "furs": 7, "wax": 10, "honey": 22 }
   }
