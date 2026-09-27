@@ -39,10 +39,17 @@ func set_speed(value: int) -> void:
 	changed.emit()
 
 
-## Runs `hours` ticks immediately, regardless of speed.
+## Runs `hours` ticks immediately, regardless of speed. Announces ships that arrive.
 func advance(hours: int) -> void:
+	var at_sea: Array[ShipState] = []
+	for ship in player().ships:
+		if not ship.is_docked():
+			at_sea.append(ship)
 	for i in hours:
 		sim.tick()
+	for ship in at_sea:
+		if ship.is_docked():
+			message_posted.emit("%s arrived in %s" % [ship.name, _city_name(ship.docked_at)])
 	changed.emit()
 
 
@@ -54,6 +61,18 @@ func execute(command: Command) -> bool:
 		return true
 	message_posted.emit(error)
 	return false
+
+
+## The player's ship that trades in the selected city: the selected ship if it is docked there,
+## otherwise the first of the player's ships docked there. Null if there is none.
+func trading_ship() -> ShipState:
+	var selected := player().get_ship(selected_ship)
+	if selected != null and selected.docked_at == selected_city:
+		return selected
+	for ship in player().ships:
+		if ship.docked_at == selected_city:
+			return ship
+	return null
 
 
 func select_city(city_id: String) -> void:
@@ -74,3 +93,7 @@ func _process(delta: float) -> void:
 	if hours > 0:
 		_pending_hours -= hours
 		advance(hours)
+
+
+func _city_name(city_id: String) -> String:
+	return sim.data.get_city(city_id).name
