@@ -74,6 +74,42 @@ func test_full_loop_buy_sail_sell() -> void:
 	assert_gt(_session.player().coins, coins)
 
 
+func test_market_shows_price_history_and_trend() -> void:
+	var sparkline: Sparkline = _main.find_child("Sparkline_grain", true, false)
+	assert_eq(sparkline.point_count(), 0)
+	assert_eq(_text("Trend_grain"), "")
+	_session.advance(Simulation.HOURS_PER_DAY * 10)
+	assert_eq(sparkline.point_count(), 10)
+	var history: PackedInt64Array = _session.sim.world.get_city("lubeck").price_history["grain"]
+	assert_eq(_text("Trend_grain"), MarketPanel.trend_arrow(history))
+
+
+func test_hovering_a_good_explains_its_price() -> void:
+	var label: Label = _main.find_child("Good_grain", true, false)
+	assert_eq(label.mouse_filter, Control.MOUSE_FILTER_PASS)
+	var city := _session.sim.world.get_city("lubeck")
+	var target := CityEconomy.target_stock(_session.sim.data.economy, city, _grain())
+	assert_string_contains(
+		label.tooltip_text, "Stock %d of a normal %d" % [city.stock["grain"], target]
+	)
+	assert_string_contains(label.tooltip_text, "Townsfolk use")
+
+
+func test_trend_arrow_compares_with_a_week_ago() -> void:
+	assert_eq(MarketPanel.trend_arrow(PackedInt64Array([1000])), "")
+	assert_eq(MarketPanel.trend_arrow(PackedInt64Array([1000, 1020])), "→")
+	assert_eq(MarketPanel.trend_arrow(PackedInt64Array([1000, 1100])), "▲")
+	# Only the last 7 days count: a big rise before that doesn't.
+	var history := PackedInt64Array([500, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 900])
+	assert_eq(MarketPanel.trend_arrow(history), "▼")
+	history[-1] = 1000
+	assert_eq(MarketPanel.trend_arrow(history), "→")
+
+
+func _grain() -> GoodDef:
+	return _session.sim.data.get_good("grain")
+
+
 func _ship() -> ShipState:
 	return _session.player().get_ship("ship_1")
 

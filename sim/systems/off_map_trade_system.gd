@@ -36,3 +36,12 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			else:
 				city.stock[good.id] -= units
 				world.goods_ledger[good.id] -= units
+
+
+## Expected units per day of off-map trade for `good` in `city` at today's stock: positive for
+## imports, negative for exports. For display; run_day() moves whole units with a carry.
+static func expected_flow(economy: EconomyDef, city: CityState, good: GoodDef) -> float:
+	var target := CityEconomy.target_stock(economy, city, good)
+	var stock: int = city.stock[good.id]
+	var rate := economy.import_rate if stock < target else economy.export_rate
+	return CityEconomy.daily_demand(city, good) * rate * (target - stock) / target
