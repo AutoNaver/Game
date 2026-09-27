@@ -106,6 +106,30 @@ func test_trend_arrow_compares_with_a_week_ago() -> void:
 	assert_eq(MarketPanel.trend_arrow(history), "→")
 
 
+func test_cargo_ideas_load_the_suggested_cargo() -> void:
+	assert_false(_main.find_child("Idea_0", true, false).visible, "balanced markets at the start")
+	_session.advance(Simulation.HOURS_PER_DAY * 20)
+	var ship := _ship()
+	var ship_type := _session.sim.data.get_ship(ship.type_id)
+	var options := TradePlanner.plan(
+		_session.sim.data,
+		_session.sim.world,
+		ship_type,
+		"lubeck",
+		ship_type.capacity,
+		_session.player().coins
+	)
+	assert_gt(options.size(), 0, "markets have drifted apart after 20 days")
+	assert_true(_main.find_child("Idea_0", true, false).visible)
+	_press("Load_0")
+	assert_eq(ship.cargo, {options[0].good_id: options[0].quantity})
+
+
+func test_cargo_ideas_need_a_ship_in_port() -> void:
+	_session.select_city("visby")
+	assert_string_contains(_text("PlannerNote"), "Dock a ship here")
+
+
 func _grain() -> GoodDef:
 	return _session.sim.data.get_good("grain")
 

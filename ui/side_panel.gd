@@ -1,7 +1,7 @@
 class_name SidePanel
 extends PanelContainer
-## Right-hand panel: the selected city with its market, the player's fleet, their kontor and
-## workshops there, and the city's shipyard. Scrolls when taller than the window.
+## Right-hand panel: the selected city with its market, the player's fleet with cargo ideas,
+## their kontor and workshops there, and the city's shipyard. Scrolls when taller than the window.
 
 var _session: GameSession
 var _title: Label = Label.new()
@@ -35,6 +35,10 @@ func setup(session: GameSession) -> void:
 	fleet.name = "Fleet"
 	column.add_child(fleet)
 	fleet.setup(_session)
+	var planner := TradePlannerPanel.new()
+	planner.name = "Planner"
+	column.add_child(planner)
+	planner.setup(_session)
 	column.add_child(HSeparator.new())
 	var kontor := KontorPanel.new()
 	kontor.name = "Kontor"
