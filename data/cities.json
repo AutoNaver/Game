@@ -11,7 +11,7 @@
     "name": "Danzig",
     "coordinates": [18.646, 54.352],
     "population": 9000,
-    "production": { "grain": 80, "timber": 18, "beer": 45, "tools": 6 }
+    "production": { "grain": 80, "timber": 18, "beer": 45, "tools": 6, "pitch": 7 }
   },
   {
     "id": "visby",
@@ -25,6 +25,41 @@
     "name": "Stockholm",
     "coordinates": [18.069, 59.329],
     "population": 7000,
-    "production": { "fish": 30, "timber": 20, "iron": 11 }
+    "production": { "fish": 30, "timber": 20, "iron": 11, "pitch": 8 }
+  },
+  {
+    "id": "stralsund",
+    "name": "Stralsund",
+    "coordinates": [13.09, 54.31],
+    "population": 8000,
+    "production": { "grain": 40, "fish": 30, "wool": 8, "beer": 60, "cloth": 12, "tools": 7, "wine": 3 }
+  },
+  {
+    "id": "riga",
+    "name": "Riga",
+    "coordinates": [24.106, 56.949],
+    "population": 8000,
+    "production": { "grain": 40, "salt": 12, "timber": 20, "wool": 8, "beer": 25, "cloth": 5, "tools": 6, "furs": 1.5, "wax": 6.5, "honey": 11, "pitch": 10 }
+  },
+  {
+    "id": "reval",
+    "name": "Reval",
+    "coordinates": [24.745, 59.437],
+    "population": 6000,
+    "production": { "grain": 45, "fish": 13, "salt": 15, "wool": 7, "beer": 20, "cloth": 6 }
+  },
+  {
+    "id": "bergen",
+    "name": "Bergen",
+    "coordinates": [5.324, 60.393],
+    "population": 7000,
+    "production": { "fish": 70, "iron": 6, "wine": 4 }
+  },
+  {
+    "id": "novgorod",
+    "name": "Novgorod",
+    "coordinates": [31.275, 58.522],
+    "population": 12000,
+    "production": { "timber": 23, "iron": 7, "beer": 30, "furs": 7, "wax": 10, "honey": 22 }
   }
 ]

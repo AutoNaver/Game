@@ -59,6 +59,8 @@ const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
+## Optional: lanes up rivers to inland cities, exempt from the coastline check.
+const SEA_LANES_OPTIONAL_FIELDS: PackedStringArray = ["rivers"]
 const WAYPOINT_FIELDS: PackedStringArray = ["id", "coordinates"]
 const BUILDINGS_FIELDS: PackedStringArray = ["kontor", "workshops"]
 const KONTOR_FIELDS: PackedStringArray = ["price", "capacity"]
@@ -428,7 +430,7 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 ## Cities and the map must already be loaded. Every pair of cities must be connected by lanes.
 func _parse_sea_lanes(entry: Dictionary, ctx: String, data: GameData) -> SeaChart:
 	var error_count := errors.size()
-	_check_fields(entry, SEA_LANES_FIELDS, ctx)
+	_check_fields(entry, SEA_LANES_FIELDS, ctx, SEA_LANES_OPTIONAL_FIELDS)
 	var chart := SeaChart.new()
 	for city in data.cities:
 		chart.add_node(city.id, city.map_position)
@@ -436,6 +438,9 @@ func _parse_sea_lanes(entry: Dictionary, ctx: String, data: GameData) -> SeaChar
 		_parse_waypoint(entry["waypoints"][i], "%s waypoints[%d]" % [ctx, i], chart, data)
 	for i in _get_array(entry, "lanes", ctx).size():
 		_parse_lane(entry["lanes"][i], "%s lanes[%d]" % [ctx, i], chart)
+	if entry.has("rivers"):
+		for i in _get_array(entry, "rivers", ctx).size():
+			_parse_lane(entry["rivers"][i], "%s rivers[%d]" % [ctx, i], chart, true)
 	for a in data.cities.size():
 		for b in range(a + 1, data.cities.size()):
 			var from_id := data.cities[a].id
@@ -464,7 +469,7 @@ func _parse_waypoint(raw: Variant, ctx: String, chart: SeaChart, data: GameData)
 	chart.add_node(id, position)
 
 
-func _parse_lane(raw: Variant, ctx: String, chart: SeaChart) -> void:
+func _parse_lane(raw: Variant, ctx: String, chart: SeaChart, river: bool = false) -> void:
 	if not raw is Array or (raw as Array).size() != 2:
 		_error(ctx, "a lane must be an array of two node ids")
 		return
@@ -480,7 +485,7 @@ func _parse_lane(raw: Variant, ctx: String, chart: SeaChart) -> void:
 	elif chart.has_lane(a, b):
 		_error(ctx, "duplicate lane %s-%s" % [a, b])
 	else:
-		chart.add_lane(a, b)
+		chart.add_lane(a, b, river)
 
 
 ## Returns the array in `field`, or an empty one after reporting that it is not an array.

@@ -2,8 +2,10 @@
 
 Usage: python tools/map/check_lanes.py
 Samples every lane every km; reports samples on land that are farther than HARBOUR_KM from a city
-(harbours sit up rivers or inside archipelagos, so the last stretch may cross land). The same check
-runs in the test suite (tests/unit/test_sea_lanes.gd); this script prints details and an overlay.
+(harbours sit up rivers or inside archipelagos, so the last stretch may cross land). River lanes
+("rivers" in data/sea_lanes.json) are exempt: rivers are narrower than the map shows reliably, so
+they are drawn in blue and checked by eye. The same check runs in the test suite
+(tests/unit/test_sea_lanes.gd); this script prints details and an overlay.
 """
 
 import json
@@ -36,6 +38,9 @@ def main():
     nodes.update({w["id"]: km(*w["coordinates"]) for w in lanes["waypoints"]})
     overlay = ImageDraw.Draw(image)
     bad = 0
+    for a, b in lanes.get("rivers", []):
+        (ax, ay), (bx, by) = nodes[a], nodes[b]
+        overlay.line([(ax * px_per_km, ay * px_per_km), (bx * px_per_km, by * px_per_km)], fill=(90, 160, 255), width=3)
     for a, b in lanes["lanes"]:
         (ax, ay), (bx, by) = nodes[a], nodes[b]
         length = math.hypot(bx - ax, by - ay)
