@@ -175,6 +175,8 @@ func _parse_map(entry: Dictionary, ctx: String) -> MapDef:
 	var image := _get_string(entry, "image", ctx)
 	if not image.is_empty() and not ResourceLoader.exists(image):
 		_error(ctx, "'image' not found: %s" % image)
+	elif not image.is_empty() and not load(image) is Texture2D:
+		_error(ctx, "'image' must be a texture: %s" % image)
 	var west := _get_float_between(entry, "west_lon", -180.0, 180.0, ctx, true)
 	var east := _get_float_between(entry, "east_lon", -180.0, 180.0, ctx, true)
 	var south := _get_float_between(entry, "south_lat", -85.0, 85.0, ctx, true)

@@ -133,6 +133,12 @@ func test_missing_directory_reports_each_file() -> void:
 	assert_eq(files, expected_files)
 
 
+func test_map_image_must_be_a_texture() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_map_type"))
+	assert_eq(Array(loader.errors), ["map.json: 'image' must be a texture: res://ui/main.tscn"])
+
+
 func test_map_frame_must_be_ordered() -> void:
 	var loader := GameDataLoader.new()
 	assert_null(loader.load_dir("res://tests/fixtures/bad_map_frame"))
