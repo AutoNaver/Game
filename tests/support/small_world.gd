@@ -11,6 +11,8 @@ extends RefCounted
 ## The player starts in port with 1000 coins and one boat, ship_1 "Test".
 ## Kontors cost 300 and hold 20 units. Workshop type "vintner": 4 grain -> 2 wine a day, 30 workers
 ## (a city's workforce is 10% of 1000 = 100), costs 200 to build, 10 a day in wages.
+## Populations stay put (growth_rate 0) unless a test sets PopulationDef.growth_rate: satisfaction
+## remembers a tenth of each day, neutral at 0.5, sensitivity 1, bounds 0.5x to 2x of home.
 ## with_rival() adds rival house "hanse" (1000 coins, one boat "Rival") and the rival AI rules.
 
 const DAYS_OF_COVER: int = 10
@@ -32,6 +34,7 @@ const RIVAL_INPUT_DAYS: int = 3
 static func data() -> GameData:
 	var game_data := GameData.new()
 	game_data.economy = EconomyDef.new(DAYS_OF_COVER, STOCK_CAP_FACTOR, 2.5, 0.35, 0.1)
+	game_data.population = PopulationDef.new(0.1, 0.5, 1.0, 0.0, 0.5, 2.0)
 	game_data.add_good(GoodDef.new("grain", "Grain", "raw", 40, 2.0))
 	game_data.add_good(GoodDef.new("wine", "Wine", "luxury", 220, 0.5))
 	var production: Dictionary[String, float] = {"grain": 1.5}

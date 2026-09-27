@@ -1,0 +1,9 @@
+{
+  "satisfaction_weight": 0,
+  "neutral_satisfaction": 1.5,
+  "sensitivity": 0.0005,
+  "growth_rate": 0.01,
+  "min_factor": 0.5,
+  "max_factor": 0.8,
+  "mood": 3
+}

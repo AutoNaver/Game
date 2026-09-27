@@ -1,0 +1,4 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40, "consumption_per_1000": 999 },
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220, "consumption_per_1000": 0 }
+]

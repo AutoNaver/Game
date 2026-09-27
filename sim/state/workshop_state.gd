@@ -10,6 +10,10 @@ var type_id: String
 var status: Status = Status.NEW
 ## For NO_INPUTS: the first input good that was short.
 var missing_good: String = ""
+## Share of the next batch done, in millionths (0..PARTS_PER_UNIT). A fully staffed workshop
+## finishes a batch every day; an understaffed one adds its staffing each day and makes a batch
+## whenever this reaches a whole one (WorkshopSystem).
+var progress: int = 0
 
 
 func _init(p_id: String, p_type_id: String) -> void:

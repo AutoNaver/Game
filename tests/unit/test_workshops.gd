@@ -115,14 +115,69 @@ func test_workshops_run_every_day_with_the_simulation() -> void:
 	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
 
 
-func test_invariants_catch_overfull_kontors_and_overstaffed_cities() -> void:
-	_set_up(0)
+func test_invariants_catch_overfull_kontors_and_bad_progress() -> void:
+	var workshop := _set_up(0)
 	_kontor().cargo["grain"] = 21
 	_sim.world.goods_ledger["grain"] += 21
-	var extra := WorkshopState.new("workshop_9", "vintner")
-	for i in 3:
-		_kontor().workshops.append(extra)
+	workshop.progress = CityEconomy.PARTS_PER_UNIT + 1
 	var violations := EconomyInvariants.check(_sim.data, _sim.world)
 	assert_eq(violations.size(), 2)
 	assert_string_contains(violations[0], "kontor in port: holds 21, over capacity 20")
-	assert_string_contains(violations[1], "port: 120 workers employed of a workforce of 100")
+	assert_string_contains(violations[1], "workshop_1 progress 1000001 out of range")
+
+
+func test_understaffed_workshops_work_slower_and_pay_less() -> void:
+	var workshop := _set_up(20)
+	_sim.data.population.min_factor = 0.1
+	# The city shrinks to 600 people: a workforce of 60 for 30 jobs is still enough.
+	var port := _sim.world.get_city("port")
+	port.population = 600
+	assert_eq(CityEconomy.staffing(_sim.data, _sim.world, port), CityEconomy.PARTS_PER_UNIT)
+	# At 150 people the workforce is 15 for 30 jobs: half staffed.
+	port.population = 150
+	assert_eq(CityEconomy.staffing(_sim.data, _sim.world, port), 500_000)
+	assert_eq(CityEconomy.free_workers(_sim.data, _sim.world, port), 0, "never negative")
+	var coins := _player().coins
+	var wine: Array[int] = []
+	for day in 4:
+		WorkshopSystem.run_day(_sim.data, _sim.world)
+		wine.append(_kontor().cargo_of("wine"))
+		assert_eq(workshop.status, WorkshopState.Status.WORKED)
+	assert_eq(wine, [0, 2, 2, 4], "a full batch every other day")
+	assert_eq(_kontor().cargo_of("grain"), 12)
+	assert_eq(_player().coins, coins - 4 * 5, "half the wages of 10")
+	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
+
+
+func test_understaffed_output_keeps_the_remainder_between_batches() -> void:
+	var workshop := _set_up(20)
+	_sim.data.population.min_factor = 0.1
+	# 180 people: a workforce of 18 for 30 jobs, 60% staffed.
+	var port := _sim.world.get_city("port")
+	port.population = 180
+	assert_eq(CityEconomy.staffing(_sim.data, _sim.world, port), 600_000)
+	var wine: Array[int] = []
+	var progress: Array[int] = []
+	for day in 5:
+		WorkshopSystem.run_day(_sim.data, _sim.world)
+		wine.append(_kontor().cargo_of("wine"))
+		progress.append(workshop.progress)
+	assert_eq(wine, [0, 2, 2, 4, 6], "three batches in five days")
+	assert_eq(progress, [600_000, 200_000, 800_000, 400_000, 0])
+	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
+
+
+func test_understaffed_wages_round_up() -> void:
+	var vintner := _sim.data.get_workshop("vintner")
+	assert_eq(WorkshopSystem.wages(vintner, CityEconomy.PARTS_PER_UNIT), 10)
+	assert_eq(WorkshopSystem.wages(vintner, 333_333), 4)
+	assert_eq(WorkshopSystem.wages(vintner, 0), 0)
+
+
+func test_a_stalled_understaffed_workshop_does_not_bank_days() -> void:
+	var workshop := _set_up(0)
+	_sim.world.get_city("port").population = 150
+	for day in 5:
+		WorkshopSystem.run_day(_sim.data, _sim.world)
+	assert_eq(workshop.status, WorkshopState.Status.NO_INPUTS)
+	assert_eq(workshop.progress, CityEconomy.PARTS_PER_UNIT, "capped at one batch")
