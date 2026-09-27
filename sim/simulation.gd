@@ -22,10 +22,13 @@ func _init(p_data: GameData, p_world: WorldState) -> void:
 static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	var world := WorldState.new()
 	world.rng.seed = seed_value
+	for good in p_data.goods:
+		world.goods_ledger[good.id] = 0
 	for city_def in p_data.cities:
 		var city := CityState.new(city_def.id, city_def.population)
 		for good in p_data.goods:
 			city.stock[good.id] = CityEconomy.target_stock(p_data.economy, city, good)
+			world.goods_ledger[good.id] += city.stock[good.id]
 			city.production_carry[good.id] = 0
 			city.consumption_carry[good.id] = 0
 			city.shortage[good.id] = 0

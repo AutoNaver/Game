@@ -33,3 +33,17 @@ static func data() -> GameData:
 
 static func simulation(seed_value: int = 1) -> Simulation:
 	return Simulation.new_game(data(), seed_value)
+
+
+## Test setup: sets a city's stock and books the difference in the goods ledger, as if it had
+## been produced or consumed, so conservation checks still hold afterwards.
+static func set_stock(sim: Simulation, city_id: String, good_id: String, units: int) -> void:
+	var city := sim.world.get_city(city_id)
+	sim.world.goods_ledger[good_id] += units - city.stock[good_id]
+	city.stock[good_id] = units
+
+
+## Test setup: puts goods aboard a ship and books them in the goods ledger.
+static func give_cargo(sim: Simulation, ship: ShipState, good_id: String, units: int) -> void:
+	ship.change_cargo(good_id, units)
+	sim.world.goods_ledger[good_id] += units

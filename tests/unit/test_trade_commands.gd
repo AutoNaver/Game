@@ -90,8 +90,8 @@ func test_cannot_trade_at_sea() -> void:
 
 
 func test_selling_can_push_stock_past_the_cap() -> void:
-	_port.stock["grain"] = 39
-	_ship.cargo["grain"] = 5
+	SmallWorld.set_stock(_sim, "port", "grain", 39)
+	SmallWorld.give_cargo(_sim, _ship, "grain", 5)
 	assert_eq(_sim.execute(SellCommand.new(PLAYER, SHIP, "grain", 5)), "")
 	assert_eq(_port.stock["grain"], 44)
 	assert_eq(EconomyInvariants.check(_sim.data, _sim.world), PackedStringArray())
