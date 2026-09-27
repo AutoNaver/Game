@@ -112,7 +112,9 @@ func set_speed(value: int) -> void:
 
 ## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive
 ## and workshops that stop working, each dated when it happened. If pause_on_arrival is set and
-## time is running, stops right after the tick in which a ship arrives, even mid-batch.
+## time is running, stops right after the tick in which a ship arrives, even mid-batch. Ships on
+## trade routes leave again in the hour they arrive, so they neither notify nor pause; their
+## problems are reported instead (_notify_route_problems).
 func advance(hours: int) -> void:
 	var at_sea: Array[ShipState] = []
 	for ship in player().ships:

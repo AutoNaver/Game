@@ -155,6 +155,9 @@ func _build_order(stop_index: int, order_index: int) -> HBoxContainer:
 	action.item_selected.connect(
 		func(item: int) -> void:
 			order.action = action.get_item_id(item) as RouteOrder.Action
+			# Loading and unloading have no price; don't keep a hidden limit around.
+			if order.action == RouteOrder.Action.LOAD or order.action == RouteOrder.Action.UNLOAD:
+				order.price_limit = 0
 			_rebuild()
 	)
 	row.add_child(action)

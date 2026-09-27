@@ -98,6 +98,28 @@ func test_route_problems_are_logged() -> void:
 	assert_string_contains(_text("ShipRouteStatus"), "Last stop: Lübeck: Salt dearer than 1")
 
 
+func test_route_ships_neither_pause_nor_log_their_arrivals() -> void:
+	_make_route(0)
+	_session.execute(AssignRouteCommand.new(PLAYER, "ship_1", "route_1"))
+	_session.set_speed(1)
+	var ship := _session.player().get_ship("ship_1")
+	_session.advance(1)
+	var hours := ship.voyage_hours
+	_session.advance(hours + 1)
+	assert_eq(ship.destination, "lubeck", "reached Danzig and turned for home")
+	assert_eq(_session.speed, 1, "no pause for a route ship")
+	for entry in _session.notification_log:
+		assert_false(entry.contains("arrived"), entry)
+
+
+func test_switching_to_load_drops_the_price_limit() -> void:
+	_make_route(40)
+	_press("EditRoute_route_1")
+	_pick("Stop_0_Order_0_Action", RouteOrder.Action.LOAD)
+	assert_null(_main.find_child("Stop_0_Order_0_Limit", true, false))
+	assert_eq(_editor().edited_stops()[0].orders[0].price_limit, 0)
+
+
 func test_deleting_a_route_from_the_panel() -> void:
 	_make_route(0)
 	_session.execute(AssignRouteCommand.new(PLAYER, "ship_1", "route_1"))
