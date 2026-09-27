@@ -80,6 +80,7 @@ func test_invalid_data_reports_every_problem() -> void:
 		"goods.json[3]: 'consumption_per_1000' must be a number at least 0.0 and less than 1000.0",
 		"goods.json[4]: unknown field 'colour'",
 		"goods.json[4]: 'base_price' must be a positive integer",
+		"goods.json[4]: 'consumption_per_1000' must be a multiple of 0.001 (got 0.0004)",
 		"goods.json[5]: missing field 'base_price'",
 		"goods.json[6]: entry must be an object",
 		"cities.json[0]: 'map_position' must be an array of two numbers",
