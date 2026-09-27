@@ -30,6 +30,11 @@ const CITY_FIELDS: PackedStringArray = ["id", "name", "map_position", "populatio
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
 const MAX_PRODUCTION_PER_DAY: float = 10000.0
 
+## Upper bounds for plain numbers. JSON allows values like 1e100 that overflow int or Vector2
+## (32-bit floats in the standard build), so anything beyond these is rejected as a data error.
+const MAX_INT_VALUE: int = 1_000_000_000
+const MAX_MAP_COORDINATE: float = 100_000.0
+
 ## Problems found by the last load_dir() call, formatted as "<file>[<index>]: <message>".
 var errors: PackedStringArray = []
 
@@ -209,6 +214,9 @@ func _get_positive_int(entry: Dictionary, field: String, ctx: String) -> int:
 	if number != floorf(number) or number <= 0.0:
 		_error(ctx, "'%s' must be a positive integer" % field)
 		return 0
+	if number > MAX_INT_VALUE:
+		_error(ctx, "'%s' must be at most %d" % [field, MAX_INT_VALUE])
+		return 0
 	return int(number)
 
 
@@ -243,6 +251,10 @@ func _get_vector2(entry: Dictionary, field: String, ctx: String) -> Vector2:
 		var x: Variant = pair[0]
 		var y: Variant = pair[1]
 		if (x is int or x is float) and (y is int or y is float):
+			if absf(float(x)) > MAX_MAP_COORDINATE or absf(float(y)) > MAX_MAP_COORDINATE:
+				var message := "'%s' coordinates must be within ±%d"
+				_error(ctx, message % [field, int(MAX_MAP_COORDINATE)])
+				return Vector2.ZERO
 			return Vector2(float(x), float(y))
 	_error(ctx, "'%s' must be an array of two numbers" % field)
 	return Vector2.ZERO
