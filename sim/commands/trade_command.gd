@@ -30,14 +30,17 @@ func validate_trade(sim: Simulation) -> String:
 	return ""
 
 
-func ship(sim: Simulation) -> ShipState:
+# Lookup helpers for subclasses. They assume validate_trade() returned "", so the ship and trader
+# exist and the ship is docked; before that they may return null.
+
+
+func _ship(sim: Simulation) -> ShipState:
 	return Command.find_ship(sim, trader_id, ship_id)
 
 
-func trader(sim: Simulation) -> TraderState:
+func _trader(sim: Simulation) -> TraderState:
 	return sim.world.get_trader(trader_id)
 
 
-## The market the ship trades with. Only valid once validate_trade() passed.
-func market(sim: Simulation) -> CityState:
-	return sim.world.get_city(ship(sim).docked_at)
+func _market(sim: Simulation) -> CityState:
+	return sim.world.get_city(_ship(sim).docked_at)

@@ -35,6 +35,9 @@ const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
 const MAX_PRODUCTION_PER_DAY: float = 10000.0
 const MAX_SHIP_SPEED: float = 1000.0
+## Slowest allowed speed. With coordinates within ±MAX_MAP_COORDINATE the longest route is about
+## 283k map units, so the longest voyage stays near 2.8M hours: far inside int range.
+const MIN_SHIP_SPEED: float = 0.1
 
 ## Upper bounds for plain numbers. JSON allows values like 1e100 that overflow int or Vector2
 ## (32-bit floats in the standard build), so anything beyond these is rejected as a data error.
@@ -219,7 +222,7 @@ func _parse_ship(raw: Variant, ctx: String) -> ShipDef:
 	var id := _get_id(entry, ctx)
 	var ship_name := _get_string(entry, "name", ctx)
 	var capacity := _get_positive_int(entry, "capacity", ctx)
-	var speed := _get_float_between(entry, "speed", 0.0, MAX_SHIP_SPEED, ctx)
+	var speed := _get_float_between(entry, "speed", MIN_SHIP_SPEED, MAX_SHIP_SPEED, ctx, true)
 	var price := _get_positive_int(entry, "price", ctx)
 	if errors.size() > error_count:
 		return null
