@@ -113,8 +113,14 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	return world if errors.is_empty() else null
 
 
-## Ship and workshop ids must be unique across all traders, and below the next free number.
+## Trader ids must be unique. Ship and workshop ids must be unique across all traders, and below
+## the next free number.
 func _check_unique_ids(world: WorldState) -> void:
+	var trader_ids: Dictionary[String, bool] = {}
+	for trader in world.traders:
+		if trader_ids.has(trader.id):
+			errors.append("duplicate trader id '%s'" % trader.id)
+		trader_ids[trader.id] = true
 	var seen: Dictionary[String, bool] = {}
 	for trader in world.traders:
 		for ship in trader.ships:
@@ -197,7 +203,13 @@ func _read_cities(data: GameData, world: WorldState, cities: Array) -> void:
 		if id != data.cities[i].id:
 			errors.append("%s: expected city '%s', got '%s'" % [ctx, data.cities[i].id, id])
 			continue
-		var city := CityState.new(id, _int(raw, "population", ctx))
+		# Population is static data for now; accepting another value would bypass the loader's
+		# overflow checks on population × rates.
+		var population := _int(raw, "population", ctx)
+		if population != data.cities[i].population:
+			var expected := data.cities[i].population
+			errors.append("%s: population %d, the game has %d" % [ctx, population, expected])
+		var city := CityState.new(id, population)
 		city.stock = _goods(data, _dict(raw, "stock", ctx), "%s stock" % ctx, true)
 		city.production_carry = _goods(
 			data, _dict(raw, "production_carry", ctx), "%s production_carry" % ctx, true
@@ -279,6 +291,8 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorStat
 		else:
 			workshop.status = WorkshopState.Status[status] as WorkshopState.Status
 		workshop.missing_good = _string(entry, "missing_good", workshop_ctx)
+		if workshop.missing_good != "" and not data.has_good(workshop.missing_good):
+			errors.append("%s: unknown good '%s'" % [workshop_ctx, workshop.missing_good])
 		kontor.workshops.append(workshop)
 	return kontor
 

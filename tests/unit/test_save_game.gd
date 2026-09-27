@@ -99,15 +99,20 @@ func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
 	var save := _through_json(SaveGame.to_dict(sim.world))
 	save["traders"][0]["ships"][0]["type"] = "galleon"
 	save["traders"][0]["kontors"][0]["cargo"]["amber"] = 3
+	save["traders"][0]["kontors"][0]["workshops"][0]["missing_good"] = "amber"
+	save["cities"][0]["population"] = -500
 	save["cities"][1]["id"] = "riga"
+	var population: int = sim.data.cities[0].population
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(
 		Array(loader.errors),
 		[
+			"cities[0]: population -500, the game has %d" % population,
 			"cities[1]: expected city 'town', got 'riga'",
 			"traders[0] ships[0]: unknown ship type 'galleon'",
 			"traders[0] kontors[0] cargo: unknown good 'amber'",
+			"traders[0] kontors[0] workshops[0]: unknown good 'amber'",
 		]
 	)
 
@@ -131,3 +136,15 @@ func test_duplicate_ids_are_rejected() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(Array(loader.errors), ["id 'ship_3' is not below the next free number 2"])
+
+
+func test_duplicate_traders_are_rejected() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var copy: Dictionary = (save["traders"][0] as Dictionary).duplicate(true)
+	copy["ships"] = []
+	copy["kontors"] = []
+	save["traders"].append(copy)
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_eq(Array(loader.errors), ["duplicate trader id 'player'"])
