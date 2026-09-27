@@ -20,12 +20,15 @@ var ships: Array[ShipDef] = []
 var rivals: Array[RivalDef] = []
 ## Shared rules for the rivals' decisions. Null only when there are no rivals.
 var rival_ai: RivalAiDef
+## World event types (data/events.json), in file order. Empty means a world without events.
+var events: Array[EventDef] = []
 
 var _goods_by_id: Dictionary[String, GoodDef] = {}
 var _cities_by_id: Dictionary[String, CityDef] = {}
 var _ships_by_id: Dictionary[String, ShipDef] = {}
 var _workshops_by_id: Dictionary[String, WorkshopDef] = {}
 var _rivals_by_id: Dictionary[String, RivalDef] = {}
+var _events_by_id: Dictionary[String, EventDef] = {}
 
 
 func add_good(good: GoodDef) -> void:
@@ -101,3 +104,18 @@ func has_rival(id: String) -> bool:
 ## Returns null for unknown ids (including the player's).
 func get_rival(id: String) -> RivalDef:
 	return _rivals_by_id.get(id)
+
+
+func add_event(event: EventDef) -> void:
+	assert(not has_event(event.id), "duplicate event id '%s'" % event.id)
+	events.append(event)
+	_events_by_id[event.id] = event
+
+
+func has_event(id: String) -> bool:
+	return _events_by_id.has(id)
+
+
+## Returns null for unknown ids.
+func get_event(id: String) -> EventDef:
+	return _events_by_id.get(id)

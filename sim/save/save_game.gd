@@ -19,7 +19,9 @@ extends RefCounted
 ## Version 5 added cities' satisfaction, and population may differ from data/cities.json within
 ## the bounds of data/population.json (ADR 0010), and workshops' batch progress (understaffed
 ## workshops work slower); older saves load at neutral satisfaction and no progress.
-const SAVE_VERSION: int = 5
+## Version 6 added world events, next_event_number and ships' and kontors' spoil_carry (ADR 0011);
+## older saves load with no events and no spoilage carried.
+const SAVE_VERSION: int = 6
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -53,6 +55,20 @@ static func to_dict(world: WorldState) -> Dictionary:
 	var traders: Array = []
 	for trader in world.traders:
 		traders.append(_trader_to_dict(trader))
+	var events: Array = []
+	for event in world.events:
+		(
+			events
+			. append(
+				{
+					"id": event.id,
+					"type": event.type_id,
+					"city": event.city_id,
+					"start_day": event.start_day,
+					"end_day": event.end_day,
+				}
+			)
+		)
 	return {
 		"save_version": SAVE_VERSION,
 		"hour": world.hour,
@@ -61,6 +77,8 @@ static func to_dict(world: WorldState) -> Dictionary:
 		"next_ship_number": world.next_ship_number,
 		"next_workshop_number": world.next_workshop_number,
 		"next_route_number": world.next_route_number,
+		"next_event_number": world.next_event_number,
+		"events": events,
 		"goods_ledger": world.goods_ledger.duplicate(),
 		"cities": cities,
 		"traders": traders,
@@ -147,6 +165,13 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	world.next_workshop_number = _int(save, "next_workshop_number", "save")
 	if version >= 3:
 		world.next_route_number = _int(save, "next_route_number", "save")
+	if version >= 6:
+		world.next_event_number = _int(save, "next_event_number", "save")
+		var events := _array(save, "events", "save")
+		for i in events.size():
+			var event := _read_event(data, events[i], "events[%d]" % i)
+			if event != null:
+				world.events.append(event)
 	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
 	_read_cities(data, world, _array(save, "cities", "save"), version)
 	for i in _array(save, "traders", "save").size():
@@ -168,8 +193,8 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	return world if errors.is_empty() else null
 
 
-## Trader ids must be unique. Ship, workshop and route ids must be unique across all traders, of
-## the form the game creates ("ship_3"), and below the next free number of their kind.
+## Trader ids must be unique. Ship, workshop, route and event ids must be unique across the world,
+## of the form the game creates ("ship_3"), and below the next free number of their kind.
 func _check_unique_ids(data: GameData, world: WorldState) -> void:
 	var trader_ids: Dictionary[String, bool] = {}
 	for trader in world.traders:
@@ -186,10 +211,13 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 				_see_id(seen, workshop.id, "workshop")
 		for route in trader.routes:
 			_see_id(seen, route.id, "route")
+	for event in world.events:
+		_see_id(seen, event.id, "event")
 	var next_numbers: Dictionary[String, int] = {
 		"ship": world.next_ship_number,
 		"workshop": world.next_workshop_number,
 		"route": world.next_route_number,
+		"event": world.next_event_number,
 	}
 	for id: String in seen:
 		var kind := seen[id]
@@ -227,6 +255,7 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 					"route": ship.route_id,
 					"route_stop": ship.route_stop,
 					"route_note": ship.route_note,
+					"spoil_carry": ship.spoil_carry.duplicate(),
 				}
 			)
 		)
@@ -247,8 +276,16 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 					}
 				)
 			)
-		kontors.append(
-			{"city": kontor.city_id, "cargo": kontor.cargo.duplicate(), "workshops": workshops}
+		(
+			kontors
+			. append(
+				{
+					"city": kontor.city_id,
+					"cargo": kontor.cargo.duplicate(),
+					"spoil_carry": kontor.spoil_carry.duplicate(),
+					"workshops": workshops,
+				}
+			)
 		)
 	kontors.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["city"] < b["city"])
 	var routes: Array = []
@@ -383,12 +420,16 @@ func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int)
 		var ship := _read_ship(data, ships[i], "%s ships[%d]" % [ctx, i])
 		if ship == null:
 			continue
+		if version >= 6:
+			ship.spoil_carry = _carry(data, ships[i] as Dictionary, "%s ships[%d]" % [ctx, i])
 		if version >= 3:
 			_read_ship_route(trader, ship, ships[i], "%s ships[%d]" % [ctx, i])
 		trader.ships.append(ship)
 	var kontors := _array(raw, "kontors", ctx)
 	for i in kontors.size():
 		var kontor := _read_kontor(data, kontors[i], "%s kontors[%d]" % [ctx, i], version)
+		if kontor != null and version >= 6:
+			kontor.spoil_carry = _carry(data, kontors[i] as Dictionary, "%s kontors[%d]" % [ctx, i])
 		if kontor == null:
 			continue
 		if trader.kontors.has(kontor.city_id):
@@ -477,6 +518,47 @@ func _read_route(data: GameData, raw_value: Variant, ctx: String) -> RouteState:
 	if not problem.is_empty():
 		errors.append("%s: %s" % [ctx, problem])
 	return route
+
+
+## A running event: a known type and city, and a span of days that has begun and not ended.
+func _read_event(data: GameData, raw_value: Variant, ctx: String) -> EventState:
+	if not raw_value is Dictionary:
+		errors.append("%s: must be an object" % ctx)
+		return null
+	var raw: Dictionary = raw_value
+	var event := (
+		EventState
+		. new(
+			_string(raw, "id", ctx),
+			_string(raw, "type", ctx),
+			_string(raw, "city", ctx),
+			_int(raw, "start_day", ctx),
+			_int(raw, "end_day", ctx),
+		)
+	)
+	if not data.has_event(event.type_id):
+		errors.append("%s: unknown event type '%s'" % [ctx, event.type_id])
+	if not data.has_city(event.city_id):
+		errors.append("%s: unknown city '%s'" % [ctx, event.city_id])
+	if event.start_day < 0 or event.end_day <= event.start_day:
+		errors.append("%s: days %d to %d are not a span" % [ctx, event.start_day, event.end_day])
+	return event
+
+
+## A hold's spoilage fractions: known goods, each 1..PARTS_PER_UNIT - 1.
+func _carry(data: GameData, raw: Dictionary, ctx: String) -> Dictionary[String, int]:
+	var carry: Dictionary[String, int] = {}
+	var table := _dict(raw, "spoil_carry", ctx)
+	for key: Variant in table.keys():
+		var good_id := str(key)
+		var parts := _int(table, good_id, "%s spoil_carry" % ctx)
+		if not data.has_good(good_id):
+			errors.append("%s spoil_carry: unknown good '%s'" % [ctx, good_id])
+		elif parts <= 0 or parts >= CityEconomy.PARTS_PER_UNIT:
+			errors.append("%s spoil_carry: %s %d outside 1 to 999999" % [ctx, good_id, parts])
+		else:
+			carry[good_id] = parts
+	return carry
 
 
 func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int) -> KontorState:

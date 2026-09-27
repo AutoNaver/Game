@@ -1,0 +1,6 @@
+[
+  { "id": "storm", "name": "Storm", "kind": "storm", "chance_per_day": 0.03, "min_days": 2, "max_days": 4, "slowdown": 2 },
+  { "id": "harvest_failure", "name": "Harvest failure", "kind": "harvest_failure", "chance_per_day": 0.004, "min_days": 20, "max_days": 40, "goods": ["grain"], "factor": 0.3 },
+  { "id": "war", "name": "War", "kind": "war", "chance_per_day": 0.002, "min_days": 30, "max_days": 60, "factor": 0.2 },
+  { "id": "fire", "name": "Fire", "kind": "fire", "chance_per_day": 0.003, "min_days": 3, "max_days": 3, "loss_share": 0.25 }
+]

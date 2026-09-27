@@ -1,0 +1,8 @@
+[
+  { "id": "storm", "name": "Storm", "kind": "storm", "chance_per_day": 1.5, "min_days": 3, "max_days": 2, "slowdown": 1 },
+  { "id": "plague", "name": "Plague", "kind": "plague", "chance_per_day": 0.1, "min_days": 1, "max_days": 2 },
+  { "id": "blight", "name": "Blight", "kind": "harvest_failure", "chance_per_day": 0.1, "min_days": 1, "max_days": 2, "goods": ["grain", "amber"], "factor": 1.0 },
+  { "id": "spoilage", "name": "Rot", "kind": "fire", "chance_per_day": 0.1, "min_days": 1, "max_days": 2, "loss_share": 0.25, "colour": "red" },
+  { "id": "war", "name": "War", "kind": "war", "chance_per_day": 0.1, "min_days": 1, "max_days": 2 },
+  "storm"
+]

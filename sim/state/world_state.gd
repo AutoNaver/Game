@@ -22,6 +22,13 @@ var next_ship_number: int = 1
 var next_workshop_number: int = 1
 ## Route ids are "route_<n>", numbered the same way.
 var next_route_number: int = 1
+## Running world events (EventSystem), in start order. Ended events are dropped.
+var events: Array[EventState] = []
+## Event ids are "event_<n>", numbered the same way.
+var next_event_number: int = 1
+## Goods traders lost on the last day (spoilage, fires), for the UI. Cleared at the start of each
+## day and not saved: the goods ledger already books every loss.
+var losses: Array[GoodsLoss] = []
 
 var _cities_by_id: Dictionary[String, CityState] = {}
 

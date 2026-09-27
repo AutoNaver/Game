@@ -21,6 +21,10 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			if room <= 0:
 				continue
 			var daily := CityEconomy.to_parts(rate)
+			# A harvest failure (EventSystem) leaves only part of the output.
+			var event_steps := EventSystem.production_steps(data, world, city.id, good.id)
+			@warning_ignore("integer_division")
+			daily = daily * event_steps / CityEconomy.RATE_STEPS
 			if workforce > 0:
 				@warning_ignore("integer_division")
 				daily = daily * maxi(available, 0) / workforce

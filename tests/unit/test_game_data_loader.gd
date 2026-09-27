@@ -199,6 +199,7 @@ func test_missing_directory_reports_each_file() -> void:
 		"buildings.json",
 		"scenario.json",
 		"rivals.json",
+		"events.json",
 	]
 	assert_eq(files, expected_files)
 

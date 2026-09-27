@@ -20,6 +20,7 @@ const SHIPS_FILE: String = "ships.json"
 const BUILDINGS_FILE: String = "buildings.json"
 const SCENARIO_FILE: String = "scenario.json"
 const RIVALS_FILE: String = "rivals.json"
+const EVENTS_FILE: String = "events.json"
 
 const ECONOMY_FIELDS: PackedStringArray = [
 	"days_of_cover",
@@ -43,6 +44,14 @@ const POPULATION_FIELDS: PackedStringArray = [
 const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
 ]
+## Optional: goods without it keep forever.
+const GOOD_OPTIONAL_FIELDS: PackedStringArray = ["spoilage_per_day"]
+const EVENT_FIELDS: PackedStringArray = [
+	"id", "name", "kind", "chance_per_day", "min_days", "max_days"
+]
+## Longest an event may last, and the most a storm may slow ships.
+const MAX_EVENT_DAYS: int = 3650
+const MAX_STORM_SLOWDOWN: int = 24
 const MAP_FIELDS: PackedStringArray = [
 	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
 ]
@@ -155,6 +164,17 @@ func load_dir(dir: String) -> GameData:
 	if rivals != null:
 		_parse_rivals(rivals as Dictionary, RIVALS_FILE, data)
 
+	var events := _read_array(dir.path_join(EVENTS_FILE))
+	for i in events.size():
+		var ctx := "%s[%d]" % [EVENTS_FILE, i]
+		var event := _parse_event(events[i], ctx, data)
+		if event == null:
+			continue
+		if data.has_event(event.id):
+			_error(ctx, "duplicate id '%s'" % event.id)
+		else:
+			data.add_event(event)
+
 	if not errors.is_empty():
 		return null
 	return data
@@ -245,7 +265,7 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, GOOD_FIELDS, ctx)
+	_check_fields(entry, GOOD_FIELDS, ctx, GOOD_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	var good_name := _get_string(entry, "name", ctx)
 	var category := _get_string(entry, "category", ctx)
@@ -257,9 +277,76 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 		entry, "consumption_per_1000", 0.0, MAX_CONSUMPTION_PER_1000, ctx, true
 	)
 	_check_rate_resolution(consumption, "consumption_per_1000", ctx)
+	var spoilage := _get_float_between(entry, "spoilage_per_day", 0.0, 1.0, ctx, true, true)
+	_check_rate_resolution(spoilage, "spoilage_per_day", ctx)
 	if errors.size() > error_count:
 		return null
-	return GoodDef.new(id, good_name, category, base_price, consumption)
+	return GoodDef.new(id, good_name, category, base_price, consumption, spoilage)
+
+
+## The fields each event kind needs on top of EVENT_FIELDS.
+static func _event_kind_fields(kind: String) -> PackedStringArray:
+	match kind:
+		EventDef.STORM:
+			return ["slowdown"]
+		EventDef.HARVEST_FAILURE:
+			return ["goods", "factor"]
+		EventDef.WAR:
+			return ["factor"]
+		EventDef.FIRE:
+			return ["loss_share"]
+	return []
+
+
+## Goods and cities must already be loaded.
+func _parse_event(raw: Variant, ctx: String, data: GameData) -> EventDef:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	var kind := _get_string(entry, "kind", ctx)
+	var fields := EVENT_FIELDS.duplicate()
+	if EventDef.KINDS.has(kind):
+		fields.append_array(_event_kind_fields(kind))
+	elif not kind.is_empty():
+		_error(ctx, "'kind' must be one of %s (got '%s')" % [", ".join(EventDef.KINDS), kind])
+	_check_fields(entry, fields, ctx)
+	var id := _get_id(entry, ctx)
+	if id == GoodsLoss.SPOILAGE:
+		_error(ctx, "'id' '%s' is reserved for spoilage" % id)
+	var event_name := _get_string(entry, "name", ctx)
+	var chance := _get_float_between(entry, "chance_per_day", 0.0, 1.0, ctx, true, true)
+	var min_days := _get_positive_int(entry, "min_days", ctx)
+	var max_days := _get_positive_int(entry, "max_days", ctx)
+	if max_days < min_days or max_days > MAX_EVENT_DAYS:
+		_error(ctx, "'max_days' must be at least min_days and at most %d" % MAX_EVENT_DAYS)
+	var event := EventDef.new(id, event_name, kind, chance, min_days, max_days)
+	if entry.has("slowdown"):
+		event.slowdown = _get_positive_int(entry, "slowdown", ctx)
+		if event.slowdown < 2 or event.slowdown > MAX_STORM_SLOWDOWN:
+			_error(ctx, "'slowdown' must be between 2 and %d" % MAX_STORM_SLOWDOWN)
+	if entry.has("factor"):
+		event.factor = _get_float_between(entry, "factor", 0.0, 1.0, ctx, true)
+		_check_rate_resolution(event.factor, "factor", ctx)
+	if entry.has("loss_share"):
+		event.loss_share = _get_float_between(entry, "loss_share", 0.0, 1.0, ctx, false, true)
+		_check_rate_resolution(event.loss_share, "loss_share", ctx)
+	if entry.has("goods"):
+		var goods: Variant = entry["goods"]
+		if not goods is Array or (goods as Array).is_empty():
+			_error(ctx, "'goods' must be a non-empty array of good ids")
+		else:
+			for good_id: Variant in goods as Array:
+				if not good_id is String or not data.has_good(good_id as String):
+					_error(ctx, "'goods' has unknown good '%s'" % str(good_id))
+				elif event.goods.has(good_id as String):
+					_error(ctx, "'goods' lists '%s' twice" % good_id)
+				else:
+					event.goods.append(good_id as String)
+	if errors.size() > error_count:
+		return null
+	return event
 
 
 func _parse_map(entry: Dictionary, ctx: String) -> MapDef:
@@ -614,12 +701,17 @@ func _check_rate_resolution(rate: float, field: String, ctx: String) -> bool:
 
 ## Reports missing and unknown fields. The typed getters below skip missing fields so each
 ## problem is reported once.
-func _check_fields(entry: Dictionary, fields: PackedStringArray, ctx: String) -> void:
+func _check_fields(
+	entry: Dictionary,
+	fields: PackedStringArray,
+	ctx: String,
+	optional: PackedStringArray = PackedStringArray(),
+) -> void:
 	for field in fields:
 		if not entry.has(field):
 			_error(ctx, "missing field '%s'" % field)
 	for key: Variant in entry.keys():
-		if not fields.has(str(key)):
+		if not fields.has(str(key)) and not optional.has(str(key)):
 			_error(ctx, "unknown field '%s'" % key)
 
 
