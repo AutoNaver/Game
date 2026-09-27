@@ -33,9 +33,9 @@ until your trading house shapes the prices of the whole sea.
 - **Cities:** Lübeck, Danzig, Visby, Stockholm.
 - **Goods:** grain, fish, salt, timber, wool, iron (raw); beer, cloth, tools (processed); wine
   (luxury, imported). Definitions are in `data/goods.json`.
-- **Wine** isn't made in the Baltic. It arrives through Lübeck's trade with the west, and for now
-  that import is modeled as Lübeck "production" (`data/cities.json`), a small, steady trickle that
-  makes Lübeck the only wine source. It becomes a real off-map import when off-map trade exists.
+- **Wine** isn't made in the Baltic. Lübeck's trade with the west is modeled as a small, steady
+  Lübeck "production" (`data/cities.json`), which makes Lübeck the cheap wine source. Off-map trade
+  (ADR 0005) tops up the other cities' wine only slowly, so they stay expensive.
 - **Time:** 1 tick = 1 in-game hour. Markets, consumption and production resolve daily.
 
 ## Economy model (first version, refined in M1)
@@ -69,14 +69,18 @@ AI competitors come after the MVP. Details and balance targets:
 - Build **workshops** next to a kontor that turn its inputs into outputs using city workers, for
   daily wages. Unpaid workers stay home. Details: [ADR 0004](adr/0004-player-production.md).
 
-## Out of scope for the MVP (parked, not forgotten)
+## After the MVP
 
-AI competitor traders, automated trade routes, reputation and ranks, more cities, events (storms,
-pirates, fires), city growth and construction, convoys and combat, loans and banking, politics.
-Each one should only come in once the core loop is proven fun, with its own roadmap entry.
+The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
+time, each with its own roadmap milestone: readable markets and quality of life (M6), trade routes
+(M7), AI competitor traders (M8), city needs and growth (M9), events (M10) and more cities and goods
+(M11). Still parked: reputation and ranks, loans and banking, convoys and combat, politics.
 
 ## Open questions
 
 - Do sell prices also react to the *player's* recent sales (market memory), or only to stock?
 - How visible should city needs be? A satisfaction meter, or just prices?
 - Map presentation: stylized painted map or clean schematic?
+- Market knowledge: should prices stay visible everywhere (as now), or only where the player has a
+  ship or kontor, with remembered prices elsewhere? Decide before trade routes and AI traders lean
+  on it.
