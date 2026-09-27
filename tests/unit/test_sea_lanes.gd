@@ -61,24 +61,30 @@ func test_ship_moves_along_the_lanes_not_straight() -> void:
 	assert_almost_eq(at.distance_to(SeaChart.point_along(route, sailed)), 0.0, 0.001)
 
 
+func test_lane_segments_cover_every_configured_lane() -> void:
+	var chart := _square_chart()
+	var segments := chart.lane_segments()
+	assert_eq(segments.size(), 4, "including the detour lanes no shortest route uses")
+	assert_eq(segments[2], PackedVector2Array([Vector2(0, 0), Vector2(0, 300)]))
+
+
+## Every configured lane, not just the ones on shortest routes, sampled every km.
 func test_shipped_lanes_stay_on_water() -> void:
 	var data := GameDataLoader.new().load_dir(GameDataLoader.DEFAULT_DIR)
 	var image := (load(data.map.image) as Texture2D).get_image()
 	var pixels_per_km := image.get_width() / data.map.size_km().x
-	for from_city in data.cities:
-		for to_city in data.cities:
-			if from_city.id >= to_city.id:
+	var segments := data.sea_chart.lane_segments()
+	assert_gt(segments.size(), 20)
+	for segment in segments:
+		var land_km := 0
+		for km in int(SeaChart.length_of(segment)) + 1:
+			var at := SeaChart.point_along(segment, km)
+			if _near_city(data, at):
 				continue
-			var route := data.sea_chart.route(from_city.id, to_city.id)
-			var land_km := 0
-			for km in int(SeaChart.length_of(route)):
-				var at := SeaChart.point_along(route, km)
-				if _near_city(data, at):
-					continue
-				var colour := image.get_pixelv(Vector2i(at * pixels_per_km))
-				if colour.r > colour.b:
-					land_km += 1
-			assert_eq(land_km, 0, "%s-%s crosses land" % [from_city.id, to_city.id])
+			var colour := image.get_pixelv(Vector2i(at * pixels_per_km))
+			if colour.r > colour.b:
+				land_km += 1
+		assert_eq(land_km, 0, "lane %s -> %s crosses land" % [segment[0], segment[1]])
 
 
 func _near_city(data: GameData, at: Vector2) -> bool:

@@ -9,6 +9,8 @@ var _positions: Dictionary[String, Vector2] = {}
 ## Node ids in the order they were added; used to break ties deterministically.
 var _order: Array[String] = []
 var _neighbours: Dictionary[String, PackedStringArray] = {}
+## Every lane as [a, b] in the order added.
+var _lanes: Array[PackedStringArray] = []
 ## Shortest routes already computed, keyed "from>to".
 var _routes: Dictionary[String, PackedVector2Array] = {}
 
@@ -32,7 +34,16 @@ func add_lane(a: String, b: String) -> void:
 	assert(has_node(a) and has_node(b) and a != b, "invalid lane %s-%s" % [a, b])
 	_neighbours[a].append(b)
 	_neighbours[b].append(a)
+	_lanes.append(PackedStringArray([a, b]))
 	_routes.clear()
+
+
+## Every configured lane as its two end points, in the order added (used / unused by routes alike).
+func lane_segments() -> Array[PackedVector2Array]:
+	var segments: Array[PackedVector2Array] = []
+	for lane in _lanes:
+		segments.append(PackedVector2Array([_positions[lane[0]], _positions[lane[1]]]))
+	return segments
 
 
 ## Waypoints of the shortest route from one node to another, both ends included.

@@ -145,6 +145,7 @@ func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
 	_check_fields(entry, ECONOMY_FIELDS, ctx)
 	var days_of_cover := _get_positive_int(entry, "days_of_cover", ctx)
 	var stock_cap_factor := _get_float_between(entry, "stock_cap_factor", 1.0, 100.0, ctx)
+	_check_rate_resolution(stock_cap_factor, "stock_cap_factor", ctx)
 	var max_multiplier := _get_float_between(entry, "price_max_multiplier", 1.0, 100.0, ctx)
 	var min_multiplier := _get_float_between(entry, "price_min_multiplier", 0.0, 1.0, ctx)
 	var spread := _get_float_between(entry, "spread", 0.0, 1.0, ctx)

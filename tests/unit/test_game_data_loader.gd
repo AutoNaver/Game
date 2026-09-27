@@ -113,6 +113,13 @@ func test_stock_cap_overflow_is_rejected() -> void:
 	assert_eq(Array(loader.errors), [expected], "wine is not consumed, so only grain overflows")
 
 
+func test_stock_cap_factor_must_be_a_multiple_of_a_thousandth() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_cap_factor"))
+	var expected := "economy.json: 'stock_cap_factor' must be a multiple of 0.001 (got 1.0005)"
+	assert_eq(Array(loader.errors), [expected])
+
+
 func test_malformed_json_reports_line() -> void:
 	var loader := GameDataLoader.new()
 	assert_null(loader.load_dir(MALFORMED_DIR))
