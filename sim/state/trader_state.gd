@@ -9,6 +9,8 @@ var coins: int
 var ships: Array[ShipState] = []
 ## Kontors by city id. Iterate with kontors_in_order() so the order never depends on the dictionary.
 var kontors: Dictionary[String, KontorState] = {}
+## Trade routes, in creation order.
+var routes: Array[RouteState] = []
 
 
 func _init(p_id: String, p_name: String, p_coins: int) -> void:
@@ -30,6 +32,14 @@ func remove_ship(ship_id: String) -> void:
 		if ships[i].id == ship_id:
 			ships.remove_at(i)
 			return
+
+
+## Returns null if this trader has no route with that id.
+func get_route(route_id: String) -> RouteState:
+	for route in routes:
+		if route.id == route_id:
+			return route
+	return null
 
 
 ## Returns null if the trader has no kontor in that city.

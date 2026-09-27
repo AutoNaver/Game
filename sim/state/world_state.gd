@@ -20,6 +20,8 @@ var traders: Array[TraderState] = []
 var next_ship_number: int = 1
 ## Workshop ids are "workshop_<n>", numbered the same way.
 var next_workshop_number: int = 1
+## Route ids are "route_<n>", numbered the same way.
+var next_route_number: int = 1
 
 var _cities_by_id: Dictionary[String, CityState] = {}
 
@@ -55,6 +57,14 @@ func add_ship(
 	next_ship_number += 1
 	trader.ships.append(ship)
 	return ship
+
+
+## Creates a route with the next free id for `trader`.
+func add_route(trader: TraderState, route_name: String, stops: Array[RouteStop]) -> RouteState:
+	var route := RouteState.new("route_%d" % next_route_number, route_name, stops)
+	next_route_number += 1
+	trader.routes.append(route)
+	return route
 
 
 ## Creates a workshop of `type_id` with the next free id in `kontor`.

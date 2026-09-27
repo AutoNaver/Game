@@ -91,7 +91,12 @@ func test_other_versions_are_rejected() -> void:
 	save["save_version"] = SaveGame.SAVE_VERSION + 1
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
-	assert_eq(Array(loader.errors), ["save version 3 is not supported (expected 1 to 2)"])
+	var versions := [
+		SaveGame.SAVE_VERSION + 1, SaveGame.OLDEST_SUPPORTED_VERSION, SaveGame.SAVE_VERSION
+	]
+	assert_eq(
+		Array(loader.errors), ["save version %d is not supported (expected %d to %d)" % versions]
+	)
 
 
 func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
