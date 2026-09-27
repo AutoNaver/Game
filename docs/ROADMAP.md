@@ -178,8 +178,6 @@ From a code review of `main` at c40d4c8 (2026-09-27):
   Determinism still says "A test will enforce this from M1"
 - [ ] `tests/support/test_saves.gd` matches GUT's `test_` prefix, so every run logs 9 "Ignoring…"
   warnings; rename it (for example `save_dir_guard.gd`)
-- [ ] Save loading doesn't check trader order (player first, rivals in data order), which decides
-  who acts first each hour and day (`SaveGame.from_dict`, #18)
 
 ## Later (parked, see GAME_DESIGN "After the MVP")
 
