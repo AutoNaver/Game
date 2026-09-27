@@ -4,11 +4,16 @@ extends RefCounted
 ## snapshot at today's prices; a destination market may change before the ship arrives.
 
 
+## One port that pays more for the whole cargo than selling it here.
 class Option:
 	extends RefCounted
+	## City id of the port.
 	var destination: String
+	## Coins for selling the whole cargo there at today's prices (each good's price walk included).
 	var sale_value: int
+	## Coins for selling the whole cargo where the ship is docked now.
 	var local_value: int
+	## Voyage time from here to the port.
 	var hours: int
 
 	func _init(p_destination: String, p_sale_value: int, p_local_value: int, p_hours: int) -> void:
@@ -17,9 +22,11 @@ class Option:
 		local_value = p_local_value
 		hours = p_hours
 
+	## Coins gained over selling here.
 	func extra_value() -> int:
 		return sale_value - local_value
 
+	## extra_value() per day of sailing, the ranking key.
 	func extra_per_day() -> float:
 		return extra_value() * float(Simulation.HOURS_PER_DAY) / hours
 
