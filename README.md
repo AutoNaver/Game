@@ -1,1 +1,29 @@
-# Game
+# Hanse (working title)
+
+A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4.
+
+Status: **M0 foundation**. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Requirements
+
+- [Godot 4.7.2](https://godotengine.org/download) (standard build). On Windows: `winget install GodotEngine.GodotEngine`
+- Python 3 with gdtoolkit: `pip install "gdtoolkit==4.5.0"`
+
+## Run
+
+Open the folder in Godot and press F5, or run `godot` from the repo root.
+
+## Check
+
+```bash
+scripts/check.sh
+```
+
+This runs formatting, lint, a headless import, a typed parse check of every script, and the GUT
+tests, exactly as CI does. Set `GODOT=/path/to/godot` if Godot is not on your PATH.
+
+## How this repo is developed
+
+Claude Code implements features and Codex reviews every pull request. The rules both follow are in
+[AGENTS.md](AGENTS.md). Start there, then read [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

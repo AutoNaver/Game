@@ -1,0 +1,4 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40 },
+  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140 }
+]
