@@ -1,9 +1,10 @@
 class_name Simulation
 extends RefCounted
 ## Owns the world and advances it. One tick is one in-game hour: ships move every tick, then ships
-## on trade routes act at their stops (RouteSystem, through commands). The daily systems run
-## whenever a tick completes a day, in a fixed order: city production, traders' workshops,
-## consumption, off-map trade, then price history. Actions enter only through execute().
+## on trade routes act at their stops (RouteSystem), then the rival houses' docked ships trade and
+## sail (RivalSystem); both act through commands. The daily systems run whenever a tick completes
+## a day, in a fixed order: city production, traders' workshops, consumption, off-map trade, price
+## history, then the rivals' kontors and expansion. Actions enter only through execute().
 ##
 ## Current prices are not stored: they are derived from stock on demand (see Pricing,
 ## CityEconomy). Only the daily closing prices are kept, for the UI (PriceHistorySystem).
@@ -42,7 +43,18 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	world.traders.append(player)
 	for ship in scenario.ships:
 		world.add_ship(player, ship.type_id, ship.name, scenario.start_city)
+	for rival in p_data.rivals:
+		add_rival(world, rival)
 	return Simulation.new(p_data, world)
+
+
+## Adds a rival house to the world as it starts: its coins and ships, docked in its start city.
+static func add_rival(world: WorldState, rival: RivalDef) -> TraderState:
+	var trader := TraderState.new(rival.id, rival.name, rival.coins)
+	world.traders.append(trader)
+	for ship in rival.ships:
+		world.add_ship(trader, ship.type_id, ship.name, rival.start_city)
+	return trader
 
 
 ## Whole days elapsed since the start.
@@ -63,12 +75,14 @@ func tick() -> void:
 	world.hour += 1
 	MovementSystem.run_hour(world)
 	RouteSystem.run_hour(self)
+	RivalSystem.run_hour(self)
 	if world.hour % HOURS_PER_DAY == 0:
 		ProductionSystem.run_day(data, world)
 		WorkshopSystem.run_day(data, world)
 		ConsumptionSystem.run_day(data, world)
 		OffMapTradeSystem.run_day(data, world)
 		PriceHistorySystem.run_day(data, world)
+		RivalSystem.run_day(self)
 
 
 func advance_days(days: int) -> void:

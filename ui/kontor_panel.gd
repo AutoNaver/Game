@@ -1,7 +1,7 @@
 class_name KontorPanel
 extends VBoxContainer
 ## The player's kontor in the selected city: buy one, see its storage, move goods between it and a
-## docked ship, and build and watch workshops. Uses the market panel's trade quantity.
+## docked ship, and build, watch and close workshops. Uses the market panel's trade quantity.
 
 var _session: GameSession
 var _buy_button: Button = Button.new()
@@ -12,9 +12,9 @@ var _transfer_rows: Dictionary[String, Array] = {}
 var _workforce: Label = Label.new()
 var _workshop_list: VBoxContainer = VBoxContainer.new()
 var _workshop_key: String = ""
-## Labels for the shown kontor's workshops, in build order. Kept as references because queued
-## deletions of old labels stay in the tree until the frame ends.
-var _workshop_labels: Array[Label] = []
+## Rows (status label and Close button) for the shown kontor's workshops, in build order. Kept as
+## references because queued deletions of old rows stay in the tree until the frame ends.
+var _workshop_rows: Array[HBoxContainer] = []
 var _build_buttons: Dictionary[String, Button] = {}
 
 
@@ -114,20 +114,29 @@ func _refresh_workshops(kontor: KontorState) -> void:
 	var key := "%s:%d" % [kontor.city_id, kontor.workshops.size()]
 	if key != _workshop_key:
 		_workshop_key = key
-		for label in _workshop_labels:
-			_workshop_list.remove_child(label)
-			label.queue_free()
-		_workshop_labels.clear()
+		for row in _workshop_rows:
+			_workshop_list.remove_child(row)
+			row.queue_free()
+		_workshop_rows.clear()
 		for workshop in kontor.workshops:
+			var row := HBoxContainer.new()
 			var label := Label.new()
 			label.name = "Workshop_%s" % workshop.id
-			_workshop_list.add_child(label)
-			_workshop_labels.append(label)
+			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(label)
+			var close := Button.new()
+			close.name = "Close_%s" % workshop.id
+			close.text = "Close"
+			close.tooltip_text = "Close the workshop: its workers leave and its wages stop. No refund."
+			close.pressed.connect(_close.bind(workshop.id))
+			row.add_child(close)
+			_workshop_list.add_child(row)
+			_workshop_rows.append(row)
 	for i in kontor.workshops.size():
 		var workshop := kontor.workshops[i]
 		var workshop_type := _session.sim.data.get_workshop(workshop.type_id)
 		var status := status_text(_session.sim.data, workshop)
-		_workshop_labels[i].text = "%s: %s" % [workshop_type.name, status]
+		(_workshop_rows[i].get_child(0) as Label).text = "%s: %s" % [workshop_type.name, status]
 
 
 ## How the workshop's last day went, in words. Shared with the notification log.
@@ -170,6 +179,12 @@ func _build(workshop_type_id: String) -> void:
 		WorldState.PLAYER_ID, _session.selected_city, workshop_type_id
 	)
 	_session.execute(command)
+
+
+func _close(workshop_id: String) -> void:
+	_session.execute(
+		CloseWorkshopCommand.new(WorldState.PLAYER_ID, _session.selected_city, workshop_id)
+	)
 
 
 ## Moves up to the trade quantity, limited by the source and the destination's free space.

@@ -18,6 +18,7 @@ const SEA_LANES_FILE: String = "sea_lanes.json"
 const SHIPS_FILE: String = "ships.json"
 const BUILDINGS_FILE: String = "buildings.json"
 const SCENARIO_FILE: String = "scenario.json"
+const RIVALS_FILE: String = "rivals.json"
 
 const ECONOMY_FIELDS: PackedStringArray = [
 	"days_of_cover",
@@ -47,6 +48,18 @@ const WORKSHOP_FIELDS: PackedStringArray = [
 	"id", "name", "output", "output_per_day", "inputs", "workers", "build_cost", "wages_per_day"
 ]
 const STARTING_SHIP_FIELDS: PackedStringArray = ["type", "name"]
+const RIVALS_FIELDS: PackedStringArray = ["ai", "houses"]
+const RIVAL_AI_FIELDS: PackedStringArray = [
+	"top_choices",
+	"cash_reserve",
+	"max_ships",
+	"max_kontors",
+	"expansion_days",
+	"workshop_input_days",
+	"input_price_limit",
+	"keep_free_workers",
+]
+const RIVAL_FIELDS: PackedStringArray = ["id", "name", "color", "start_city", "coins", "ships"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
@@ -124,6 +137,10 @@ func load_dir(dir: String) -> GameData:
 	var scenario: Variant = _read_json(dir.path_join(SCENARIO_FILE), TYPE_DICTIONARY)
 	if scenario != null:
 		data.scenario = _parse_scenario(scenario as Dictionary, SCENARIO_FILE, data)
+
+	var rivals: Variant = _read_json(dir.path_join(RIVALS_FILE), TYPE_DICTIONARY)
+	if rivals != null:
+		_parse_rivals(rivals as Dictionary, RIVALS_FILE, data)
 
 	if not errors.is_empty():
 		return null
@@ -473,6 +490,84 @@ func _parse_starting_ship(raw: Variant, ctx: String, data: GameData) -> Scenario
 	return ScenarioDef.StartingShip.new(type_id, ship_name)
 
 
+## Cities and ships must already be loaded. Sets data.rival_ai and adds the rival houses.
+func _parse_rivals(entry: Dictionary, ctx: String, data: GameData) -> void:
+	_check_fields(entry, RIVALS_FIELDS, ctx)
+	if entry.has("ai"):
+		if entry["ai"] is Dictionary:
+			data.rival_ai = _parse_rival_ai(entry["ai"] as Dictionary, "%s ai" % ctx)
+		else:
+			_error(ctx, "'ai' must be an object")
+	var houses := _get_array(entry, "houses", ctx)
+	for i in houses.size():
+		var house_ctx := "%s houses[%d]" % [ctx, i]
+		var rival := _parse_rival(houses[i], house_ctx, data)
+		if rival == null:
+			continue
+		if data.has_rival(rival.id):
+			_error(house_ctx, "duplicate id '%s'" % rival.id)
+		else:
+			data.add_rival(rival)
+
+
+func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
+	var error_count := errors.size()
+	_check_fields(entry, RIVAL_AI_FIELDS, ctx)
+	var top_choices := _get_positive_int(entry, "top_choices", ctx)
+	var cash_reserve := _get_non_negative_int(entry, "cash_reserve", ctx)
+	var max_ships := _get_positive_int(entry, "max_ships", ctx)
+	var max_kontors := _get_non_negative_int(entry, "max_kontors", ctx)
+	var expansion_days := _get_positive_int(entry, "expansion_days", ctx)
+	var input_days := _get_positive_int(entry, "workshop_input_days", ctx)
+	var price_limit := _get_float_between(entry, "input_price_limit", 0.0, 100.0, ctx)
+	var keep_free := _get_float_between(entry, "keep_free_workers", 0.0, 1.0, ctx, true)
+	if errors.size() > error_count:
+		return null
+	return RivalAiDef.new(
+		top_choices,
+		cash_reserve,
+		max_ships,
+		max_kontors,
+		expansion_days,
+		input_days,
+		price_limit,
+		keep_free
+	)
+
+
+func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var error_count := errors.size()
+	_check_fields(entry, RIVAL_FIELDS, ctx)
+	var id := _get_id(entry, ctx)
+	if id == WorldState.PLAYER_ID:
+		_error(ctx, "'id' '%s' is reserved for the player" % id)
+	var rival_name := _get_string(entry, "name", ctx)
+	var color_text := _get_string(entry, "color", ctx)
+	if not color_text.is_empty() and not Color.html_is_valid(color_text):
+		_error(ctx, "'color' must be an HTML colour such as \"#3a6ea5\" (got '%s')" % color_text)
+	var start_city := _get_string(entry, "start_city", ctx)
+	if not start_city.is_empty() and not data.has_city(start_city):
+		_error(ctx, "'start_city' is not a known city: '%s'" % start_city)
+	var coins := _get_positive_int(entry, "coins", ctx)
+	var ships: Array[ScenarioDef.StartingShip] = []
+	if entry.has("ships"):
+		if not entry["ships"] is Array or (entry["ships"] as Array).is_empty():
+			_error(ctx, "'ships' must be a non-empty array")
+		else:
+			var raw_ships: Array = entry["ships"]
+			for i in raw_ships.size():
+				var ship := _parse_starting_ship(raw_ships[i], "%s ships[%d]" % [ctx, i], data)
+				if ship != null:
+					ships.append(ship)
+	if errors.size() > error_count:
+		return null
+	return RivalDef.new(id, rival_name, Color.html(color_text), start_city, coins, ships)
+
+
 ## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would
 ## silently be rounded. Returns false after reporting a violation.
 func _check_rate_resolution(rate: float, field: String, ctx: String) -> bool:
@@ -526,6 +621,19 @@ func _get_positive_int(entry: Dictionary, field: String, ctx: String) -> int:
 		_error(ctx, "'%s' must be at most %d" % [field, MAX_INT_VALUE])
 		return 0
 	return int(number)
+
+
+## Like _get_positive_int, but 0 is allowed too.
+func _get_non_negative_int(entry: Dictionary, field: String, ctx: String) -> int:
+	if not entry.has(field):
+		return 0
+	var value: Variant = entry[field]
+	if (value is int or value is float) and float(value) == 0.0:
+		return 0
+	if (value is int or value is float) and float(value) > 0.0:
+		return _get_positive_int(entry, field, ctx)
+	_error(ctx, "'%s' must be a whole number of at least 0" % field)
+	return 0
 
 
 ## Accepts numbers strictly between low and high, or equal to low if low_inclusive.

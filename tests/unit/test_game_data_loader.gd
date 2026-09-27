@@ -164,6 +164,7 @@ func test_missing_directory_reports_each_file() -> void:
 		"ships.json",
 		"buildings.json",
 		"scenario.json",
+		"rivals.json",
 	]
 	assert_eq(files, expected_files)
 
@@ -235,8 +236,45 @@ func test_wrong_top_level_type_is_reported() -> void:
 			"ships.json: top level must be an array",
 			"buildings.json: top level must be an object",
 			"scenario.json: top level must be an object",
+			"rivals.json: top level must be an object",
 		]
 	)
+
+
+func test_valid_fixture_has_rivals() -> void:
+	var data := GameDataLoader.new().load_dir(VALID_DIR)
+	assert_eq(data.rivals.size(), 1)
+	var castorp := data.get_rival("castorp")
+	assert_eq([castorp.name, castorp.start_city, castorp.coins], ["Castorp", "lubeck", 4000])
+	assert_eq(castorp.color, Color("#5fb37a"))
+	assert_eq(castorp.ships.size(), 1)
+	assert_eq([castorp.ships[0].type_id, castorp.ships[0].name], ["cog", "Marienkrone"])
+	assert_null(data.get_rival(WorldState.PLAYER_ID))
+	var ai := data.rival_ai
+	assert_eq([ai.top_choices, ai.cash_reserve, ai.max_ships, ai.max_kontors], [3, 3000, 4, 2])
+	assert_eq([ai.expansion_days, ai.workshop_input_days], [10, 4])
+	assert_almost_eq(ai.input_price_limit, 1.1, 0.0001)
+	assert_almost_eq(ai.keep_free_workers, 0.5, 0.0001)
+
+
+func test_rivals_are_validated() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_rivals"))
+	var expected: Array[String] = [
+		"rivals.json ai: unknown field 'mood'",
+		"rivals.json ai: 'top_choices' must be a positive integer",
+		"rivals.json ai: 'cash_reserve' must be a whole number of at least 0",
+		"rivals.json ai: 'keep_free_workers' must be a number at least 0.0 and less than 1.0",
+		"rivals.json houses[0]: 'id' 'player' is reserved for the player",
+		"rivals.json houses[1]: 'color' must be an HTML colour such as \"#3a6ea5\" (got 'greenish')",
+		"rivals.json houses[1]: 'start_city' is not a known city: 'atlantis'",
+		"rivals.json houses[1]: 'coins' must be a positive integer",
+		"rivals.json houses[1]: 'ships' must be a non-empty array",
+		"rivals.json houses[3]: duplicate id 'castorp'",
+		"rivals.json houses[4] ships[0]: 'type' is not a known ship type: 'galleon'",
+		"rivals.json houses[5]: entry must be an object",
+	]
+	assert_eq(Array(loader.errors), expected)
 
 
 func test_errors_reset_between_loads() -> void:

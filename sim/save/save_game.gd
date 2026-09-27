@@ -14,7 +14,9 @@ extends RefCounted
 ## Version 2 added cities' price_history; version 1 saves load with an empty history.
 ## Version 3 added trade routes (traders' routes, ships' route fields, next_route_number); older
 ## saves load without routes.
-const SAVE_VERSION: int = 3
+## Version 4 added the rival houses (ADR 0008). Their shape is an ordinary trader's; older saves
+## get every rival added as it starts a new game.
+const SAVE_VERSION: int = 4
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -149,6 +151,13 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 			world.traders.append(trader)
 	if errors.is_empty() and world.player() == null:
 		errors.append("save has no player")
+	for trader in world.traders:
+		if trader.id != WorldState.PLAYER_ID and not data.has_rival(trader.id):
+			errors.append("unknown trader '%s' (neither the player nor a rival house)" % trader.id)
+	if version < 4 and errors.is_empty():
+		for rival in data.rivals:
+			if world.get_trader(rival.id) == null:
+				Simulation.add_rival(world, rival)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
 		errors.append_array(EconomyInvariants.check(data, world))

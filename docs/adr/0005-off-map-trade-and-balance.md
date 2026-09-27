@@ -1,6 +1,6 @@
 # ADR 0005: Off-map trade and the first balance targets
 
-- Status: accepted
+- Status: accepted; `export_rate` and the balance figures revised by ADR 0008 (rivals)
 - Date: 2026-09-27
 - Code: `sim/systems/off_map_trade_system.gd`, `tools/balance.gd`; tuning in `data/economy.json`
 

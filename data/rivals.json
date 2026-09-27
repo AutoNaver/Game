@@ -1,0 +1,38 @@
+{
+  "ai": {
+    "top_choices": 3,
+    "cash_reserve": 3000,
+    "max_ships": 3,
+    "max_kontors": 2,
+    "expansion_days": 20,
+    "workshop_input_days": 4,
+    "input_price_limit": 1.1,
+    "keep_free_workers": 0.5
+  },
+  "houses": [
+    {
+      "id": "veckinchusen",
+      "name": "Veckinchusen",
+      "color": "#5b8fd6",
+      "start_city": "danzig",
+      "coins": 5000,
+      "ships": [{ "type": "cog", "name": "Sankt Jürgen" }]
+    },
+    {
+      "id": "castorp",
+      "name": "Castorp",
+      "color": "#5fb37a",
+      "start_city": "stockholm",
+      "coins": 5000,
+      "ships": [{ "type": "cog", "name": "Marienkrone" }]
+    },
+    {
+      "id": "wulflam",
+      "name": "Wulflam",
+      "color": "#b07cc6",
+      "start_city": "visby",
+      "coins": 5000,
+      "ships": [{ "type": "cog", "name": "Seepferd" }]
+    }
+  ]
+}

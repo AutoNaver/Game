@@ -10,6 +10,8 @@ signal message_posted(text: String)
 signal notified(entry: String)
 ## The HUD asks for the save menu, for saving (`saving`) or loading.
 signal save_menu_requested(saving: bool)
+## The HUD's "Houses" button: show or hide the trading houses ranking.
+signal houses_toggled
 ## A panel asks for the route editor, on route `route_id` or a new route ("").
 signal route_editor_requested(route_id: String)
 
@@ -110,8 +112,9 @@ func set_speed(value: int) -> void:
 	changed.emit()
 
 
-## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive
-## and workshops that stop working, each dated when it happened. If pause_on_arrival is set and
+## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive,
+## workshops that stop working and the rival houses' new ships and workshops, each dated when it
+## happened. If pause_on_arrival is set and
 ## time is running, stops right after the tick in which a ship arrives, even mid-batch. Ships on
 ## trade routes leave again in the hour they arrive, so they neither notify nor pause; their
 ## problems are reported instead (_notify_route_problems).
@@ -121,6 +124,7 @@ func advance(hours: int) -> void:
 		if not ship.is_docked():
 			at_sea.append(ship)
 	var statuses := _workshop_statuses()
+	var rival_assets := _rival_assets()
 	var day_before := sim.day()
 	for i in hours:
 		var notes := _route_notes()
@@ -135,6 +139,8 @@ func advance(hours: int) -> void:
 		if sim.world.hour % Simulation.HOURS_PER_DAY == 0:
 			_notify_stopped_workshops(statuses)
 			statuses = _workshop_statuses()
+			_notify_rival_news(rival_assets)
+			rival_assets = _rival_assets()
 		if arrived and pause_on_arrival and speed != 0:
 			speed = 0
 			_pending_hours = 0.0
@@ -246,6 +252,45 @@ func _notify_stopped_workshops(before: Dictionary[String, String]) -> void:
 			var workshop_type := sim.data.get_workshop(workshop.type_id)
 			var status := KontorPanel.status_text(sim.data, workshop)
 			notify("%s in %s: %s" % [workshop_type.name, _city_name(kontor.city_id), status])
+
+
+## The rival houses' ships and workshops as keys ("ship/<id>/<type>",
+## "workshop/<id>/<city>/<type>"), to spot what they bought or closed across a step.
+func _rival_assets() -> Dictionary[String, PackedStringArray]:
+	var assets: Dictionary[String, PackedStringArray] = {}
+	for trader in sim.world.traders:
+		if trader.id == WorldState.PLAYER_ID:
+			continue
+		var keys := PackedStringArray()
+		for ship in trader.ships:
+			keys.append("ship/%s/%s" % [ship.id, ship.type_id])
+		for kontor in trader.kontors_in_order(sim.data.cities):
+			for workshop in kontor.workshops:
+				keys.append("workshop/%s/%s/%s" % [workshop.id, kontor.city_id, workshop.type_id])
+		assets[trader.id] = keys
+	return assets
+
+
+## Notifies when a rival house bought a ship or opened or closed a workshop.
+func _notify_rival_news(before: Dictionary[String, PackedStringArray]) -> void:
+	var now := _rival_assets()
+	for trader in sim.world.traders:
+		if not before.has(trader.id) or not now.has(trader.id):
+			continue
+		for key in now[trader.id]:
+			if not before[trader.id].has(key):
+				notify("%s %s" % [trader.name, _describe_asset(key, true)])
+		for key in before[trader.id]:
+			if not now[trader.id].has(key) and key.begins_with("workshop/"):
+				notify("%s %s" % [trader.name, _describe_asset(key, false)])
+
+
+func _describe_asset(key: String, added: bool) -> String:
+	var parts := key.split("/")
+	if parts[0] == "ship":
+		return "bought a %s" % sim.data.get_ship(parts[2]).name
+	var workshop := sim.data.get_workshop(parts[3]).name
+	return "%s a %s in %s" % ["opened" if added else "closed", workshop, _city_name(parts[2])]
 
 
 func _city_name(city_id: String) -> String:

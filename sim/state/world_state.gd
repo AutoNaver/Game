@@ -14,7 +14,7 @@ var cities: Array[CityState] = []
 ## minus everything consumed. Trading only moves goods, so the actual total must always match
 ## (checked by EconomyInvariants).
 var goods_ledger: Dictionary[String, int] = {}
-## The player first; AI traders later.
+## The player first, then the rival houses in data order.
 var traders: Array[TraderState] = []
 ## Ship ids are "ship_<n>", numbered in creation order so they are stable and deterministic.
 var next_ship_number: int = 1

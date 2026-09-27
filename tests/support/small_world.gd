@@ -11,6 +11,7 @@ extends RefCounted
 ## The player starts in port with 1000 coins and one boat, ship_1 "Test".
 ## Kontors cost 300 and hold 20 units. Workshop type "vintner": 4 grain -> 2 wine a day, 30 workers
 ## (a city's workforce is 10% of 1000 = 100), costs 200 to build, 10 a day in wages.
+## with_rival() adds rival house "hanse" (1000 coins, one boat "Rival") and the rival AI rules.
 
 const DAYS_OF_COVER: int = 10
 const STOCK_CAP_FACTOR: float = 2.0
@@ -18,6 +19,14 @@ const START_COINS: int = 1000
 const SHIP_ID: String = "ship_1"
 const KONTOR_PRICE: int = 300
 const KONTOR_CAPACITY: int = 20
+const RIVAL_ID: String = "hanse"
+const RIVAL_COINS: int = 1000
+## Rival AI rules for tests: choose among the best 2 loads, keep 100 coins back, at most 2 ships
+## and 1 kontor, expand every 5 days, stock 3 days of inputs, pay up to 1.5x base for them, and
+## keep no share of the workforce free for others.
+const RIVAL_EXPANSION_DAYS: int = 5
+const RIVAL_RESERVE: int = 100
+const RIVAL_INPUT_DAYS: int = 3
 
 
 static func data() -> GameData:
@@ -44,6 +53,25 @@ static func data() -> GameData:
 
 static func simulation(seed_value: int = 1) -> Simulation:
 	return Simulation.new_game(data(), seed_value)
+
+
+## Adds a rival house to `game_data`, starting in `start_city`, and the AI rules if missing.
+static func with_rival(
+	game_data: GameData, start_city: String = "port", id: String = RIVAL_ID
+) -> GameData:
+	if game_data.rival_ai == null:
+		game_data.rival_ai = RivalAiDef.new(
+			2, RIVAL_RESERVE, 2, 1, RIVAL_EXPANSION_DAYS, RIVAL_INPUT_DAYS, 1.5, 0.0
+		)
+	var ships: Array[ScenarioDef.StartingShip] = [ScenarioDef.StartingShip.new("boat", "Rival")]
+	game_data.add_rival(
+		RivalDef.new(id, id.capitalize(), Color.STEEL_BLUE, start_city, RIVAL_COINS, ships)
+	)
+	return game_data
+
+
+static func rival_simulation(seed_value: int = 1, start_city: String = "port") -> Simulation:
+	return Simulation.new_game(with_rival(data(), start_city), seed_value)
 
 
 ## Test setup: sets a city's stock and books the difference in the goods ledger, as if it had
