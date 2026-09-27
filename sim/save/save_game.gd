@@ -306,7 +306,9 @@ func _read_cities(data: GameData, world: WorldState, cities: Array, version: int
 			city.satisfaction = _int(raw, "satisfaction", ctx)
 			if city.satisfaction < 0 or city.satisfaction > CityEconomy.PARTS_PER_UNIT:
 				var limit := CityEconomy.PARTS_PER_UNIT
-				errors.append("%s: satisfaction %d outside 0 to %d" % [ctx, city.satisfaction, limit])
+				errors.append(
+					"%s: satisfaction %d outside 0 to %d" % [ctx, city.satisfaction, limit]
+				)
 		else:
 			city.satisfaction = CityEconomy.to_parts(data.population.neutral_satisfaction)
 		city.stock = _goods(data, _dict(raw, "stock", ctx), "%s stock" % ctx, true)

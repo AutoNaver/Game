@@ -83,6 +83,7 @@ func test_population_moves_a_share_of_the_gap_each_day() -> void:
 	_population(sim).satisfaction_weight = 0.0
 	var town := sim.world.get_city("town")
 	town.satisfaction = 700_000
+	assert_eq(PopulationSystem.daily_change(sim.data, town), 20)
 	PopulationSystem.run_day(sim.data, sim.world)
 	assert_eq(town.population, 1020, "a tenth of the 200 gap")
 	PopulationSystem.run_day(sim.data, sim.world)

@@ -12,21 +12,15 @@ extends RefCounted
 ## People with jobs in traders' workshops stay: a city never shrinks below the population whose
 ## workforce covers the workers already employed, so no workshop loses its workers.
 
-## Goods whose supply is below this share of their target are listed as scarce in the city panel.
-const SCARCE_SUPPLY: float = 0.5
-
 
 static func run_day(data: GameData, world: WorldState) -> void:
 	var population := data.population
 	var weight_steps := CityEconomy.rate_steps(population.satisfaction_weight)
-	var growth_steps := CityEconomy.rate_steps(population.growth_rate)
 	for city in world.cities:
 		var score := supply_score(data, city)
 		@warning_ignore("integer_division")
 		city.satisfaction += (score - city.satisfaction) * weight_steps / CityEconomy.RATE_STEPS
-		var gap := sustainable_population(data, city) - city.population
-		@warning_ignore("integer_division")
-		var change := gap * growth_steps / CityEconomy.RATE_STEPS
+		var change := daily_change(data, city)
 		city.population = maxi(city.population + change, worker_floor(data, world, city))
 
 
@@ -46,6 +40,14 @@ static func supply_score(data: GameData, city: CityState) -> int:
 		return CityEconomy.PARTS_PER_UNIT
 	@warning_ignore("integer_division")
 	return weighted / total_weight
+
+
+## People moving in (positive) or out (negative) per day at the current satisfaction, before the
+## worker floor: growth_rate of the gap to the sustainable population, rounded towards zero.
+static func daily_change(data: GameData, city: CityState) -> int:
+	var gap := sustainable_population(data, city) - city.population
+	@warning_ignore("integer_division")
+	return gap * CityEconomy.rate_steps(data.population.growth_rate) / CityEconomy.RATE_STEPS
 
 
 ## Stock of `good` against its target, capped at the target, in millionths.

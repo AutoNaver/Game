@@ -49,8 +49,7 @@ until your trading house shapes the prices of the whole sea.
 - Trading moves the price **per unit**, so large trades walk up (or down) the curve.
 - City workshops **idle** once stock reaches a cap (target × `stock_cap_factor`), so gluts are
   bounded without destroying goods.
-- When stock runs out, the unmet demand is recorded as a **shortage**. It will feed city mood and
-  growth later.
+- When stock runs out, the unmet demand is recorded as a **shortage**.
 - Formulas: [ADR 0003](adr/0003-market-pricing-curve.md). Tuning: `data/economy.json`,
   `data/goods.json` (`consumption_per_1000`), `data/cities.json` (`production`).
 
@@ -63,6 +62,22 @@ bring goods to cities that are short and take away surpluses, in proportion to h
 from its target. A city that makes nothing settles near a third of its target stock (about 1.4× base
 price), and producers settle below their cap. The gap between them is the player's opportunity.
 Details and balance targets: [ADR 0005](adr/0005-off-map-trade-and-balance.md).
+
+## City needs and growth (M9)
+
+Every day each city measures how well its market covers the townsfolk's needs: each good's stock
+against its normal (target) stock, capped at full, weighted by what people spend on it, so an
+empty grain market hurts more than a lack of wine. **Satisfaction** follows that score over about
+ten days. A city at 90% satisfaction keeps its home population (`data/cities.json`); above it the
+city can sustain more people, below it fewer, between half and twice its home size. The
+population drifts slowly towards that size, and more people mean more demand (higher target
+stock, so firmer prices) and a larger workforce for workshops. People with jobs in traders'
+workshops never leave.
+
+Without the player the cities settle near their home size, Stockholm a little smaller and Visby a
+little larger. A player who keeps a city supplied makes it grow by up to about 30%, and the city
+panel shows population, satisfaction and the scarcest goods, with tooltips explaining why.
+Details: [ADR 0010](adr/0010-city-satisfaction-and-growth.md), tuning in `data/population.json`.
 
 ## Rival trading houses (M8)
 
@@ -119,7 +134,8 @@ politics.
 ## Open questions
 
 - Do sell prices also react to the *player's* recent sales (market memory), or only to stock?
-- How visible should city needs be? A satisfaction meter, or just prices?
+- How visible should city needs be? Decided in M9: satisfaction and the scarcest goods under the
+  city title, with tooltips ([ADR 0010](adr/0010-city-satisfaction-and-growth.md)).
 - Map presentation: stylized painted map or clean schematic?
 - Market knowledge: decided in [ADR 0009](adr/0009-progression.md) (live prices only with
   presence, remembered prices elsewhere), built in M12.
