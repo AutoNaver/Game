@@ -46,8 +46,9 @@ func test_buying_then_selling_back_loses_the_spread() -> void:
 
 func test_trades_conserve_goods() -> void:
 	var total_before := _port.stock["grain"] + _ship.cargo_of("grain")
-	_sim.execute(BuyCommand.new(PLAYER, SHIP, "grain", 7))
-	_sim.execute(SellCommand.new(PLAYER, SHIP, "grain", 4))
+	assert_eq(_sim.execute(BuyCommand.new(PLAYER, SHIP, "grain", 7)), "")
+	assert_eq(_sim.execute(SellCommand.new(PLAYER, SHIP, "grain", 4)), "")
+	assert_eq(_ship.cargo_of("grain"), 3, "both trades really happened")
 	assert_eq(_port.stock["grain"] + _ship.cargo_of("grain"), total_before)
 
 
