@@ -97,7 +97,8 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 ## M10: Events
 
-- [ ] Data-driven, seeded events with a clear duration: storms (ships delayed), harvest failures (production cut), war (off-map imports cut), fires (kontor stock lost)
+- [ ] ADR and owner decision on event losses: fires destroying kontor stock would be a new goods sink, so either amend AGENTS.md rule 7 to allow ledger-booked event losses, or fires only close a kontor for some days
+- [ ] Data-driven, seeded events with a clear duration: storms (ships delayed), harvest failures (production cut), war (off-map imports cut), fires (per the ADR above)
 - [ ] Events announced through notifications, with their effect visible in the price tooltip
 - [ ] Events saved; soak runs with events enabled
 
