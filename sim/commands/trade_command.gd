@@ -40,7 +40,7 @@ func _validate_hold(sim: Simulation) -> String:
 		return ""
 	var trader := sim.world.get_trader(trader_id)
 	if trader == null or trader.get_kontor(city_id) == null:
-		return "you have no kontor in %s" % Command.city_name(sim, city_id)
+		return "You have no kontor in %s" % Command.city_name(sim, city_id)
 	return ""
 
 

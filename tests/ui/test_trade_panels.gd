@@ -24,7 +24,7 @@ func test_buy_button_loads_the_chosen_quantity() -> void:
 	_press("Buy_beer")
 	assert_eq(_ship().cargo, {"beer": 10})
 	assert_lt(_session.player().coins, coins)
-	assert_string_contains(_text("TradeNote"), "cargo 10/50")
+	assert_string_contains(_text("TradeNote"), "Trading with Adler (10/50)")
 
 
 func test_buying_stops_at_free_cargo_space() -> void:

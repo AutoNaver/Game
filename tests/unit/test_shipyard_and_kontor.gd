@@ -78,7 +78,7 @@ func test_buying_a_kontor() -> void:
 func test_trading_with_a_kontor() -> void:
 	assert_eq(
 		_sim.execute(BuyCommand.for_kontor(PLAYER, "port", "grain", 5)),
-		"you have no kontor in Port"
+		"You have no kontor in Port"
 	)
 	_ok(BuyKontorCommand.new(PLAYER, "port"))
 	_ok(BuyCommand.for_kontor(PLAYER, "port", "grain", 5))

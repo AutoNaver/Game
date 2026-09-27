@@ -63,8 +63,9 @@ after the MVP.
 
 - Start: one small ship, some coins, docked in Lübeck.
 - Buy more and larger ships.
-- Rent a **kontor** (warehouse) in a city to store goods between voyages.
-- Build **workshops** that turn kontor inputs into outputs using city workers, for a daily upkeep.
+- Buy a **kontor** (warehouse) in a city to store goods between voyages and trade from it.
+- Build **workshops** next to a kontor that turn its inputs into outputs using city workers, for
+  daily wages. Unpaid workers stay home. Details: [ADR 0004](adr/0004-player-production.md).
 
 ## Out of scope for the MVP (parked, not forgotten)
 

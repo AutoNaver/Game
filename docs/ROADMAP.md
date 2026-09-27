@@ -43,15 +43,16 @@ Work top to bottom unless the owner reprioritizes.
 - [x] Real Baltic map: Natural Earth coastline rendered by `tools/map/render_map.py`; cities at real coordinates; map units are km; zoom and pan
 - [x] Sea lanes: ships follow the shortest waypoint route around the coasts (`data/sea_lanes.json`, `SeaChart`); a test checks every lane against the rendered coastline
 - [x] UI theme pass: dark slate and gold theme built in `UiStyle.make_theme()`, label variations instead of ad-hoc overrides, scrolling side panel
-- [ ] **Owner play-test**, with feedback turned into roadmap items
+- [x] **Owner play-test**, with feedback turned into roadmap items (2026-09-27: "works fine")
 
-## M4: Player production
+## M4: Player production (ADR 0004)
 
-- [ ] Kontor: rent a warehouse per city, and move goods between ship and kontor
-- [ ] Data: workshop types (inputs, outputs, workers, cost, upkeep)
-- [ ] Build command, daily workshop production from kontor inputs to outputs
-- [ ] Workers drawn from the city population, with effects on city production
-- [ ] UI for kontor and workshops
+- [x] Shipyard: buy ships in any city, sell empty docked ships for 60% of the price
+- [x] Kontor: buy a warehouse per city (one-off price, no rent), trade with it directly, and move goods between ship and kontor
+- [x] Data: workshop types (inputs, output, workers, build cost, daily wages) in `data/buildings.json`
+- [x] Build command, and daily workshop production from kontor inputs to outputs; unpaid wages idle the workshop
+- [x] Workers drawn from the city's workforce (10% of the population, shared by all traders); effects on city production are deferred to the balance pass
+- [x] UI for kontor, workshops and shipyard
 
 ## M5: Save/load and MVP polish
 
@@ -59,6 +60,10 @@ Work top to bottom unless the owner reprioritizes.
 - [ ] First-time hints (tutorial-lite)
 - [ ] Windows export preset, with the build as a CI artifact on `main`
 - [ ] Balance pass driven by soak runs and play-tests
+
+## Backlog (deferred review findings and small follow-ups)
+
+Deferred P2 review findings go here, with the PR they came from.
 
 ## Later (parked, see GAME_DESIGN "Out of scope")
 

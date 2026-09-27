@@ -43,7 +43,7 @@ straight lanes. `SeaChart` finds the shortest route (Dijkstra, deterministic tie
 ## Time
 
 `Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24 ticks it runs the daily systems in a fixed order:
-production, then consumption. Prices are not stored. `Pricing` derives them from current stock
+city production, then the traders' workshops (`WorkshopSystem`), then consumption. Prices are not stored. `Pricing` derives them from current stock
 whenever they are needed, so they can never go stale. The UI's speed setting decides how many ticks
 run per real second, so pausing is simply running zero ticks.
 
