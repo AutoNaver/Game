@@ -20,6 +20,8 @@ func _ready() -> void:
 
 	session.name = "Session"
 	add_child(session)
+	# Start first: panels build their rows from the running game in setup().
+	session.start(data, NEW_GAME_SEED)
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(layout)
@@ -42,7 +44,6 @@ func _ready() -> void:
 	hud.setup(session)
 	map.setup(session)
 	side.setup(session)
-	session.start(data, NEW_GAME_SEED)
 
 
 func _show_fatal(text: String) -> void:
