@@ -17,7 +17,7 @@ var _base: float = 0.5
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(72, 18)
+	custom_minimum_size = Vector2(48, 18)
 	mouse_filter = Control.MOUSE_FILTER_PASS
 
 

@@ -35,19 +35,32 @@ func test_the_plan_matches_a_real_voyage() -> void:
 	assert_eq(sim.world.player().coins - coins, option.profit())
 
 
-func test_the_load_stops_where_the_next_unit_would_lose_money() -> void:
+func test_the_load_is_the_best_rounded_profit() -> void:
 	var sim := _glut_simulation()
 	var option := _plan(sim, 1000, 100000)[0]
 	assert_lt(option.quantity, 40, "not the whole glut")
-	var economy := sim.data.economy
-	var grain := sim.data.get_good("grain")
-	var port := sim.world.get_city("port")
-	var town := sim.world.get_city("town")
-	var one_more := (
-		CityEconomy.sell_revenue(economy, town, grain, option.quantity + 1)
-		- CityEconomy.buy_cost(economy, port, grain, option.quantity + 1)
+	var best := _best_by_brute_force(sim, "port", "town", "grain", 40)
+	assert_eq([option.quantity, option.profit()], best)
+
+
+func test_small_loads_that_only_pay_after_rounding_are_found() -> void:
+	# Shipped data near break-even: the unrounded optimum (4 grain) rounds to zero profit, but
+	# 3 grain still earns a coin once cost is rounded up and revenue down.
+	var data := GameDataLoader.new().load_dir(GameDataLoader.DEFAULT_DIR)
+	var sim := Simulation.new_game(data, 1)
+	SmallWorld.set_stock(sim, "lubeck", "grain", 138)
+	SmallWorld.set_stock(sim, "danzig", "grain", 4)
+	var cog := data.get_ship("cog")
+	var options := TradePlanner.plan(data, sim.world, cog, "lubeck", 50, 100000)
+	var to_danzig: Array = options.filter(
+		func(option: TradePlanner.Option) -> bool: return option.destination == "danzig"
 	)
-	assert_lte(one_more, option.profit())
+	assert_eq(to_danzig.size(), 1)
+	var option: TradePlanner.Option = to_danzig[0]
+	assert_eq(option.good_id, "grain")
+	var best := _best_by_brute_force(sim, "lubeck", "danzig", "grain", 50)
+	assert_eq([option.quantity, option.profit()], best)
+	assert_gt(option.profit(), 0)
 
 
 func test_the_load_is_limited_by_coins_and_space() -> void:
@@ -73,3 +86,22 @@ func test_profit_per_day_scales_by_sailing_time() -> void:
 	var option := TradePlanner.Option.new("town", "grain", 5, 100, 160, 12)
 	assert_eq(option.profit(), 60)
 	assert_eq(option.profit_per_day(), 120.0)
+
+
+## [quantity, profit] of the smallest load with the highest rounded profit, trying every size.
+func _best_by_brute_force(
+	sim: Simulation, from_city: String, to_city: String, good_id: String, limit: int
+) -> Array:
+	var economy := sim.data.economy
+	var good := sim.data.get_good(good_id)
+	var source := sim.world.get_city(from_city)
+	var market := sim.world.get_city(to_city)
+	var best: Array = [0, 0]
+	for quantity in range(1, mini(limit, source.stock[good_id]) + 1):
+		var profit := (
+			CityEconomy.sell_revenue(economy, market, good, quantity)
+			- CityEconomy.buy_cost(economy, source, good, quantity)
+		)
+		if profit > best[1]:
+			best = [quantity, profit]
+	return best

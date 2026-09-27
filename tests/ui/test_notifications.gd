@@ -27,7 +27,9 @@ func after_each() -> void:
 func test_an_arrival_is_logged_and_pauses_the_game() -> void:
 	var hours := _sail_to("danzig")
 	_session.set_speed(1)
-	_session.advance(hours)
+	# One big batch, as after a slow frame at high speed: it must stop at the arrival.
+	_session.advance(hours + 50)
+	assert_eq(_session.sim.world.hour, hours, "no hours run after the arrival")
 	assert_eq(_session.speed, 0, "paused on arrival")
 	assert_eq(_session.notification_log[-1], "Day %d: Adler arrived in Danzig" % _day())
 	assert_string_contains(_entries(), "Adler arrived in Danzig")
@@ -41,9 +43,13 @@ func test_arrivals_can_leave_the_game_running() -> void:
 	assert_false(_session.pause_on_arrival)
 	var hours := _sail_to("danzig")
 	_session.set_speed(2)
-	_session.advance(hours)
+	_session.advance(hours + Simulation.HOURS_PER_DAY)
 	assert_eq(_session.speed, 2)
-	assert_string_contains(_entries(), "Adler arrived in Danzig")
+	assert_eq(_session.sim.world.hour, hours + Simulation.HOURS_PER_DAY)
+	# Dated with the day the ship docked, not the day the batch ended.
+	@warning_ignore("integer_division")
+	var arrival_day := hours / Simulation.HOURS_PER_DAY + 1
+	assert_eq(_session.notification_log[-1], "Day %d: Adler arrived in Danzig" % arrival_day)
 
 
 func test_a_stopped_workshop_is_logged_once() -> void:

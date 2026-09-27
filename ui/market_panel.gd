@@ -48,7 +48,8 @@ func setup(session: GameSession) -> void:
 	add_child(_build_target_picker())
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS.size()
-	grid.add_theme_constant_override("h_separation", 12)
+	# Tight columns: the grid must fit the side panel's fixed width (main.gd SIDE_PANEL_WIDTH).
+	grid.add_theme_constant_override("h_separation", 5)
 	add_child(grid)
 	for heading in COLUMNS:
 		grid.add_child(UiStyle.label(heading, UiStyle.MUTED_LABEL))

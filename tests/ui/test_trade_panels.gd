@@ -145,6 +145,13 @@ func test_sparklines_scale_to_their_values_and_base_price() -> void:
 	assert_eq(sparkline.value_range(), Vector2(905, 1105))
 
 
+func test_the_side_panel_keeps_its_width() -> void:
+	# A market grid wider than the panel would stretch it and squeeze the map.
+	var side: Control = _main.find_child("SidePanel", true, false)
+	assert_eq(side.get_combined_minimum_size().x, _main.SIDE_PANEL_WIDTH)
+	assert_eq(side.size.x, _main.SIDE_PANEL_WIDTH)
+
+
 func _grain() -> GoodDef:
 	return _session.sim.data.get_good("grain")
 

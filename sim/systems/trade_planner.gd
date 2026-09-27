@@ -3,8 +3,9 @@ extends RefCounted
 ## Suggests cargo for a ship: for each other city, the good that makes the most profit when bought
 ## here and sold there at today's prices. A read-only query for the UI; it changes nothing.
 ##
-## Buying walks this market's price up and selling walks the destination's down (ADR 0003), so the
-## load stops at the first unit that no longer pays, and at the free space and coins available.
+## Buying walks this market's price up and selling walks the destination's down (ADR 0003), so each
+## extra unit earns less. The load is the quantity with the best profit as the trade commands
+## round it (cost up, revenue down), within the free space and coins available.
 ## Prices at the destination can move before the ship arrives; the plan is a hint, not a promise.
 
 
@@ -91,23 +92,33 @@ static func _best_load(
 	var sell_factor := 1.0 - economy.spread / 2.0
 	var quantity := 0
 	var buy_total := 0.0
-	# Each further unit costs more here and fetches less there, so stop at the first that loses
-	# money or can't be paid for. The running total sums like Pricing.buy_cost().
+	var sell_total := 0.0
+	var best_quantity := 0
+	var best_profit := 0
+	# Adding units raises the unrounded profit only while the next unit sells for more than it
+	# costs, and the rounded profit (what the trade commands pay) is never above the unrounded one.
+	# So once the unrounded profit can no longer beat the best rounded profit, stop. The running
+	# totals sum in the same order as Pricing.buy_cost() and sell_revenue().
 	while quantity < mini(space, stock):
 		var buy := Pricing.mid_price(economy, good.base_price, source_target, stock - 1 - quantity)
 		var sell := Pricing.mid_price(
 			economy, good.base_price, market_target, market_stock + quantity
 		)
-		if sell * sell_factor <= buy * buy_factor:
-			break
-		if ceili((buy_total + buy) * buy_factor) > coins:
+		var total_cost := ceili((buy_total + buy) * buy_factor)
+		if total_cost > coins:
 			break
 		buy_total += buy
+		sell_total += sell
 		quantity += 1
-	if quantity == 0:
+		var profit := floori(sell_total * sell_factor) - total_cost
+		if profit > best_profit:
+			best_profit = profit
+			best_quantity = quantity
+		var unrounded := sell_total * sell_factor - buy_total * buy_factor
+		if sell * sell_factor <= buy * buy_factor and unrounded <= best_profit:
+			break
+	if best_quantity == 0:
 		return null
-	var cost := CityEconomy.buy_cost(economy, source, good, quantity)
-	var revenue := CityEconomy.sell_revenue(economy, market, good, quantity)
-	if revenue <= cost:
-		return null
-	return Option.new(to_city, good.id, quantity, cost, revenue, 0)
+	var cost := CityEconomy.buy_cost(economy, source, good, best_quantity)
+	var revenue := CityEconomy.sell_revenue(economy, market, good, best_quantity)
+	return Option.new(to_city, good.id, best_quantity, cost, revenue, 0)

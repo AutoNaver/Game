@@ -108,8 +108,9 @@ func set_speed(value: int) -> void:
 	changed.emit()
 
 
-## Runs `hours` ticks immediately, regardless of speed. Notifies about ships that arrive and
-## workshops that stop working, and pauses on arrivals if pause_on_arrival is set.
+## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive
+## and workshops that stop working, each dated when it happened. If pause_on_arrival is set and
+## time is running, stops right after the tick in which a ship arrives, even mid-batch.
 func advance(hours: int) -> void:
 	var at_sea: Array[ShipState] = []
 	for ship in player().ships:
@@ -119,15 +120,19 @@ func advance(hours: int) -> void:
 	var day_before := sim.day()
 	for i in hours:
 		sim.tick()
-	var arrived := false
-	for ship in at_sea:
-		if ship.is_docked():
-			arrived = true
-			notify("%s arrived in %s" % [ship.name, _city_name(ship.docked_at)])
-	_notify_stopped_workshops(statuses)
-	if arrived and pause_on_arrival and speed != 0:
-		speed = 0
-		_pending_hours = 0.0
+		var arrived := false
+		for ship: ShipState in at_sea.duplicate():
+			if ship.is_docked():
+				arrived = true
+				at_sea.erase(ship)
+				notify("%s arrived in %s" % [ship.name, _city_name(ship.docked_at)])
+		if sim.world.hour % Simulation.HOURS_PER_DAY == 0:
+			_notify_stopped_workshops(statuses)
+			statuses = _workshop_statuses()
+		if arrived and pause_on_arrival and speed != 0:
+			speed = 0
+			_pending_hours = 0.0
+			break
 	# Once per AUTOSAVE_DAYS boundary crossed, however many hours this step covered.
 	@warning_ignore("integer_division")
 	if sim.day() / AUTOSAVE_DAYS > day_before / AUTOSAVE_DAYS:
