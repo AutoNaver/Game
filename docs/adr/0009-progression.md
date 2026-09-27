@@ -1,6 +1,7 @@
 # ADR 0009: Progression, from skipper to trading house
 
-- Status: proposed (needs the owner's go-ahead before M12)
+- Status: accepted (owner decisions, 2026-09-27: roadmap order kept, bankruptcy included, ranks
+  are hard gates)
 - Date: 2026-09-27
 - Code: none yet; planned for M12 to M15 in the roadmap
 
@@ -16,7 +17,7 @@ The owner asked for a progression where you start as your own captain with a lim
 other markets, hire captains for more ships, build kontors and production in other cities that
 also tell you about those markets, and eventually buy out competitors.
 
-## Proposal
+## Decision
 
 Progression runs along four lines that feed each other: **what you know**, **who sails for
 you**, **where you are established**, and **who you have beaten**.
@@ -77,6 +78,9 @@ you**, **where you are established**, and **who you have beaten**.
 
   The numbers are data (`data/ranks.json`), tuned with `tools/balance.gd`. Rivals rise through
   the same ranks under the same rules.
+- **Ranks are hard gates.** An action a rank doesn't allow yet is refused by its command's
+  validation with the rank it needs ("Hulks need the rank Trading house"), and the UI shows it
+  locked with that reason. Ranks are never lost once reached.
 
 ### 4. Who you have beaten: acquisitions (M15)
 
@@ -94,6 +98,24 @@ you**, **where you are established**, and **who you have beaten**.
   through the same command, and moves only coins and ownership, so no goods are created or
   destroyed. Save version 4 already allows a house to be missing from a save.
 
+### 5. Bankruptcy
+
+Wages (workshops now, captains from M13) and rivals can drain a house, so a house can go
+bankrupt:
+
+- A house is **in debt** on a day it can't pay all its wages. After a grace period (data, about a
+  week) of such days in a row it is **bankrupt**. Selling ships or goods, or closing workshops, to
+  pay the wages clears the debt.
+- The UI warns from the first unpaid day, with the days left.
+- **A bankrupt player loses:** the game shows a game-over screen with the houses ranking, and
+  offers loading a save or a new game.
+- **A bankrupt rival leaves the game.** Its ships and kontors (with workshops and stock) go up
+  for sale for a while at a discount (M15's asset purchase), and whatever nobody buys is sold
+  off: ships to the shipyard, stored goods into the local markets. No goods are created or
+  destroyed.
+- The daily bankruptcy check is a system in `sim/`, deterministic and saved with the debt
+  counters.
+
 ## Consequences
 
 - The start gets simpler (one ship, one captain: you, one city you see) and the end gets bigger,
@@ -108,10 +130,8 @@ you**, **where you are established**, and **who you have beaten**.
 - Balance changes a lot: less knowledge means worse trades for both the player and the rivals,
   and wages add a steady cost. Each milestone reruns `tools/balance.gd` and records the result.
 
-## Open questions for the owner
+## Owner decisions (2026-09-27)
 
-1. Order: market knowledge changes how the rivals plan, so it could come right after M8, before
-   M9 to M11. Or keep the roadmap order and do progression last?
-2. Should the player be able to lose (bankruptcy) once wages and rivals can drain coins, or is
-   the game always recoverable?
-3. Ranks as hard gates (hulks locked until "Trading house") or as soft bonuses (discounts only)?
+1. Keep the roadmap order: M9 to M11 first, then M12 to M15.
+2. Include bankruptcy (section 5), for the player and the rivals.
+3. Ranks are hard gates, not soft bonuses.

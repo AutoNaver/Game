@@ -110,10 +110,10 @@ Automates the core loop once the player runs more ships than they want to sail b
 - [ ] New goods (furs, wax, honey, pitch) with producers and consumers
 - [ ] Rebalance, and the map fits the larger area
 
-## Progression (proposed in ADR 0009, needs the owner's go-ahead)
+## Progression (ADR 0009)
 
-From skipper to trading house: growth unlocks capabilities instead of only adding coins. The owner
-decides whether these come after M11 or earlier (market knowledge changes how rivals plan).
+From skipper to trading house: growth unlocks capabilities instead of only adding coins. Owner
+decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks are hard gates.
 
 ## M12: Market knowledge
 
@@ -130,11 +130,12 @@ decides whether these come after M11 or earlier (market knowledge changes how ri
 - [ ] Captain skills (seamanship: voyage time, trading: spread) that improve with voyages
 - [ ] Only captained ships follow routes; rivals hire from the same taverns
 - [ ] Saves migrate old games (a captain for every ship); rebalance
+- [ ] Bankruptcy: unpaid wages put a house in debt, a grace period, then bankruptcy; a warning in the UI; game over for the player (load or new game), a bankrupt rival leaves the game and its assets are sold off (to buyers from M15)
 
 ## M14: Reputation, ranks and factors
 
 - [ ] Reputation per city from supplying shortages, employing workers and holding a kontor
-- [ ] Ranks from net worth and reputation (`data/ranks.json`) with concrete unlocks; shown in the houses panel
+- [ ] Ranks from net worth and reputation (`data/ranks.json`) as hard gates: commands refuse locked actions with the rank needed, and the UI shows them locked; shown in the houses panel
 - [ ] Kontor factor: standing buy/sell orders at a kontor, run through the trade commands
 - [ ] Rivals rise through the same ranks
 
@@ -144,6 +145,7 @@ decides whether these come after M11 or earlier (market knowledge changes how ri
 - [ ] Buy out a whole house when far ahead; its assets pass to the buyer and it leaves the game
 - [ ] Rivals buy from each other, and can make offers to the player
 - [ ] Acquisitions move only coins and ownership; invariants and saves cover removed houses
+- [ ] A bankrupt rival's ships and kontors go up for sale at a discount before being sold off
 
 ## Backlog (deferred review findings and small follow-ups)
 

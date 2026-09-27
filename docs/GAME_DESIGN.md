@@ -87,7 +87,7 @@ by net worth, and the log reports the rivals' new ships and workshops. Details a
 - **Close** a workshop that doesn't pay (M8): its workers leave and its wages stop.
 - Measure yourself against the rival houses' net worth (M8).
 
-## Progression plan: from skipper to trading house (proposed, M12 to M15)
+## Progression plan: from skipper to trading house (M12 to M15)
 
 Today everything is unlocked from the first day. The plan in
 [ADR 0009](adr/0009-progression.md) makes growth a sequence of new capabilities:
@@ -104,6 +104,9 @@ Today everything is unlocked from the first day. The plan in
 4. **Who you have beaten (M15).** Buy a struggling rival's ships or kontors, and eventually buy
    out a whole house. Rivals can do the same to each other.
 
+Houses can go **bankrupt** when they can't pay wages for about a week: the player loses (load a
+save or start over), and a bankrupt rival leaves the game with its assets sold off.
+
 ## After the MVP
 
 The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
@@ -118,6 +121,5 @@ politics.
 - Do sell prices also react to the *player's* recent sales (market memory), or only to stock?
 - How visible should city needs be? A satisfaction meter, or just prices?
 - Map presentation: stylized painted map or clean schematic?
-- Market knowledge: proposed in [ADR 0009](adr/0009-progression.md) (live prices only with
-  presence, remembered prices elsewhere). Needs the owner's go-ahead, and a decision whether it
-  comes before M9.
+- Market knowledge: decided in [ADR 0009](adr/0009-progression.md) (live prices only with
+  presence, remembered prices elsewhere), built in M12.
