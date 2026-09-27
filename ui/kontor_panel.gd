@@ -111,7 +111,12 @@ func _refresh_transfers(kontor: KontorState) -> void:
 
 
 func _refresh_workshops(kontor: KontorState) -> void:
-	var key := "%s:%d" % [kontor.city_id, kontor.workshops.size()]
+	# Workshop ids, not just the count: a loaded game can hold different workshops, and the Close
+	# buttons are bound to ids.
+	var ids := PackedStringArray()
+	for workshop in kontor.workshops:
+		ids.append(workshop.id)
+	var key := "%s:%s" % [kontor.city_id, ",".join(ids)]
 	if key != _workshop_key:
 		_workshop_key = key
 		for row in _workshop_rows:

@@ -98,6 +98,22 @@ func test_closing_a_workshop() -> void:
 	assert_null(_main.find_child("Workshop_workshop_1", true, false), "its row is gone")
 
 
+func test_close_buttons_follow_a_loaded_game() -> void:
+	_press("BuyKontor")
+	_press("Build_brewery")
+	_press("SaveGame")
+	(_main.find_child("SaveName", true, false) as LineEdit).text = "One brewery"
+	_press("ConfirmSave")
+	_press("Close_workshop_1")
+	_press("Build_smithy")
+	await wait_process_frames(1)
+	_press("LoadGame")
+	_press("Slot_One_brewery")
+	await wait_process_frames(1)
+	_press("Close_workshop_1")
+	assert_eq(_player().get_kontor("lubeck").workshops.size(), 0, "the loaded brewery closed")
+
+
 func test_build_buttons_need_coins() -> void:
 	_press("BuyKontor")
 	_player().coins = 100

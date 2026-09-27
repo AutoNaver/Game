@@ -213,3 +213,12 @@ func test_rivals_play_deterministically_from_the_seed() -> void:
 	second.advance_days(40)
 	assert_eq(SaveGame.to_dict(first.world), SaveGame.to_dict(second.world))
 	assert_eq(EconomyInvariants.check(first.data, first.world), PackedStringArray())
+
+
+func test_a_rival_in_a_one_city_world_stays_docked() -> void:
+	var data := GameDataLoader.new().load_dir("res://tests/fixtures/valid_data")
+	var sim := Simulation.new_game(data, 1)
+	sim.advance_days(2)
+	var ship := sim.world.get_trader("castorp").ships[0]
+	assert_eq(ship.docked_at, "lubeck", "nowhere else to sail")
+	assert_eq(EconomyInvariants.check(data, sim.world), PackedStringArray())

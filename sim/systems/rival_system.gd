@@ -131,7 +131,8 @@ static func _trade_and_sail(sim: Simulation, trader: TraderState, ship: ShipStat
 		destination = choice.destination
 	else:
 		destination = _random_other_city(sim, ship.docked_at)
-	sim.execute(SailCommand.new(trader.id, ship.id, destination))
+	if not destination.is_empty():
+		sim.execute(SailCommand.new(trader.id, ship.id, destination))
 
 
 ## One of the first `top` options (best first, as TradePlanner sorts them), drawn with a chance
@@ -153,11 +154,14 @@ static func pick_option(
 	return options[count - 1]
 
 
+## A random city other than `city_id`, or "" in a world with only one city (the ship stays).
 static func _random_other_city(sim: Simulation, city_id: String) -> String:
 	var others: Array[String] = []
 	for city in sim.data.cities:
 		if city.id != city_id:
 			others.append(city.id)
+	if others.is_empty():
+		return ""
 	return others[sim.world.rng.randi_range(0, others.size() - 1)]
 
 
