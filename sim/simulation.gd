@@ -24,8 +24,8 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 		var city := CityState.new(city_def.id, city_def.population)
 		for good in p_data.goods:
 			city.stock[good.id] = CityEconomy.target_stock(p_data.economy, city, good)
-			city.production_carry[good.id] = 0.0
-			city.consumption_carry[good.id] = 0.0
+			city.production_carry[good.id] = 0
+			city.consumption_carry[good.id] = 0
 			city.shortage[good.id] = 0
 		world.add_city(city)
 	return Simulation.new(p_data, world)
