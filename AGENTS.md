@@ -67,8 +67,9 @@ stdout. The first run after a fresh clone needs `godot --headless --import`; `ch
    Any change to the saved shape bumps the version and ships a migration or an explicit decision
    to break old saves.
 7. **Economy invariants.** Stock and money never go negative. Prices are always finite and clamped.
-   Goods are only created by production and off-map imports, and only destroyed by consumption and
-   off-map exports (ADR 0005), all booked in the goods ledger. Trading never creates or destroys them.
+   Goods are only created by production and off-map imports, and only destroyed by consumption,
+   off-map exports (ADR 0005), event losses and spoilage (ADR 0006), all booked in the goods ledger.
+   Trading never creates or destroys them.
 
 ## 5. Coding conventions
 
@@ -154,7 +155,7 @@ Flag these as **P0/P1**:
   order affects results, float accumulation that makes outcomes depend on tick batching.
 - Broken economy invariants: stock or money can go negative, prices can become NaN, infinite or
   unclamped, and goods or money are created or destroyed outside production, consumption, off-map
-  trade (booked in the goods ledger) and explicit income or costs.
+  trade, event losses and spoilage (all booked in the goods ledger) and explicit income or costs.
 - Validation holes: data or save input that can crash the game or silently produce wrong state
   instead of a clear error.
 - A save-format change without a `save_version` bump and a migration or explicit decision.
