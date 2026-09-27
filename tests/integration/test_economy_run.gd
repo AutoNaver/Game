@@ -30,11 +30,11 @@ func test_invariant_check_reports_violations() -> void:
 	var sim := SmallWorld.simulation()
 	var port := sim.world.get_city("port")
 	port.stock["grain"] = -3
-	port.consumption_carry["wine"] = 1500
+	port.consumption_carry["wine"] = 1_500_000
 	var violations := EconomyInvariants.check(sim.data, sim.world)
 	assert_eq(violations.size(), 3)
 	assert_string_contains(violations[0], "port/grain: negative stock -3")
-	assert_string_contains(violations[1], "port/wine: carry 1500 outside [0, 1000)")
+	assert_string_contains(violations[1], "port/wine: carry 1500000 outside [0, 1000000)")
 	assert_string_contains(violations[2], "grain: -3 units exist but production and consumption")
 
 

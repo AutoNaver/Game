@@ -67,7 +67,7 @@ func test_output_beyond_cap_is_discarded_not_banked() -> void:
 	var sim := SmallWorld.simulation()
 	var port := sim.world.get_city("port")
 	port.stock["grain"] = 39
-	port.production_carry["grain"] = 900
+	port.production_carry["grain"] = 900_000
 	ProductionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["grain"], 40)
 	assert_eq(port.production_carry["grain"], 0)
@@ -142,3 +142,17 @@ func test_production_of_a_tenth_per_day_yields_one_unit_every_ten_days() -> void
 		ProductionSystem.run_day(data, sim.world)
 	assert_eq(port.stock["grain"], 21)
 	assert_eq(port.production_carry["grain"], 0)
+
+
+func test_tiny_consumption_in_a_small_town_still_adds_up() -> void:
+	# 1000 people x 0.001/1000 = 0.001 units a day: one unit every 1000 days, never rounded away.
+	var data := SmallWorld.data()
+	data.add_good(GoodDef.new("amber", "Amber", "luxury", 300, 0.001))
+	var sim := Simulation.new_game(data, 1)
+	var port := sim.world.get_city("port")
+	port.stock["amber"] = 5
+	for day in 999:
+		ConsumptionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["amber"], 5)
+	ConsumptionSystem.run_day(sim.data, sim.world)
+	assert_eq(port.stock["amber"], 4)

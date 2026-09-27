@@ -16,8 +16,8 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			if city.shortage[good.id] < 0:
 				violations.append("%s: negative shortage %d" % [where, city.shortage[good.id]])
 			for carry: int in [city.production_carry[good.id], city.consumption_carry[good.id]]:
-				if carry < 0 or carry >= CityEconomy.MILLIS_PER_UNIT:
-					var limit := CityEconomy.MILLIS_PER_UNIT
+				if carry < 0 or carry >= CityEconomy.PARTS_PER_UNIT:
+					var limit := CityEconomy.PARTS_PER_UNIT
 					violations.append("%s: carry %d outside [0, %d)" % [where, carry, limit])
 			var target := CityEconomy.target_stock(economy, city, good)
 			var low := good.base_price * economy.price_min_multiplier
