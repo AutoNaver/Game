@@ -31,11 +31,11 @@ func _routed_simulation(seed_value: int) -> Simulation:
 func test_a_route_runs_profitably_for_a_year() -> void:
 	var sim := _routed_simulation(1)
 	var start_coins := sim.world.player().coins
-	for month in DAYS / CHECK_EVERY_DAYS:
-		sim.advance_days(CHECK_EVERY_DAYS)
-		assert_eq(
-			EconomyInvariants.check(sim.data, sim.world), PackedStringArray(), "month %d" % month
-		)
+	while sim.day() < DAYS:
+		sim.advance_days(mini(CHECK_EVERY_DAYS, DAYS - sim.day()))
+		var day := sim.day()
+		assert_eq(EconomyInvariants.check(sim.data, sim.world), PackedStringArray(), "day %d" % day)
+	assert_eq(sim.day(), DAYS)
 	var coins := sim.world.player().coins
 	gut.p("coins after %d days: %d (started with %d)" % [DAYS, coins, start_coins])
 	assert_gt(coins, start_coins, "the route made money")

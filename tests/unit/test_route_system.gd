@@ -131,6 +131,24 @@ func test_loading_and_unloading_through_a_kontor() -> void:
 	_invariants_hold()
 
 
+func test_a_full_hold_is_noted_when_loading() -> void:
+	_sim.world.player().coins = 5000
+	assert_eq(_sim.execute(BuyKontorCommand.new(PLAYER, "port")), "")
+	assert_eq(_sim.execute(BuyCommand.for_kontor(PLAYER, "port", "grain", 8)), "")
+	SmallWorld.give_cargo(_sim, _ship(), "wine", 10)
+	_route([_order(RouteOrder.Action.LOAD, "grain", 5)], [])
+	_sim.tick()
+	assert_eq(_ship().cargo, {"wine": 10})
+	assert_eq(_ship().route_note, "Port: no room to load Grain")
+	# An empty kontor is no problem: there was simply nothing to load.
+	var load_wine: Array[RouteOrder] = [_order(RouteOrder.Action.LOAD, "wine", 5)]
+	var stops: Array[RouteStop] = [RouteStop.new("port", load_wine), RouteStop.new("town")]
+	assert_eq(_sim.execute(SaveRouteCommand.new(PLAYER, "route_1", "Grain run", stops)), "")
+	for i in _ship().voyage_hours * 2:
+		_sim.tick()
+	assert_eq(_ship().route_note, "")
+
+
 func test_a_ship_elsewhere_first_sails_to_its_stop() -> void:
 	assert_eq(_sim.execute(SailCommand.new(PLAYER, SHIP, "town")), "")
 	for i in _ship().voyage_hours:

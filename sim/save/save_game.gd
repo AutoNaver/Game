@@ -149,44 +149,50 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 			world.traders.append(trader)
 	if errors.is_empty() and world.player() == null:
 		errors.append("save has no player")
-	_check_unique_ids(world)
+	_check_unique_ids(data, world)
 	if errors.is_empty():
 		errors.append_array(EconomyInvariants.check(data, world))
 	return world if errors.is_empty() else null
 
 
-## Trader ids must be unique. Ship, workshop and route ids must be unique across all traders, and
-## below the next free number.
-func _check_unique_ids(world: WorldState) -> void:
+## Trader ids must be unique. Ship, workshop and route ids must be unique across all traders, of
+## the form the game creates ("ship_3"), and below the next free number of their kind.
+func _check_unique_ids(data: GameData, world: WorldState) -> void:
 	var trader_ids: Dictionary[String, bool] = {}
 	for trader in world.traders:
 		if trader_ids.has(trader.id):
 			errors.append("duplicate trader id '%s'" % trader.id)
 		trader_ids[trader.id] = true
-	var seen: Dictionary[String, bool] = {}
+	# Id -> the kind it must be, in a stable order (traders, then ships, workshops and routes).
+	var seen: Dictionary[String, String] = {}
 	for trader in world.traders:
 		for ship in trader.ships:
-			if seen.has(ship.id):
-				errors.append("duplicate ship id '%s'" % ship.id)
-			seen[ship.id] = true
-		for kontor: KontorState in trader.kontors.values():
+			_see_id(seen, ship.id, "ship")
+		for kontor in trader.kontors_in_order(data.cities):
 			for workshop in kontor.workshops:
-				if seen.has(workshop.id):
-					errors.append("duplicate workshop id '%s'" % workshop.id)
-				seen[workshop.id] = true
+				_see_id(seen, workshop.id, "workshop")
 		for route in trader.routes:
-			if seen.has(route.id):
-				errors.append("duplicate route id '%s'" % route.id)
-			seen[route.id] = true
+			_see_id(seen, route.id, "route")
+	var next_numbers: Dictionary[String, int] = {
+		"ship": world.next_ship_number,
+		"workshop": world.next_workshop_number,
+		"route": world.next_route_number,
+	}
 	for id: String in seen:
-		var number := id.get_slice("_", id.get_slice_count("_") - 1).to_int()
-		var next := world.next_workshop_number
-		if id.begins_with("ship_"):
-			next = world.next_ship_number
-		elif id.begins_with("route_"):
-			next = world.next_route_number
-		if number >= next:
-			errors.append("id '%s' is not below the next free number %d" % [id, next])
+		var kind := seen[id]
+		# Ids end up in UI node names and paths, so only the exact shape the game creates is allowed.
+		var number_text := id.trim_prefix(kind + "_")
+		var number := number_text.to_int()
+		if not id.begins_with(kind + "_") or number < 1 or number_text != str(number):
+			errors.append("%s id '%s' is not of the form %s_<number>" % [kind, id, kind])
+		elif number >= next_numbers[kind]:
+			errors.append("id '%s' is not below the next free number %d" % [id, next_numbers[kind]])
+
+
+func _see_id(seen: Dictionary[String, String], id: String, kind: String) -> void:
+	if seen.has(id):
+		errors.append("duplicate %s id '%s'" % [kind, id])
+	seen[id] = kind
 
 
 static func _trader_to_dict(trader: TraderState) -> Dictionary:

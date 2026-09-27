@@ -71,6 +71,8 @@ static func _carry_out_order(
 			var ship_room := sim.data.get_ship(ship.type_id).capacity - ship.cargo_total()
 			var kontor_room := sim.data.kontor.capacity - kontor.cargo_total()
 			if _is_load(order):
+				if ship_room <= 0 and kontor.cargo_of(good.id) > 0:
+					return "no room to load %s" % good.name
 				quantity = mini(order.quantity, mini(kontor.cargo_of(good.id), ship_room))
 			else:
 				var aboard := ship.cargo_of(good.id)

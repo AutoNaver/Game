@@ -112,3 +112,23 @@ func test_route_references_and_ids_are_checked() -> void:
 	var unused := _through_json(SaveGame.to_dict(sim.world))
 	unused["traders"][0]["ships"][0]["route"] = ""
 	assert_eq(_errors(sim, unused), ["traders[0] ships[0]: route_stop and route_note need a route"])
+
+
+func test_ids_must_have_the_shape_the_game_creates() -> void:
+	var sim := _routed_simulation()
+	sim.world.player().coins = 5000
+	assert_eq(sim.execute(BuyKontorCommand.new(PLAYER, "port")), "")
+	assert_eq(sim.execute(BuildWorkshopCommand.new(PLAYER, "port", "vintner")), "")
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var trader: Dictionary = save["traders"][0]
+	trader["routes"][1]["id"] = "foo/bar_0"
+	trader["ships"][0]["id"] = "route_9"
+	trader["kontors"][0]["workshops"][0]["id"] = "workshop_01"
+	assert_eq(
+		_errors(sim, save),
+		[
+			"ship id 'route_9' is not of the form ship_<number>",
+			"workshop id 'workshop_01' is not of the form workshop_<number>",
+			"route id 'foo/bar_0' is not of the form route_<number>",
+		]
+	)
