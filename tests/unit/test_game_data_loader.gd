@@ -4,6 +4,7 @@ const VALID_DIR: String = "res://tests/fixtures/valid_data"
 const INVALID_DIR: String = "res://tests/fixtures/invalid_data"
 const MALFORMED_DIR: String = "res://tests/fixtures/malformed_json"
 const WRONG_TYPE_DIR: String = "res://tests/fixtures/wrong_top_level"
+const OVERFLOW_DIR: String = "res://tests/fixtures/overflow_data"
 const MISSING_DIR: String = "res://tests/fixtures/does_not_exist"
 
 
@@ -82,6 +83,16 @@ func test_invalid_data_reports_every_problem() -> void:
 		"cities.json[3]: 'population' must be at most 1000000000",
 	]
 	assert_eq(Array(loader.errors), expected)
+
+
+func test_stock_cap_overflow_is_rejected() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir(OVERFLOW_DIR))
+	var expected := (
+		"cities.json[0]: stock cap for 'grain' exceeds 1000000000 units;"
+		+ " lower population or consumption"
+	)
+	assert_eq(Array(loader.errors), [expected], "wine is not consumed, so only grain overflows")
 
 
 func test_malformed_json_reports_line() -> void:

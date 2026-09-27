@@ -71,6 +71,7 @@ func load_dir(dir: String) -> GameData:
 			_error(ctx, "duplicate id '%s'" % city.id)
 		else:
 			data.add_city(city)
+			_check_stock_caps(city, data, ctx)
 
 	if not errors.is_empty():
 		return null
@@ -152,6 +153,19 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 	if errors.size() > error_count:
 		return null
 	return CityDef.new(id, city_name, map_position, population, production)
+
+
+## Fields that are fine on their own can multiply into a stock cap (population × consumption ×
+## days of cover × cap factor) too large for int. Reject that here, not at the first production day.
+func _check_stock_caps(city: CityDef, data: GameData, ctx: String) -> void:
+	if data.economy == null:
+		return
+	for good in data.goods:
+		var daily := city.population / 1000.0 * good.consumption_per_1000
+		var cap := daily * data.economy.days_of_cover * data.economy.stock_cap_factor
+		if cap > MAX_INT_VALUE:
+			var message := "stock cap for '%s' exceeds %d units; lower population or consumption"
+			_error(ctx, message % [good.id, MAX_INT_VALUE])
 
 
 func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictionary[String, float]:
