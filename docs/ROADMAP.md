@@ -36,10 +36,10 @@ Work top to bottom unless the owner reprioritizes.
 
 ## M3: First playable UI
 
-- [ ] Map scene: cities, ships moving along their routes
+- [x] Map scene: cities, ships moving along their routes, click to select a city (`MapView`)
 - [ ] City panel: market table with buy/sell prices, stock, and trade controls
 - [ ] Fleet list and ship details (cargo, destination, ETA)
-- [ ] HUD: coins, date; time controls (pause, 1×, 2×, 4×)
+- [x] HUD: coins, date; time controls (pause, 1×, 2×, 4×); last command error (`Hud`, `GameSession`)
 - [ ] **Owner play-test**, with feedback turned into roadmap items
 
 ## M4: Player production
