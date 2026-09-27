@@ -25,4 +25,20 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			var price := Pricing.mid_price(economy, good.base_price, target, maxi(stock, 0))
 			if not is_finite(price) or price < low - 0.001 or price > high + 0.001:
 				violations.append("%s: price %f outside [%f, %f]" % [where, price, low, high])
+	violations.append_array(_check_conservation(data, world))
+	return violations
+
+
+## Goods may only appear through production and disappear through consumption: the units that
+## actually exist must equal the ledger kept by those systems.
+static func _check_conservation(data: GameData, world: WorldState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	for good in data.goods:
+		var total := 0
+		for city in world.cities:
+			total += city.stock[good.id]
+		var expected: int = world.goods_ledger[good.id]
+		if total != expected:
+			var message := "hour %d, %s: %d units exist but production and consumption account for %d"
+			violations.append(message % [world.hour, good.id, total, expected])
 	return violations

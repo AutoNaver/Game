@@ -13,5 +13,6 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			city.consumption_carry[good.id] = need % CityEconomy.MILLIS_PER_UNIT
 			var taken := mini(units, city.stock[good.id])
 			city.stock[good.id] -= taken
+			world.goods_ledger[good.id] -= taken
 			# Unmet demand is recorded, not carried over: a hungry day is lost, not owed.
 			city.shortage[good.id] = units - taken
