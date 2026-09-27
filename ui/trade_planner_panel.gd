@@ -74,7 +74,7 @@ func refresh() -> void:
 			TradePlanner
 			. plan(
 				data,
-				_session.sim.world,
+				_session.player(),
 				ship_type,
 				_session.selected_city,
 				ship_type.capacity - ship.cargo_total(),
@@ -88,16 +88,16 @@ func refresh() -> void:
 	if ship == null:
 		_note.text = "Dock a ship here to see what pays to carry."
 	elif _options.is_empty():
-		_note.text = "Nothing here pays to carry right now (or %s is full)." % ship.name
+		_note.text = "No known profitable load (or %s is full)." % ship.name
 	else:
-		_note.text = "For %s at today's prices; markets can move before you arrive." % ship.name
+		_note.text = "For %s from last known prices; markets can move." % ship.name
 	_refresh_destinations(ship)
 
 
 func _refresh_destinations(ship: ShipState) -> void:
 	_destinations = []
 	if ship != null:
-		_destinations = CargoDestinationPlanner.plan(_session.sim.data, _session.sim.world, ship)
+		_destinations = CargoDestinationPlanner.plan(_session.sim.data, _session.player(), ship)
 	for i in MAX_DESTINATIONS:
 		_destination_rows[i].visible = i < _destinations.size()
 		if _destination_rows[i].visible:
@@ -109,17 +109,20 @@ func _refresh_destinations(ship: ShipState) -> void:
 	elif ship.cargo_total() == 0:
 		_destination_note.text = "%s has no cargo to sell." % ship.name
 	elif _destinations.is_empty():
-		_destination_note.text = "No other port pays more than selling here today."
+		_destination_note.text = "No known port pays more than selling here."
 	else:
-		_destination_note.text = "For %s at today's prices; markets can move at sea." % ship.name
+		_destination_note.text = "For %s from last known prices; markets can move." % ship.name
 
 
 func _describe_destination(option: CargoDestinationPlanner.Option) -> String:
 	var days := float(option.hours) / Simulation.HOURS_PER_DAY
+	var report: MarketRecord = _session.player().market_book[option.destination]
+	var age := _session.sim.day() - report.day
 	return (
-		"%s: %d coins, +%d vs here in %.1f days (%.1f/day)"
+		"%s (%dd old): %d coins, +%d vs here in %.1f days (%.1f/day)"
 		% [
 			_session.sim.data.get_city(option.destination).name,
+			age,
 			option.sale_value,
 			option.extra_value(),
 			days,
@@ -131,10 +134,13 @@ func _describe_destination(option: CargoDestinationPlanner.Option) -> String:
 func _describe(option: TradePlanner.Option) -> String:
 	var data := _session.sim.data
 	var days := float(option.hours) / Simulation.HOURS_PER_DAY
+	var report: MarketRecord = _session.player().market_book[option.destination]
+	var age := _session.sim.day() - report.day
 	return (
-		"%s: %d %s, +%d in %.1f days (%d a day)"
+		"%s (%dd old): %d %s, +%d in %.1f days (%d a day)"
 		% [
 			data.get_city(option.destination).name,
+			age,
 			option.quantity,
 			data.get_good(option.good_id).name.to_lower(),
 			option.profit(),

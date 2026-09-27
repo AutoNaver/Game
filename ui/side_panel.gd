@@ -80,9 +80,18 @@ func refresh() -> void:
 	if _session.sim == null or _session.selected_city.is_empty():
 		return
 	var city_def := _session.sim.data.get_city(_session.selected_city)
-	var city := _session.sim.world.get_city(_session.selected_city)
 	_title.text = city_def.name
 	var data := _session.sim.data
+	var report: MarketRecord = _session.player().market_book.get(_session.selected_city)
+	if report == null:
+		_details.text = "Population unknown"
+		_details.tooltip_text = "No report from this city yet"
+		_needs.text = "Needs unknown"
+		_needs.tooltip_text = "Visit or hear news from this city"
+		_events.visible = false
+		return
+	var city := report.as_city()
+	var live := MarketKnowledgeSystem.has_presence(data, _session.player(), city.id)
 	var change := PopulationSystem.daily_change(data, city)
 	var arrow := "▲" if change > 0 else ("▼" if change < 0 else "→")
 	_details.text = (
@@ -90,6 +99,7 @@ func refresh() -> void:
 		% [city.population, arrow, _percent(city.satisfaction)]
 	)
 	_details.tooltip_text = _explain_city(city_def, city, change)
+	_details.modulate.a = 1.0 if live else 0.55
 	var scarce := _scarce_goods(data, city)
 	if scarce.is_empty():
 		_needs.text = "Well supplied"
@@ -98,15 +108,17 @@ func refresh() -> void:
 		_needs.text = "Short of %s" % ", ".join(scarce.slice(0, MAX_SCARCE))
 		_needs.modulate = UiStyle.WARNING
 	_needs.tooltip_text = _explain_needs(data, city)
+	_needs.modulate.a = 1.0 if live else 0.55
 	var events: PackedStringArray = []
 	var day := _session.sim.day()
-	for event in EventSystem.active_in(_session.sim.world, city.id, day):
-		var parts := [
-			data.get_event(event.type_id).name,
-			EventText.effect(data, event),
-			EventText.time_left(event, day),
-		]
-		events.append("%s: %s (%s)" % parts)
+	if live:
+		for event in EventSystem.active_in(_session.sim.world, city.id, day):
+			var parts := [
+				data.get_event(event.type_id).name,
+				EventText.effect(data, event),
+				EventText.time_left(event, day),
+			]
+			events.append("%s: %s (%s)" % parts)
 	_events.text = "\n".join(events)
 	_events.visible = not events.is_empty()
 

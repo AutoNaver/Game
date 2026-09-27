@@ -55,6 +55,14 @@ func test_creating_a_route_in_the_editor() -> void:
 	assert_eq(_text("Route_route_1/Summary"), "Route 1: Lübeck → Danzig (no ships)")
 
 
+func test_route_editor_uses_last_known_prices() -> void:
+	_press("NewRoute")
+	_press("Stop_0_AddOrder")
+	assert_string_contains(_text("Stop_0_Order_0_KnownPrice"), "0d old")
+	_press("Stop_1_AddOrder")
+	assert_eq(_text("Stop_1_Order_0_KnownPrice"), "No report")
+
+
 func test_invalid_routes_stay_in_the_editor_with_the_reason() -> void:
 	_press("NewRoute")
 	_pick("Stop_1_City", _city_index("lubeck"))

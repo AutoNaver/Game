@@ -6,7 +6,7 @@
 data/*.json ──► sim/defs (GameDataLoader → GameData)       static, read-only
                         │
                         ▼
-               sim/state (WorldState, City, Market, Ship…)   mutable, serializable
+               sim/state (WorldState, City, MarketRecord, Ship…) mutable, serializable
                         ▲            │
       sim/commands ─────┘            │  read-only access
    (validate + apply)                ▼
@@ -50,16 +50,23 @@ trade and sail (`RivalSystem`, ADR 0008). Both issue ordinary commands through
 order: world events (`EventSystem`, ADR 0011), spoilage of goods in ships and kontors
 (`SpoilageSystem`), city production, the traders' workshops (`WorkshopSystem`), consumption, city
 satisfaction and population (`PopulationSystem`, ADR 0010), off-map trade (`OffMapTradeSystem`),
-`PriceHistorySystem`, which records each market's closing price for the UI's charts, and finally the rivals' daily step (kontor supplies, closing and expansion). Current
-prices are not stored: `Pricing` derives them from current stock whenever they are needed, so they
-can never go stale. The UI's speed setting decides how many ticks run per real second, so pausing
-is simply running zero ticks.
+`PriceHistorySystem`, which records each market's closing price for save compatibility, and finally
+the rivals' daily step (kontor supplies, closing and expansion). `MarketKnowledgeSystem` then
+refreshes reports where each trader has presence and appends observed prices or gaps to that
+trader's chart. Current market prices are derived from stock by `Pricing`; a `MarketRecord` stores
+the price and stock a trader last observed. Ships carry a snapshot from their departure port and
+exchange it with other houses' docked ships on arrival. The UI's speed setting decides how many
+ticks run per real second, so pausing is simply running zero ticks.
 
 Read-only queries such as `TradePlanner` (cargo suggestions, also the rivals' choice of load) and
 `HouseValue` (net worth) also live in `sim/`, so they are tested headless, but they never change
 state. Notifications (ship arrived, workshop stopped, a rival's new ship or workshop, events
 starting and ending, goods lost) are found by
 the UI's `GameSession`, which compares state before and after each step.
+
+The market panel, destination planner and route editor use the player's market book. Unknown cities
+have no quoted prices; remote reports show their observation day. Rivals use their own books for
+voyage choices. The player remains ashore in the starting city until M13 adds personal movement.
 
 ## Determinism
 
@@ -75,7 +82,9 @@ and are validated against the loaded `GameData` on load, then checked with `Econ
 Older versions are migrated in `from_dict()` (version 1 saves get an empty price history,
 version 1 and 2 saves get no trade routes, version 1 to 3 saves get the rival houses as they
 start, version 1 to 4 saves get neutral city satisfaction, and version 1 to 5 saves get no world
-events or spoilage carries). City populations change in play, so saves check them against the
+events or spoilage carries, and version 1 to 6 saves get a one-time report of every current market
+to preserve previously visible information). Version 7 saves market books and ship news. City
+populations change in play, so saves check them against the
 bounds in `data/population.json` rather than `data/cities.json`. Every trader in a save must be
 the player or a house from `data/rivals.json`, in that order (the player first, then the houses in
 data order), since the systems act in that order. Saves are named slots in `user://saves`, plus an

@@ -168,7 +168,9 @@ func _build_order(stop_index: int, order_index: int) -> HBoxContainer:
 		if good_def.id == order.good_id:
 			good.select(good.item_count - 1)
 	good.item_selected.connect(
-		func(item: int) -> void: order.good_id = _session.sim.data.goods[item].id
+		func(item: int) -> void:
+			order.good_id = _session.sim.data.goods[item].id
+			_rebuild()
 	)
 	row.add_child(good)
 	var quantity := _spin_box(prefix + "_Quantity", 1, MAX_QUANTITY, order.quantity)
@@ -182,6 +184,17 @@ func _build_order(stop_index: int, order_index: int) -> HBoxContainer:
 		limit.tooltip_text = "Price limit per unit; 0 means any price"
 		limit.value_changed.connect(func(value: float) -> void: order.price_limit = int(value))
 		row.add_child(limit)
+		var report: MarketRecord = _session.player().market_book.get(_stops[stop_index].city_id)
+		var seen := UiStyle.label("No report", UiStyle.MUTED_LABEL)
+		seen.name = prefix + "_KnownPrice"
+		if report != null:
+			var age := _session.sim.day() - report.day
+			seen.text = (
+				"%dd old: %d/%d"
+				% [age, report.buy_price[order.good_id], report.sell_price[order.good_id]]
+			)
+		seen.tooltip_text = "Last known buy/sell price per unit; 0 days means seen today"
+		row.add_child(seen)
 	var remove := Button.new()
 	remove.name = prefix + "_Remove"
 	remove.text = "×"
@@ -203,6 +216,7 @@ static func _spin_box(node_name: String, low: int, high: int, value: int) -> Spi
 
 func _on_city_selected(item: int, index: int) -> void:
 	_stops[index].city_id = _session.sim.data.cities[item].id
+	_rebuild()
 
 
 func _on_add_stop() -> void:

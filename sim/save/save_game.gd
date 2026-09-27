@@ -21,7 +21,9 @@ extends RefCounted
 ## workshops work slower); older saves load at neutral satisfaction and no progress.
 ## Version 6 added world events, next_event_number and ships' and kontors' spoil_carry (ADR 0011);
 ## older saves load with no events and no spoilage carried.
-const SAVE_VERSION: int = 6
+## Version 7 added a market book per trader and ships' departure reports. Older saves begin with
+## current reports for every city, then learn only where each trader has presence.
+const SAVE_VERSION: int = 7
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -54,7 +56,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 		)
 	var traders: Array = []
 	for trader in world.traders:
-		traders.append(_trader_to_dict(trader))
+		traders.append(_trader_to_dict(trader, world.cities))
 	var events: Array = []
 	for event in world.events:
 		(
@@ -174,8 +176,12 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 				world.events.append(event)
 	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
 	_read_cities(data, world, _array(save, "cities", "save"), version)
+	@warning_ignore("integer_division")
+	var current_day := world.hour / Simulation.HOURS_PER_DAY
 	for i in _array(save, "traders", "save").size():
-		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i, version)
+		var trader := _read_trader(
+			data, save["traders"][i], "traders[%d]" % i, version, current_day
+		)
 		if trader != null:
 			world.traders.append(trader)
 	if errors.is_empty() and world.player() == null:
@@ -187,9 +193,18 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 		for rival in data.rivals:
 			if world.get_trader(rival.id) == null:
 				Simulation.add_rival(world, rival)
+	if version < 7 and errors.is_empty():
+		_migrate_market_books(data, world)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
 		_check_trader_order(data, world)
+	if version >= 7 and errors.is_empty():
+		for trader in world.traders:
+			for city in data.cities:
+				if MarketKnowledgeSystem.has_presence(data, trader, city.id):
+					var report: MarketRecord = trader.market_book.get(city.id)
+					if report == null or report.day != current_day:
+						errors.append("%s needs a current report for %s" % [trader.id, city.id])
 	if errors.is_empty():
 		errors.append_array(EconomyInvariants.check(data, world))
 	return world if errors.is_empty() else null
@@ -253,7 +268,7 @@ func _see_id(seen: Dictionary[String, String], id: String, kind: String) -> void
 	seen[id] = kind
 
 
-static func _trader_to_dict(trader: TraderState) -> Dictionary:
+static func _trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Dictionary:
 	var ships: Array = []
 	for ship in trader.ships:
 		(
@@ -273,6 +288,7 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 					"route_stop": ship.route_stop,
 					"route_note": ship.route_note,
 					"spoil_carry": ship.spoil_carry.duplicate(),
+					"news": _market_to_dict(ship.news) if ship.news != null else null,
 				}
 			)
 		)
@@ -324,6 +340,10 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 				)
 			stops.append({"city": stop.city_id, "orders": orders})
 		routes.append({"id": route.id, "name": route.name, "stops": stops})
+	var market_book: Array = []
+	for city in cities:
+		if trader.market_book.has(city.id):
+			market_book.append(_market_to_dict(trader.market_book[city.id]))
 	return {
 		"id": trader.id,
 		"name": trader.name,
@@ -331,6 +351,25 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 		"ships": ships,
 		"kontors": kontors,
 		"routes": routes,
+		"market_book": market_book,
+	}
+
+
+static func _market_to_dict(record: MarketRecord) -> Dictionary:
+	var history: Dictionary = {}
+	for good_id: String in record.history:
+		history[good_id] = Array(record.history[good_id])
+	return {
+		"city": record.city_id,
+		"day": record.day,
+		"population": record.population,
+		"satisfaction": record.satisfaction,
+		"stock": record.stock.duplicate(),
+		"shortage": record.shortage.duplicate(),
+		"buy_price": record.buy_price.duplicate(),
+		"sell_price": record.sell_price.duplicate(),
+		"mid_price": record.mid_price.duplicate(),
+		"history": history,
 	}
 
 
@@ -418,7 +457,9 @@ func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String
 		city.price_history[good.id] = history
 
 
-func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int) -> TraderState:
+func _read_trader(
+	data: GameData, raw_value: Variant, ctx: String, version: int, current_day: int
+) -> TraderState:
 	if not raw_value is Dictionary:
 		errors.append("%s: must be an object" % ctx)
 		return null
@@ -439,6 +480,16 @@ func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int)
 			continue
 		if version >= 6:
 			ship.spoil_carry = _carry(data, ships[i] as Dictionary, "%s ships[%d]" % [ctx, i])
+		if version >= 7:
+			if not (ships[i] as Dictionary).has("news"):
+				errors.append("%s ships[%d]: missing news" % [ctx, i])
+			var news: Variant = (ships[i] as Dictionary).get("news")
+			if news != null:
+				ship.news = _read_market(data, news, "%s ships[%d] news" % [ctx, i], current_day)
+			if not ship.is_docked() and ship.news == null:
+				errors.append("%s ships[%d]: a sailing ship needs departure news" % [ctx, i])
+			elif not ship.is_docked() and ship.news.city_id != ship.origin:
+				errors.append("%s ships[%d]: departure news must be from the origin" % [ctx, i])
 		if version >= 3:
 			_read_ship_route(trader, ship, ships[i], "%s ships[%d]" % [ctx, i])
 		trader.ships.append(ship)
@@ -452,7 +503,100 @@ func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int)
 		if trader.kontors.has(kontor.city_id):
 			errors.append("%s kontors[%d]: second kontor in %s" % [ctx, i, kontor.city_id])
 		trader.kontors[kontor.city_id] = kontor
+	if version >= 7:
+		var book := _array(raw, "market_book", ctx)
+		for i in book.size():
+			var record := _read_market(data, book[i], "%s market_book[%d]" % [ctx, i], current_day)
+			if record == null:
+				continue
+			if trader.market_book.has(record.city_id):
+				errors.append("%s: duplicate market report for %s" % [ctx, record.city_id])
+			trader.market_book[record.city_id] = record
 	return trader
+
+
+## An untrusted market report: all goods must be present and prices stay within the good's
+## configured bounds. History may contain -1 gaps but no other negative prices.
+func _read_market(
+	data: GameData, raw_value: Variant, ctx: String, current_day: int
+) -> MarketRecord:
+	if not raw_value is Dictionary:
+		errors.append("%s: must be an object" % ctx)
+		return null
+	var raw: Dictionary = raw_value
+	var city_id := _string(raw, "city", ctx)
+	if not data.has_city(city_id):
+		errors.append("%s: unknown city '%s'" % [ctx, city_id])
+		return null
+	var record := MarketRecord.new(city_id, _int(raw, "day", ctx))
+	if record.day < 0 or record.day > current_day:
+		errors.append("%s: day %d outside 0 to %d" % [ctx, record.day, current_day])
+	record.population = _int(raw, "population", ctx)
+	record.satisfaction = _int(raw, "satisfaction", ctx)
+	if record.satisfaction < 0 or record.satisfaction > CityEconomy.PARTS_PER_UNIT:
+		errors.append("%s: satisfaction is out of range" % ctx)
+	var home := data.get_city(city_id).population
+	if (
+		record.population < data.population.min_population(home)
+		or record.population > data.population.max_population(home)
+	):
+		errors.append("%s: population %d outside the city's range" % [ctx, record.population])
+	for field: String in ["stock", "shortage", "buy_price", "sell_price", "mid_price"]:
+		var values := _goods(data, _dict(raw, field, ctx), "%s %s" % [ctx, field], true)
+		for good in data.goods:
+			if not values.has(good.id):
+				continue
+			var value := values[good.id]
+			var maximum := ceili(
+				good.base_price * data.economy.price_max_multiplier * (1.0 + data.economy.spread)
+			)
+			if field == "mid_price":
+				maximum = PriceHistorySystem.max_scaled_price(data.economy, good)
+			if value < 0 or (field in ["buy_price", "sell_price", "mid_price"] and value > maximum):
+				errors.append("%s %s %s: value %d is out of range" % [ctx, field, good.id, value])
+		match field:
+			"stock":
+				record.stock = values
+			"shortage":
+				record.shortage = values
+			"buy_price":
+				record.buy_price = values
+			"sell_price":
+				record.sell_price = values
+			"mid_price":
+				record.mid_price = values
+	var history := _dict(raw, "history", ctx)
+	for key: Variant in history.keys():
+		if not data.has_good(str(key)):
+			errors.append("%s history: unknown good '%s'" % [ctx, str(key)])
+	for good in data.goods:
+		if not history.has(good.id):
+			continue
+		var entries := _array(history, good.id, "%s history" % ctx)
+		if entries.size() > PriceHistorySystem.HISTORY_DAYS:
+			errors.append("%s history %s: more than 30 days" % [ctx, good.id])
+		var prices := PackedInt64Array()
+		for i in entries.size():
+			var value := _int(
+				{"price": entries[i]}, "price", "%s history %s[%d]" % [ctx, good.id, i]
+			)
+			if value < -1 or value > PriceHistorySystem.max_scaled_price(data.economy, good):
+				errors.append("%s history %s[%d]: price out of range" % [ctx, good.id, i])
+			prices.append(value)
+		record.history[good.id] = prices
+	return record
+
+
+func _migrate_market_books(data: GameData, world: WorldState) -> void:
+	@warning_ignore("integer_division")
+	var day := world.hour / Simulation.HOURS_PER_DAY
+	for trader in world.traders:
+		for city in world.cities:
+			trader.market_book[city.id] = MarketKnowledgeSystem.current_report(data, city, day)
+		for ship in trader.ships:
+			var source := ship.docked_at if ship.is_docked() else ship.origin
+			if data.has_city(source):
+				ship.news = trader.market_book[source].copy_report()
 
 
 func _read_ship(data: GameData, raw_value: Variant, ctx: String) -> ShipState:

@@ -4,7 +4,8 @@ extends RefCounted
 ## either end of the voyage (EventSystem.slowdown) lets a ship advance only every few hours.
 
 
-static func run_hour(data: GameData, world: WorldState) -> void:
+static func run_hour(data: GameData, world: WorldState) -> Array[ShipState]:
+	var arrivals: Array[ShipState] = []
 	for trader in world.traders:
 		for ship in trader.ships:
 			if ship.is_docked():
@@ -14,7 +15,9 @@ static func run_hour(data: GameData, world: WorldState) -> void:
 			ship.hours_sailed += 1
 			if ship.hours_sailed >= ship.voyage_hours:
 				ship.docked_at = ship.destination
+				arrivals.append(ship)
 				ship.origin = ""
 				ship.destination = ""
 				ship.voyage_hours = 0
 				ship.hours_sailed = 0
+	return arrivals

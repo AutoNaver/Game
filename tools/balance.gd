@@ -65,14 +65,19 @@ func _trade_and_sail(sim: Simulation, ship: ShipState) -> bool:
 	var best := _best_trade(sim, ship)
 	if best.is_empty():
 		return false
-	sim.execute(BuyCommand.new(player, ship.id, best["good"], best["quantity"]))
+	if best["quantity"] > 0:
+		sim.execute(BuyCommand.new(player, ship.id, best["good"], best["quantity"]))
 	return sim.execute(SailCommand.new(player, ship.id, best["to"])).is_empty()
 
 
 func _best_trade(sim: Simulation, ship: ShipState) -> Dictionary:
 	var economy := sim.data.economy
 	var ship_type := sim.data.get_ship(ship.type_id)
-	var here := sim.world.get_city(ship.docked_at)
+	var trader := sim.world.player()
+	var here_report: MarketRecord = trader.market_book.get(ship.docked_at)
+	if here_report == null:
+		return {}
+	var here := here_report.as_city()
 	var coins := sim.world.player().coins
 	var best := {}
 	var best_rate := 0.0
@@ -83,15 +88,23 @@ func _best_trade(sim: Simulation, ship: ShipState) -> Dictionary:
 		if quantity == 0:
 			continue
 		var cost := CityEconomy.buy_cost(economy, here, good, quantity)
-		for city in sim.world.cities:
-			if city.id == here.id:
+		for city_def in sim.data.cities:
+			if city_def.id == here.id:
 				continue
+			var report: MarketRecord = trader.market_book.get(city_def.id)
+			if report == null:
+				continue
+			var city := report.as_city()
 			var profit := CityEconomy.sell_revenue(economy, city, good, quantity) - cost
 			var hours := Navigation.travel_hours(sim.data, ship_type, here.id, city.id)
 			var rate := float(profit) / hours
 			if rate > best_rate:
 				best_rate = rate
 				best = {"good": good.id, "quantity": quantity, "to": city.id}
+	if best.is_empty():
+		for city in sim.data.cities:
+			if city.id != here.id and not trader.market_book.has(city.id):
+				return {"good": "", "quantity": 0, "to": city.id}
 	return best
 
 

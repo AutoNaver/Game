@@ -15,7 +15,12 @@ func _glut_simulation() -> Simulation:
 
 func _plan(sim: Simulation, space: int, coins: int) -> Array[TradePlanner.Option]:
 	var boat := sim.data.get_ship("boat")
-	return TradePlanner.plan(sim.data, sim.world, boat, "port", space, coins)
+	var trader := sim.world.player()
+	for city in sim.world.cities:
+		trader.market_book[city.id] = MarketKnowledgeSystem.current_report(
+			sim.data, city, sim.day()
+		)
+	return TradePlanner.plan(sim.data, trader, boat, "port", space, coins)
 
 
 func test_the_plan_matches_a_real_voyage() -> void:
@@ -51,7 +56,10 @@ func test_small_loads_that_only_pay_after_rounding_are_found() -> void:
 	SmallWorld.set_stock(sim, "lubeck", "grain", 138)
 	SmallWorld.set_stock(sim, "danzig", "grain", 4)
 	var cog := data.get_ship("cog")
-	var options := TradePlanner.plan(data, sim.world, cog, "lubeck", 50, 100000)
+	var trader := sim.world.player()
+	for city in sim.world.cities:
+		trader.market_book[city.id] = MarketKnowledgeSystem.current_report(data, city, sim.day())
+	var options := TradePlanner.plan(data, trader, cog, "lubeck", 50, 100000)
 	var to_danzig: Array = options.filter(
 		func(option: TradePlanner.Option) -> bool: return option.destination == "danzig"
 	)

@@ -65,7 +65,10 @@ static func best_venture(sim: Simulation, trader: TraderState, budget: int) -> V
 			cost = sim.data.kontor.price
 		elif not kontor.workshops.is_empty():
 			continue
-		var city := sim.world.get_city(city_def.id)
+		var report: MarketRecord = trader.market_book.get(city_def.id)
+		if report == null:
+			continue
+		var city := report.as_city()
 		var workforce := CityEconomy.workforce(sim.data.economy, city)
 		var free := CityEconomy.free_workers(sim.data, sim.world, city)
 		for type in sim.data.workshops:
@@ -122,7 +125,7 @@ static func _trade_and_sail(sim: Simulation, trader: TraderState, ship: ShipStat
 	var ship_type := sim.data.get_ship(ship.type_id)
 	var space := ship_type.capacity - ship.cargo_total()
 	var options := TradePlanner.plan(
-		sim.data, sim.world, ship_type, ship.docked_at, space, trader.coins
+		sim.data, trader, ship_type, ship.docked_at, space, trader.coins
 	)
 	var choice := pick_option(sim.world.rng, options, sim.data.rival_ai.top_choices)
 	var destination := ""
