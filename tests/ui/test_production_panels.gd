@@ -74,11 +74,11 @@ func test_building_several_workshops_in_one_frame_labels_each_one() -> void:
 	_session.advance(Simulation.HOURS_PER_DAY)
 	_press("Build_smithy")
 	_press("Build_weaving_mill")
-	var list := (_main.find_child("Workshop_workshop_1", true, false) as Label).get_parent()
+	var list := _main.find_child("Workshop_workshop_1", true, false).get_parent().get_parent()
 	var texts: Array[String] = []
-	for label in list.get_children():
-		if not label.is_queued_for_deletion():
-			texts.append((label as Label).text)
+	for row in list.get_children():
+		if not row.is_queued_for_deletion():
+			texts.append((row.get_child(0) as Label).text)
 	assert_eq(
 		texts,
 		[
@@ -87,6 +87,31 @@ func test_building_several_workshops_in_one_frame_labels_each_one() -> void:
 			"Weaving Mill: starts tomorrow",
 		]
 	)
+
+
+func test_closing_a_workshop() -> void:
+	_press("BuyKontor")
+	_press("Build_brewery")
+	_press("Close_workshop_1")
+	assert_eq(_player().get_kontor("lubeck").workshops.size(), 0)
+	await wait_process_frames(1)
+	assert_null(_main.find_child("Workshop_workshop_1", true, false), "its row is gone")
+
+
+func test_close_buttons_follow_a_loaded_game() -> void:
+	_press("BuyKontor")
+	_press("Build_brewery")
+	_press("SaveGame")
+	(_main.find_child("SaveName", true, false) as LineEdit).text = "One brewery"
+	_press("ConfirmSave")
+	_press("Close_workshop_1")
+	_press("Build_smithy")
+	await wait_process_frames(1)
+	_press("LoadGame")
+	_press("Slot_One_brewery")
+	await wait_process_frames(1)
+	_press("Close_workshop_1")
+	assert_eq(_player().get_kontor("lubeck").workshops.size(), 0, "the loaded brewery closed")
 
 
 func test_build_buttons_need_coins() -> void:
@@ -99,8 +124,10 @@ func test_build_buttons_need_coins() -> void:
 func test_buying_and_selling_ships() -> void:
 	_press("BuyShip_snaikka")
 	assert_eq(_player().ships.size(), 2)
-	assert_eq(_session.selected_ship, "ship_2", "the new ship is selected")
-	assert_string_contains(_button("SellShip").text, "Sell Snaikka 2 (+1800)")
+	# Ship ids and names are numbered across all houses; the rivals' ships come first.
+	var new_ship := _player().ships[1]
+	assert_eq(_session.selected_ship, new_ship.id, "the new ship is selected")
+	assert_string_contains(_button("SellShip").text, "Sell %s (+1800)" % new_ship.name)
 	var coins := _player().coins
 	_press("SellShip")
 	assert_eq(_player().ships.size(), 1)
@@ -130,8 +157,9 @@ func test_save_and_load_menus_restore_the_game() -> void:
 	assert_eq(_player().ships.size(), 2)
 	assert_not_null(_player().get_kontor("lubeck"))
 	assert_eq(_session.sim.world.hour, 0)
+	var new_ship_id := _player().ships[1].id
 	assert_not_null(
-		_main.find_child("Ship_ship_2", true, false), "fleet list shows the loaded ships"
+		_main.find_child("Ship_%s" % new_ship_id, true, false), "fleet list shows the loaded ships"
 	)
 
 

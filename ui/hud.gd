@@ -1,6 +1,7 @@
 class_name Hud
 extends PanelContainer
-## Top bar: the player's coins, the date, the latest message, save/load and time controls.
+## Top bar: the player's coins, the date, the latest message, the houses ranking, save/load and
+## time controls.
 
 var _session: GameSession
 var _coins_label: Label = Label.new()
@@ -24,6 +25,12 @@ func setup(session: GameSession) -> void:
 	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message_label.theme_type_variation = UiStyle.MESSAGE_LABEL
 	row.add_child(_message_label)
+	var houses := Button.new()
+	houses.name = "Houses"
+	houses.text = "Houses"
+	houses.tooltip_text = "Compare your trading house with the rival houses"
+	houses.pressed.connect(_session.houses_toggled.emit)
+	row.add_child(houses)
 	for action: Array in [["SaveGame", "Save", true], ["LoadGame", "Load", false]]:
 		var file_button := Button.new()
 		file_button.name = action[0]

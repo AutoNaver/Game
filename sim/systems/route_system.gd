@@ -49,7 +49,14 @@ static func _carry_out_order(
 				return "no room for %s" % good.name
 			if city.stock[good.id] <= 0:
 				return "no %s for sale" % good.name
-			quantity = _buy_quantity(sim, city, good, mini(order.quantity, room), order, trader)
+			quantity = CityEconomy.affordable_quantity(
+				sim.data.economy,
+				city,
+				good,
+				mini(order.quantity, room),
+				order.price_limit,
+				trader.coins
+			)
 			if quantity <= 0:
 				var limit := order.price_limit
 				if limit > 0 and _first_unit_price(sim, city, good) > limit:
@@ -89,30 +96,6 @@ static func _carry_out_order(
 
 static func _is_load(order: RouteOrder) -> bool:
 	return order.action == RouteOrder.Action.LOAD
-
-
-## Units to buy: up to `most`, while each unit stays within the price limit and the total, rounded
-## up as BuyCommand charges it, stays within the trader's coins.
-static func _buy_quantity(
-	sim: Simulation,
-	city: CityState,
-	good: GoodDef,
-	most: int,
-	order: RouteOrder,
-	trader: TraderState
-) -> int:
-	var factor := 1.0 + sim.data.economy.spread / 2.0
-	var total := 0.0
-	var quantity := 0
-	while quantity < mini(most, city.stock[good.id]):
-		var mid := _mid(sim, city, good, city.stock[good.id] - 1 - quantity)
-		if order.price_limit > 0 and mid * factor > order.price_limit:
-			break
-		if ceili((total + mid) * factor) > trader.coins:
-			break
-		total += mid
-		quantity += 1
-	return quantity
 
 
 ## Units to sell: up to `most`, while each unit fetches at least the price limit.

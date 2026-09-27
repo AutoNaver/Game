@@ -84,10 +84,10 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 ## M8: AI competitor traders
 
-- [ ] Rival trading houses (data-driven names, start cities, capital) that choose routes with the balance bot's logic and act through commands
-- [ ] Rivals buy ships and kontors as they grow; all their choices draw on the world RNG
-- [ ] Rivals list: coins, ships, kontors, so the player can measure progress
-- [ ] Rebalance with rivals active (soak, `tools/balance.gd`, off-map rates), recorded in an ADR
+- [x] Rival trading houses (data-driven names, start cities, capital) that choose routes with the balance bot's logic and act through commands (`data/rivals.json`, `RivalSystem`, ADR 0008)
+- [x] Rivals buy ships and kontors as they grow; all their choices draw on the world RNG (and close losing workshops with the new `CloseWorkshopCommand`, also in the kontor panel)
+- [x] Rivals list: coins, ships, kontors, so the player can measure progress (HUD "Houses", ranked by net worth, `HouseValue`; rival news in the log; rival ships on the map)
+- [x] Rebalance with rivals active (soak, `tools/balance.gd`, off-map rates), recorded in an ADR (ADR 0008: `export_rate` 1.0 → 0.6; save version 4)
 
 ## M9: City needs and growth
 
@@ -110,10 +110,47 @@ Automates the core loop once the player runs more ships than they want to sail b
 - [ ] New goods (furs, wax, honey, pitch) with producers and consumers
 - [ ] Rebalance, and the map fits the larger area
 
+## Progression (ADR 0009)
+
+From skipper to trading house: growth unlocks capabilities instead of only adding coins. Owner
+decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks are hard gates.
+
+## M12: Market knowledge
+
+- [ ] Market book per trader: last seen prices and stocks per city with the day seen, saved
+- [ ] Live prices only with presence (the player in person, a docked ship, a kontor); last known prices and their age elsewhere
+- [ ] Ships update the book when they dock, plus harbour gossip from other houses' ships in port
+- [ ] Market panel, trade planner, route editor and tooltips show age and use the book, not the true market
+- [ ] Rivals plan from their own books; rebalance and record in an ADR
+
+## M13: Captains
+
+- [ ] The player as a person: aboard a ship or ashore in a city; moving between ships in port
+- [ ] Ships need a captain to sail; tavern pools per city (weekly, world RNG), hiring and daily wages
+- [ ] Captain skills (seamanship: voyage time, trading: spread) that improve with voyages
+- [ ] Only captained ships follow routes; rivals hire from the same taverns
+- [ ] Saves migrate old games (a captain for every ship); rebalance
+- [ ] Bankruptcy: unpaid wages put a house in debt, a grace period, then bankruptcy; a warning in the UI; game over for the player (load or new game), a bankrupt rival leaves the game and its assets are sold off (to buyers from M15)
+
+## M14: Reputation, ranks and factors
+
+- [ ] Reputation per city from supplying shortages, employing workers and holding a kontor
+- [ ] Ranks from net worth and reputation (`data/ranks.json`) as hard gates: commands refuse locked actions with the rank needed, and the UI shows them locked; shown in the houses panel
+- [ ] Kontor factor: standing buy/sell orders at a kontor, run through the trade commands
+- [ ] Rivals rise through the same ranks
+
+## M15: Acquisitions
+
+- [ ] Buy a rival's ship or kontor (with workshops and stock) at value times a premium; the rival accepts or refuses with a reason
+- [ ] Buy out a whole house when far ahead; its assets pass to the buyer and it leaves the game
+- [ ] Rivals buy from each other, and can make offers to the player
+- [ ] Acquisitions move only coins and ownership; invariants and saves cover removed houses
+- [ ] A bankrupt rival's ships and kontors go up for sale at a discount before being sold off
+
 ## Backlog (deferred review findings and small follow-ups)
 
 Deferred P2 review findings go here, with the PR they came from.
 
 ## Later (parked, see GAME_DESIGN "After the MVP")
 
-Reputation and ranks (unlocking loans and banking), convoys with pirates and combat, politics.
+Loans and banking, convoys with pirates and combat, politics.

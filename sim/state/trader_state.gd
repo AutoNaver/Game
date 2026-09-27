@@ -1,6 +1,7 @@
 class_name TraderState
 extends RefCounted
-## A trading house: the player now, AI competitors later. Both act only through commands.
+## A trading house: the player or an AI rival (RivalDef, RivalSystem). Both act only through
+## commands.
 
 var id: String
 var name: String

@@ -14,11 +14,16 @@ var workshops: Array[WorkshopDef] = []
 var goods: Array[GoodDef] = []
 var cities: Array[CityDef] = []
 var ships: Array[ShipDef] = []
+## Rival trading houses, in file order. Empty means the player trades alone.
+var rivals: Array[RivalDef] = []
+## Shared rules for the rivals' decisions. Null only when there are no rivals.
+var rival_ai: RivalAiDef
 
 var _goods_by_id: Dictionary[String, GoodDef] = {}
 var _cities_by_id: Dictionary[String, CityDef] = {}
 var _ships_by_id: Dictionary[String, ShipDef] = {}
 var _workshops_by_id: Dictionary[String, WorkshopDef] = {}
+var _rivals_by_id: Dictionary[String, RivalDef] = {}
 
 
 func add_good(good: GoodDef) -> void:
@@ -79,3 +84,18 @@ func has_workshop(id: String) -> bool:
 ## Returns null for unknown ids.
 func get_workshop(id: String) -> WorkshopDef:
 	return _workshops_by_id.get(id)
+
+
+func add_rival(rival: RivalDef) -> void:
+	assert(not has_rival(rival.id), "duplicate rival id '%s'" % rival.id)
+	rivals.append(rival)
+	_rivals_by_id[rival.id] = rival
+
+
+func has_rival(id: String) -> bool:
+	return _rivals_by_id.has(id)
+
+
+## Returns null for unknown ids (including the player's).
+func get_rival(id: String) -> RivalDef:
+	return _rivals_by_id.get(id)

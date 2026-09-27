@@ -79,6 +79,28 @@ static func sell_revenue(economy: EconomyDef, city: CityState, good: GoodDef, qu
 	return Pricing.sell_revenue(economy, good.base_price, target, city.stock[good.id], quantity)
 
 
+## Units of `good` a trader can buy here: up to `most`, while each unit's price after the spread
+## stays within `unit_limit` (0 means any price) and the total, rounded up as BuyCommand charges it,
+## stays within `coins`. Units are priced as Pricing prices them, top of the stock first.
+static func affordable_quantity(
+	economy: EconomyDef, city: CityState, good: GoodDef, most: int, unit_limit: float, coins: int
+) -> int:
+	var target := target_stock(economy, city, good)
+	var factor := 1.0 + economy.spread / 2.0
+	var stock: int = city.stock[good.id]
+	var total := 0.0
+	var quantity := 0
+	while quantity < mini(most, stock):
+		var mid := Pricing.mid_price(economy, good.base_price, target, stock - 1 - quantity)
+		if unit_limit > 0.0 and mid * factor > unit_limit:
+			break
+		if ceili((total + mid) * factor) > coins:
+			break
+		total += mid
+		quantity += 1
+	return quantity
+
+
 ## People in the city available to work in traders' workshops.
 static func workforce(economy: EconomyDef, city: CityState) -> int:
 	@warning_ignore("integer_division")

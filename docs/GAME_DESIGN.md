@@ -62,10 +62,20 @@ ledger like consumption ([ADR 0006](adr/0006-event-losses-and-spoilage.md)).
 bring goods to cities that are short and take away surpluses, in proportion to how far the stock is
 from its target. A city that makes nothing settles near a third of its target stock (about 1.4× base
 price), and producers settle below their cap. The gap between them is the player's opportunity.
-AI competitors come after the MVP. Details and balance targets:
-[ADR 0005](adr/0005-off-map-trade-and-balance.md).
+Details and balance targets: [ADR 0005](adr/0005-off-map-trade-and-balance.md).
 
-## Player progression (MVP)
+## Rival trading houses (M8)
+
+Three rival houses (Veckinchusen from Danzig, Castorp from Stockholm and Wulflam from Visby,
+`data/rivals.json`) start like the player: one cog and 5000 coins. Their ships trade greedily
+with a little randomness, selling everything on arrival and carrying one of the best few loads.
+Every few weeks a house buys a ship or sets up a workshop in a kontor, and closes workshops that
+stop paying. They use the same commands, prices and workers as the player, so they compete for
+the same cheap goods and the same scarce markets. The HUD's **Houses** button ranks every house
+by net worth, and the log reports the rivals' new ships and workshops. Details and balance:
+[ADR 0008](adr/0008-rival-trading-houses.md).
+
+## Player progression (today)
 
 - Start: one small ship, some coins, docked in Lübeck.
 - Buy more and larger ships.
@@ -74,13 +84,36 @@ AI competitors come after the MVP. Details and balance targets:
   daily wages. Unpaid workers stay home. Details: [ADR 0004](adr/0004-player-production.md).
 - Set up **trade routes** (M7): a loop of stops with buy, sell, load and unload orders and price
   limits, which ships then sail on their own. Details: [ADR 0007](adr/0007-trade-routes.md).
+- **Close** a workshop that doesn't pay (M8): its workers leave and its wages stop.
+- Measure yourself against the rival houses' net worth (M8).
+
+## Progression plan: from skipper to trading house (M12 to M15)
+
+Today everything is unlocked from the first day. The plan in
+[ADR 0009](adr/0009-progression.md) makes growth a sequence of new capabilities:
+
+1. **What you know (M12).** You see live prices only where you have presence: you in person, a
+   docked ship or a kontor. Elsewhere you see your last known prices and their age. Ships bring
+   news and harbour gossip; the planner works from what you know. Rivals follow the same rules.
+2. **Who sails for you (M13).** You start as the captain of your own ship. More ships need hired
+   captains (tavern pools, wages, seamanship and trading skills that improve with voyages), and
+   only captained ships follow trade routes.
+3. **Where you are established (M14).** Kontors also give presence and a factor with standing
+   orders. Reputation per city and ranks (Skipper, Merchant, Trading house, Councillor, Alderman)
+   gate kontors abroad, larger ships and later actions.
+4. **Who you have beaten (M15).** Buy a struggling rival's ships or kontors, and eventually buy
+   out a whole house. Rivals can do the same to each other.
+
+Houses can go **bankrupt** when they can't pay wages for about a week: the player loses (load a
+save or start over), and a bankrupt rival leaves the game with its assets sold off.
 
 ## After the MVP
 
 The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
 time, each with its own roadmap milestone: readable markets and quality of life (M6), trade routes
 (M7), AI competitor traders (M8), city needs and growth (M9), events and spoilage (M10) and more
-cities and goods (M11). Still parked: reputation and ranks, loans and banking, convoys and combat,
+cities and goods (M11). The progression plan (M12 to M15) brings in market knowledge, captains,
+reputation and ranks, and acquisitions. Still parked: loans and banking, convoys and combat,
 politics.
 
 ## Open questions
@@ -88,6 +121,5 @@ politics.
 - Do sell prices also react to the *player's* recent sales (market memory), or only to stock?
 - How visible should city needs be? A satisfaction meter, or just prices?
 - Map presentation: stylized painted map or clean schematic?
-- Market knowledge: should prices stay visible everywhere (as now), or only where the player has a
-  ship or kontor, with remembered prices elsewhere? Decide before trade routes and AI traders lean
-  on it.
+- Market knowledge: decided in [ADR 0009](adr/0009-progression.md) (live prices only with
+  presence, remembered prices elsewhere), built in M12.

@@ -1,0 +1,76 @@
+{
+  "ai": {
+    "top_choices": 0,
+    "cash_reserve": -5,
+    "max_ships": 2,
+    "max_kontors": 0,
+    "expansion_days": 7,
+    "workshop_input_days": 3,
+    "input_price_limit": 1.1,
+    "keep_free_workers": 1.0,
+    "mood": "greedy"
+  },
+  "houses": [
+    {
+      "id": "player",
+      "name": "Impostor",
+      "color": "#ffffff",
+      "start_city": "lubeck",
+      "coins": 100,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "A"
+        }
+      ]
+    },
+    {
+      "id": "castorp",
+      "name": "Castorp",
+      "color": "greenish",
+      "start_city": "atlantis",
+      "coins": 0,
+      "ships": []
+    },
+    {
+      "id": "castorp",
+      "name": "Castorp again",
+      "color": "#00ff00",
+      "start_city": "lubeck",
+      "coins": 100,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "B"
+        }
+      ]
+    },
+    {
+      "id": "castorp",
+      "name": "Castorp twice",
+      "color": "#00ff00",
+      "start_city": "lubeck",
+      "coins": 100,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "D"
+        }
+      ]
+    },
+    {
+      "id": "hertze",
+      "name": "Twin",
+      "color": "#00ff00",
+      "start_city": "lubeck",
+      "coins": 100,
+      "ships": [
+        {
+          "type": "galleon",
+          "name": "C"
+        }
+      ]
+    },
+    "house"
+  ]
+}

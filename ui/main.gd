@@ -3,7 +3,7 @@ extends Control
 ## with the start screen and save menu on top.
 ## If the data is broken, shows every loader error instead of a half-working game.
 
-## Fixed for now: nothing draws from the RNG yet, so every new game is the same.
+## Fixed for now, so every new game plays out the same (the rivals draw on the world RNG).
 const NEW_GAME_SEED: int = 1
 const SIDE_PANEL_WIDTH: float = 420.0
 
@@ -61,6 +61,12 @@ func _ready() -> void:
 		Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 12
 	)
 	log_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var houses := HousesPanel.new()
+	houses.name = "HousesPanel"
+	map.add_child(houses)
+	houses.setup(session)
+	houses.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 12)
+	houses.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 
 	var save_menu := SaveMenu.new()
 	save_menu.name = "SaveMenu"
