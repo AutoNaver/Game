@@ -41,7 +41,7 @@ Work top to bottom unless the owner reprioritizes.
 - [x] Fleet list and ship details (cargo, destination, ETA), plus "Sail to" with travel times (`FleetPanel`)
 - [x] HUD: coins, date; time controls (pause, 1×, 2×, 4×); last command error (`Hud`, `GameSession`)
 - [x] Real Baltic map: Natural Earth coastline rendered by `tools/map/render_map.py`; cities at real coordinates; map units are km; zoom and pan
-- [ ] Sea lanes: ships follow waypoint routes around the coasts instead of crossing land
+- [x] Sea lanes: ships follow the shortest waypoint route around the coasts (`data/sea_lanes.json`, `SeaChart`); a test checks every lane against the rendered coastline
 - [ ] UI theme pass: consistent Hanseatic look for panels and buttons
 - [ ] **Owner play-test**, with feedback turned into roadmap items
 

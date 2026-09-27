@@ -61,11 +61,11 @@ func _draw_city(city: CityDef) -> void:
 	_draw_label(at + Vector2(CITY_RADIUS + 5.0, 5.0), city.name, 16)
 
 
+## The rest of the ship's voyage along the sea lanes.
 func _draw_route(ship: ShipState) -> void:
-	var data := _session.sim.data
-	var from := to_screen(Navigation.position(data, ship))
-	var to := to_screen(data.get_city(ship.destination).map_position)
-	draw_dashed_line(from, to, ROUTE_COLOR, 2.0, 6.0)
+	var points := Navigation.remaining_route(_session.sim.data, ship)
+	for i in range(1, points.size()):
+		draw_dashed_line(to_screen(points[i - 1]), to_screen(points[i]), ROUTE_COLOR, 2.0, 6.0)
 
 
 func _draw_ship(ship: ShipState) -> void:

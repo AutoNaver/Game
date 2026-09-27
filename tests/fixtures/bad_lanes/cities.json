@@ -1,0 +1,5 @@
+[
+  { "id": "lubeck", "name": "Lübeck", "coordinates": [10.687, 53.866], "population": 12000, "production": {} },
+  { "id": "danzig", "name": "Danzig", "coordinates": [18.646, 54.352], "population": 9000, "production": {} },
+  { "id": "visby", "name": "Visby", "coordinates": [18.295, 57.634], "population": 5000, "production": {} }
+]

@@ -127,9 +127,44 @@ func test_missing_directory_reports_each_file() -> void:
 		assert_string_contains(message, ": file not found at %s/" % MISSING_DIR)
 		files.append(message.get_slice(":", 0))
 	var expected_files: Array[String] = [
-		"economy.json", "goods.json", "map.json", "cities.json", "ships.json", "scenario.json"
+		"economy.json",
+		"goods.json",
+		"map.json",
+		"cities.json",
+		"sea_lanes.json",
+		"ships.json",
+		"scenario.json",
 	]
 	assert_eq(files, expected_files)
+
+
+func test_sea_lanes_are_validated() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_lanes"))
+	var expected: Array[String] = [
+		"sea_lanes.json waypoints[1]: duplicate id 'bay' (ids are shared with cities)",
+		"sea_lanes.json waypoints[2]: duplicate id 'danzig' (ids are shared with cities)",
+		(
+			"sea_lanes.json waypoints[3]: 'coordinates' must lie within the map"
+			+ " (lon 8.0..30.5, lat 53.2..61.5)"
+		),
+		"sea_lanes.json lanes[1]: unknown node 'atlantis'",
+		"sea_lanes.json lanes[2]: a lane must join two different nodes",
+		"sea_lanes.json lanes[3]: duplicate lane bay-lubeck",
+		"sea_lanes.json lanes[4]: a lane must be an array of two node ids",
+		"sea_lanes.json: no sea route from lubeck to danzig",
+		"sea_lanes.json: no sea route from lubeck to visby",
+	]
+	assert_eq(Array(loader.errors), expected)
+
+
+func test_shipped_sea_lanes_connect_every_city() -> void:
+	var data := GameDataLoader.new().load_dir(GameDataLoader.DEFAULT_DIR)
+	for from_city in data.cities:
+		for to_city in data.cities:
+			if from_city != to_city:
+				var route := data.sea_chart.route(from_city.id, to_city.id)
+				assert_gt(route.size(), 2, "%s-%s goes via waypoints" % [from_city.id, to_city.id])
 
 
 func test_map_frame_must_be_ordered() -> void:
@@ -160,6 +195,7 @@ func test_wrong_top_level_type_is_reported() -> void:
 			"economy.json: top level must be an object",
 			"goods.json: top level must be an array",
 			"map.json: top level must be an object",
+			"sea_lanes.json: top level must be an object",
 			"ships.json: top level must be an array",
 			"scenario.json: top level must be an object",
 		]

@@ -1,0 +1,16 @@
+{
+  "waypoints": [
+    { "id": "bay", "coordinates": [10.95, 54.02] },
+    { "id": "bay", "coordinates": [11.0, 54.0] },
+    { "id": "danzig", "coordinates": [18.7, 54.5] },
+    { "id": "far", "coordinates": [40, 0] }
+  ],
+  "lanes": [
+    ["lubeck", "bay"],
+    ["bay", "atlantis"],
+    ["bay", "bay"],
+    ["bay", "lubeck"],
+    ["danzig"],
+    ["danzig", "visby"]
+  ]
+}

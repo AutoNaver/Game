@@ -7,6 +7,7 @@ extends RefCounted
 var economy: EconomyDef
 var scenario: ScenarioDef
 var map: MapDef
+var sea_chart: SeaChart
 var goods: Array[GoodDef] = []
 var cities: Array[CityDef] = []
 var ships: Array[ShipDef] = []

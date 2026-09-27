@@ -1,0 +1,4 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40, "consumption_per_1000": 3.0 },
+  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140, "consumption_per_1000": 0 }
+]
