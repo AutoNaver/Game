@@ -1,0 +1,82 @@
+class_name PopulationSystem
+extends RefCounted
+## Daily city satisfaction and population change (ADR 0010).
+##
+## Runs after consumption, so a good that ran out today counts as not supplied at all. Each good's
+## supply is its stock against its target (capped at 1), and the day's supply score averages them
+## weighted by what the townsfolk spend on each good (daily demand × base price), so running out
+## of grain hurts more than running out of wine. Satisfaction moves a share of the way towards
+## that score every day, and the population moves a share of the way towards what that
+## satisfaction sustains (PopulationDef). Everything is integer arithmetic, in millionths.
+##
+## People with jobs in traders' workshops stay: a city never shrinks below the population whose
+## workforce covers the workers already employed, so no workshop loses its workers.
+
+## Goods whose supply is below this share of their target are listed as scarce in the city panel.
+const SCARCE_SUPPLY: float = 0.5
+
+
+static func run_day(data: GameData, world: WorldState) -> void:
+	var population := data.population
+	var weight_steps := CityEconomy.rate_steps(population.satisfaction_weight)
+	var growth_steps := CityEconomy.rate_steps(population.growth_rate)
+	for city in world.cities:
+		var score := supply_score(data, city)
+		@warning_ignore("integer_division")
+		city.satisfaction += (score - city.satisfaction) * weight_steps / CityEconomy.RATE_STEPS
+		var gap := sustainable_population(data, city) - city.population
+		@warning_ignore("integer_division")
+		var change := gap * growth_steps / CityEconomy.RATE_STEPS
+		city.population = maxi(city.population + change, worker_floor(data, world, city))
+
+
+## How well the market covers today's needs, in millionths: 1 000 000 when every good is at or
+## above its target, 0 when every good has run out.
+static func supply_score(data: GameData, city: CityState) -> int:
+	var weighted := 0
+	var total_weight := 0
+	for good in data.goods:
+		# Spending per head: every good's demand scales with the same population, so it cancels.
+		var weight := CityEconomy.rate_steps(good.consumption_per_1000) * good.base_price
+		if weight == 0:
+			continue
+		total_weight += weight
+		weighted += weight * supply(data.economy, city, good)
+	if total_weight == 0:
+		return CityEconomy.PARTS_PER_UNIT
+	@warning_ignore("integer_division")
+	return weighted / total_weight
+
+
+## Stock of `good` against its target, capped at the target, in millionths.
+static func supply(economy: EconomyDef, city: CityState, good: GoodDef) -> int:
+	var target := CityEconomy.target_stock(economy, city, good)
+	@warning_ignore("integer_division")
+	return mini(city.stock[good.id], target) * CityEconomy.PARTS_PER_UNIT / target
+
+
+## The population the city's current satisfaction sustains, within the bounds around its home
+## population.
+static func sustainable_population(data: GameData, city: CityState) -> int:
+	var population := data.population
+	var home := data.get_city(city.id).population
+	var neutral := CityEconomy.to_parts(population.neutral_satisfaction)
+	var sensitivity := CityEconomy.rate_steps(population.sensitivity)
+	@warning_ignore("integer_division")
+	var factor := (
+		CityEconomy.PARTS_PER_UNIT
+		+ (city.satisfaction - neutral) * sensitivity / CityEconomy.RATE_STEPS
+	)
+	@warning_ignore("integer_division")
+	var sustained := home * factor / CityEconomy.PARTS_PER_UNIT
+	return clampi(sustained, population.min_population(home), population.max_population(home))
+
+
+## Fewest people whose workforce still covers the workers employed in traders' workshops here.
+static func worker_floor(data: GameData, world: WorldState, city: CityState) -> int:
+	var employed := CityEconomy.workers_employed(data, world, city.id)
+	var share := CityEconomy.rate_steps(data.economy.workforce_share)
+	if employed == 0 or share == 0:
+		return 0
+	@warning_ignore("integer_division")
+	return (employed * CityEconomy.RATE_STEPS + share - 1) / share

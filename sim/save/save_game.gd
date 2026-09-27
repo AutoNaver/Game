@@ -16,7 +16,9 @@ extends RefCounted
 ## saves load without routes.
 ## Version 4 added the rival houses (ADR 0008). Their shape is an ordinary trader's; older saves
 ## get every rival added as it starts a new game.
-const SAVE_VERSION: int = 4
+## Version 5 added cities' satisfaction, and population may differ from data/cities.json within
+## the bounds of data/population.json (ADR 0010); older saves load at neutral satisfaction.
+const SAVE_VERSION: int = 5
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -37,6 +39,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 				{
 					"id": city.id,
 					"population": city.population,
+					"satisfaction": city.satisfaction,
 					"stock": city.stock.duplicate(),
 					"production_carry": city.production_carry.duplicate(),
 					"consumption_carry": city.consumption_carry.duplicate(),
@@ -289,13 +292,23 @@ func _read_cities(data: GameData, world: WorldState, cities: Array, version: int
 		if id != data.cities[i].id:
 			errors.append("%s: expected city '%s', got '%s'" % [ctx, data.cities[i].id, id])
 			continue
-		# Population is static data for now; accepting another value would bypass the loader's
-		# overflow checks on population × rates.
+		# Only the range a city can reach in play: larger values would bypass the loader's overflow
+		# checks on population × rates.
 		var population := _int(raw, "population", ctx)
-		if population != data.cities[i].population:
-			var expected := data.cities[i].population
-			errors.append("%s: population %d, the game has %d" % [ctx, population, expected])
+		var home := data.cities[i].population
+		var lowest := data.population.min_population(home)
+		var highest := data.population.max_population(home)
+		if population < lowest or population > highest:
+			var bounds := [ctx, population, lowest, highest]
+			errors.append("%s: population %d outside %d to %d" % bounds)
 		var city := CityState.new(id, population)
+		if version >= 5:
+			city.satisfaction = _int(raw, "satisfaction", ctx)
+			if city.satisfaction < 0 or city.satisfaction > CityEconomy.PARTS_PER_UNIT:
+				var limit := CityEconomy.PARTS_PER_UNIT
+				errors.append("%s: satisfaction %d outside 0 to %d" % [ctx, city.satisfaction, limit])
+		else:
+			city.satisfaction = CityEconomy.to_parts(data.population.neutral_satisfaction)
 		city.stock = _goods(data, _dict(raw, "stock", ctx), "%s stock" % ctx, true)
 		city.production_carry = _goods(
 			data, _dict(raw, "production_carry", ctx), "%s production_carry" % ctx, true

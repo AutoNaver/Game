@@ -13,6 +13,7 @@ const DEFAULT_DIR: String = "res://data"
 const ECONOMY_FILE: String = "economy.json"
 const GOODS_FILE: String = "goods.json"
 const MAP_FILE: String = "map.json"
+const POPULATION_FILE: String = "population.json"
 const CITIES_FILE: String = "cities.json"
 const SEA_LANES_FILE: String = "sea_lanes.json"
 const SHIPS_FILE: String = "ships.json"
@@ -30,6 +31,14 @@ const ECONOMY_FIELDS: PackedStringArray = [
 	"workforce_share",
 	"import_rate",
 	"export_rate",
+]
+const POPULATION_FIELDS: PackedStringArray = [
+	"satisfaction_weight",
+	"neutral_satisfaction",
+	"sensitivity",
+	"growth_rate",
+	"min_factor",
+	"max_factor",
 ]
 const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
@@ -87,6 +96,10 @@ func load_dir(dir: String) -> GameData:
 	var economy: Variant = _read_json(dir.path_join(ECONOMY_FILE), TYPE_DICTIONARY)
 	if economy != null:
 		data.economy = _parse_economy(economy as Dictionary, ECONOMY_FILE)
+
+	var population: Variant = _read_json(dir.path_join(POPULATION_FILE), TYPE_DICTIONARY)
+	if population != null:
+		data.population = _parse_population(population as Dictionary, POPULATION_FILE)
 
 	var goods := _read_array(dir.path_join(GOODS_FILE))
 	for i in goods.size():
@@ -206,6 +219,26 @@ func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
 	)
 
 
+func _parse_population(entry: Dictionary, ctx: String) -> PopulationDef:
+	var error_count := errors.size()
+	_check_fields(entry, POPULATION_FIELDS, ctx)
+	var weight := _get_float_between(entry, "satisfaction_weight", 0.0, 1.0, ctx, false, true)
+	_check_rate_resolution(weight, "satisfaction_weight", ctx)
+	var neutral := _get_float_between(entry, "neutral_satisfaction", 0.0, 1.0, ctx, true, true)
+	_check_rate_resolution(neutral, "neutral_satisfaction", ctx)
+	var sensitivity := _get_float_between(entry, "sensitivity", 0.0, 10.0, ctx, true)
+	_check_rate_resolution(sensitivity, "sensitivity", ctx)
+	var growth := _get_float_between(entry, "growth_rate", 0.0, 1.0, ctx, true, true)
+	_check_rate_resolution(growth, "growth_rate", ctx)
+	var min_factor := _get_float_between(entry, "min_factor", 0.0, 1.0, ctx, false, true)
+	_check_rate_resolution(min_factor, "min_factor", ctx)
+	var max_factor := _get_float_between(entry, "max_factor", 1.0, 100.0, ctx, true)
+	_check_rate_resolution(max_factor, "max_factor", ctx)
+	if errors.size() > error_count:
+		return null
+	return PopulationDef.new(weight, neutral, sensitivity, growth, min_factor, max_factor)
+
+
 func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 	if not raw is Dictionary:
 		_error(ctx, "entry must be an object")
@@ -271,10 +304,12 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 ## Fields that are fine on their own can multiply into a stock cap (population × consumption ×
 ## days of cover × cap factor) too large for int. Reject that here, not at the first production day.
 func _check_stock_caps(city: CityDef, data: GameData, ctx: String) -> void:
-	if data.economy == null:
+	if data.economy == null or data.population == null:
 		return
+	# Cities can grow to max_factor × their home population, so check the largest they can be.
+	var largest := city.population * data.population.max_factor
 	for good in data.goods:
-		var daily := city.population / 1000.0 * good.consumption_per_1000
+		var daily := largest / 1000.0 * good.consumption_per_1000
 		var cap := daily * data.economy.days_of_cover * data.economy.stock_cap_factor
 		if cap > MAX_INT_VALUE:
 			var message := "stock cap for '%s' exceeds %d units; lower population or consumption"
@@ -644,6 +679,7 @@ func _get_float_between(
 	high: float,
 	ctx: String,
 	low_inclusive: bool = false,
+	high_inclusive: bool = false,
 ) -> float:
 	if not entry.has(field):
 		return 0.0
@@ -651,10 +687,12 @@ func _get_float_between(
 	if value is int or value is float:
 		var number := float(value)
 		var above_low := number >= low if low_inclusive else number > low
-		if above_low and number < high:
+		var below_high := number <= high if high_inclusive else number < high
+		if above_low and below_high:
 			return number
 	var bound := "at least" if low_inclusive else "greater than"
-	_error(ctx, "'%s' must be a number %s %s and less than %s" % [field, bound, low, high])
+	var upper := "at most" if high_inclusive else "less than"
+	_error(ctx, "'%s' must be a number %s %s and %s %s" % [field, bound, low, upper, high])
 	return 0.0
 
 

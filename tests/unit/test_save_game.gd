@@ -106,13 +106,12 @@ func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
 	save["traders"][0]["kontors"][0]["cargo"]["amber"] = 3
 	save["cities"][0]["population"] = -500
 	save["cities"][1]["id"] = "riga"
-	var population: int = sim.data.cities[0].population
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(
 		Array(loader.errors),
 		[
-			"cities[0]: population -500, the game has %d" % population,
+			"cities[0]: population -500 outside 500 to 2000",
 			"cities[1]: expected city 'town', got 'riga'",
 			"traders[0] ships[0]: unknown ship type 'galleon'",
 			"traders[0] kontors[0] cargo: unknown good 'amber'",
