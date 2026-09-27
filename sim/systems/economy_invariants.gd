@@ -41,8 +41,10 @@ static func _check_ship(data: GameData, hour: int, ship: ShipState) -> PackedStr
 	for good_id: String in ship.cargo.keys():
 		if not data.has_good(good_id) or ship.cargo[good_id] <= 0:
 			violations.append("%s: bad cargo entry %s=%d" % [where, good_id, ship.cargo[good_id]])
-	var capacity := data.get_ship(ship.type_id).capacity
-	if ship.cargo_total() > capacity:
+	if not data.has_ship(ship.type_id):
+		violations.append("%s: unknown ship type '%s'" % [where, ship.type_id])
+	elif ship.cargo_total() > data.get_ship(ship.type_id).capacity:
+		var capacity := data.get_ship(ship.type_id).capacity
 		violations.append("%s: cargo %d over capacity %d" % [where, ship.cargo_total(), capacity])
 	if ship.is_docked():
 		if not data.has_city(ship.docked_at):

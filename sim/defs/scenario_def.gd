@@ -3,8 +3,10 @@ extends RefCounted
 ## How a new game starts, loaded from data/scenario.json.
 
 
+## One ship of the player's starting fleet: which type it is and what it is called.
 class StartingShip:
 	extends RefCounted
+	## A ShipDef id.
 	var type_id: String
 	var name: String
 
