@@ -2,7 +2,8 @@
 
 A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4.
 
-Status: **MVP (M0–M5)**: trade, ships, kontors, workshops, save/load. See [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: **M7**: the MVP (trade, ships, kontors, workshops, save/load) plus readable markets, cargo
+ideas, notifications, save slots and trade routes. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Requirements
 

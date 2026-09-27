@@ -76,11 +76,11 @@ Pillar 3: the player can always see why a price is what it is, and doesn't have 
 
 Automates the core loop once the player runs more ships than they want to sail by hand.
 
-- [ ] Route orders: an ordered list of stops, each with buy/sell/transfer actions, limit prices and quantities
-- [ ] Execution only through the existing buy, sell, transfer and sail commands (no second path); failures become notifications
-- [ ] Assign or unassign a route per ship; routes and progress saved
-- [ ] Route editor UI, and route status in the fleet panel
-- [ ] Integration test: a looping route stays profitable for a year and never breaks an invariant
+- [x] Route orders: an ordered list of stops, each with buy/sell/transfer actions, limit prices and quantities (`RouteState`, ADR 0007)
+- [x] Execution only through the existing buy, sell, transfer and sail commands (no second path); failures become notifications (`RouteSystem`)
+- [x] Assign or unassign a route per ship; routes and progress saved (`AssignRouteCommand`, save version 3)
+- [x] Route editor UI, and route status in the fleet panel (`RouteEditor`, `RoutesPanel`)
+- [x] Integration test: a looping route stays profitable for a year and never breaks an invariant (`test_trade_route_year.gd`)
 
 ## M8: AI competitor traders
 

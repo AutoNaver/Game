@@ -72,6 +72,11 @@ func _ready() -> void:
 	save_menu.setup(session)
 	start.setup(session, save_menu)
 	session.save_menu_requested.connect(save_menu.open)
+	var route_editor := RouteEditor.new()
+	route_editor.name = "RouteEditor"
+	add_child(route_editor)
+	route_editor.setup(session)
+	session.route_editor_requested.connect(route_editor.open)
 
 
 func _show_fatal(text: String) -> void:

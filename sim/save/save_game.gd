@@ -12,7 +12,9 @@ extends RefCounted
 ## Bump on every change to the saved shape, with a migration in from_dict() or an explicit
 ## decision to reject older saves.
 ## Version 2 added cities' price_history; version 1 saves load with an empty history.
-const SAVE_VERSION: int = 2
+## Version 3 added trade routes (traders' routes, ships' route fields, next_route_number); older
+## saves load without routes.
+const SAVE_VERSION: int = 3
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -52,6 +54,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 		"rng_state": str(world.rng.state),
 		"next_ship_number": world.next_ship_number,
 		"next_workshop_number": world.next_workshop_number,
+		"next_route_number": world.next_route_number,
 		"goods_ledger": world.goods_ledger.duplicate(),
 		"cities": cities,
 		"traders": traders,
@@ -136,46 +139,60 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	world.rng.state = rng_state
 	world.next_ship_number = _int(save, "next_ship_number", "save")
 	world.next_workshop_number = _int(save, "next_workshop_number", "save")
+	if version >= 3:
+		world.next_route_number = _int(save, "next_route_number", "save")
 	world.goods_ledger = _goods(data, _dict(save, "goods_ledger", "save"), "goods_ledger", true)
 	_read_cities(data, world, _array(save, "cities", "save"), version)
 	for i in _array(save, "traders", "save").size():
-		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i)
+		var trader := _read_trader(data, save["traders"][i], "traders[%d]" % i, version)
 		if trader != null:
 			world.traders.append(trader)
 	if errors.is_empty() and world.player() == null:
 		errors.append("save has no player")
-	_check_unique_ids(world)
+	_check_unique_ids(data, world)
 	if errors.is_empty():
 		errors.append_array(EconomyInvariants.check(data, world))
 	return world if errors.is_empty() else null
 
 
-## Trader ids must be unique. Ship and workshop ids must be unique across all traders, and below
-## the next free number.
-func _check_unique_ids(world: WorldState) -> void:
+## Trader ids must be unique. Ship, workshop and route ids must be unique across all traders, of
+## the form the game creates ("ship_3"), and below the next free number of their kind.
+func _check_unique_ids(data: GameData, world: WorldState) -> void:
 	var trader_ids: Dictionary[String, bool] = {}
 	for trader in world.traders:
 		if trader_ids.has(trader.id):
 			errors.append("duplicate trader id '%s'" % trader.id)
 		trader_ids[trader.id] = true
-	var seen: Dictionary[String, bool] = {}
+	# Id -> the kind it must be, in a stable order (traders, then ships, workshops and routes).
+	var seen: Dictionary[String, String] = {}
 	for trader in world.traders:
 		for ship in trader.ships:
-			if seen.has(ship.id):
-				errors.append("duplicate ship id '%s'" % ship.id)
-			seen[ship.id] = true
-		for kontor: KontorState in trader.kontors.values():
+			_see_id(seen, ship.id, "ship")
+		for kontor in trader.kontors_in_order(data.cities):
 			for workshop in kontor.workshops:
-				if seen.has(workshop.id):
-					errors.append("duplicate workshop id '%s'" % workshop.id)
-				seen[workshop.id] = true
+				_see_id(seen, workshop.id, "workshop")
+		for route in trader.routes:
+			_see_id(seen, route.id, "route")
+	var next_numbers: Dictionary[String, int] = {
+		"ship": world.next_ship_number,
+		"workshop": world.next_workshop_number,
+		"route": world.next_route_number,
+	}
 	for id: String in seen:
-		var number := id.get_slice("_", id.get_slice_count("_") - 1).to_int()
-		var next := (
-			world.next_ship_number if id.begins_with("ship_") else world.next_workshop_number
-		)
-		if number >= next:
-			errors.append("id '%s' is not below the next free number %d" % [id, next])
+		var kind := seen[id]
+		# Ids end up in UI node names and paths, so only the exact shape the game creates is allowed.
+		var number_text := id.trim_prefix(kind + "_")
+		var number := number_text.to_int()
+		if not id.begins_with(kind + "_") or number < 1 or number_text != str(number):
+			errors.append("%s id '%s' is not of the form %s_<number>" % [kind, id, kind])
+		elif number >= next_numbers[kind]:
+			errors.append("id '%s' is not below the next free number %d" % [id, next_numbers[kind]])
+
+
+func _see_id(seen: Dictionary[String, String], id: String, kind: String) -> void:
+	if seen.has(id):
+		errors.append("duplicate %s id '%s'" % [kind, id])
+	seen[id] = kind
 
 
 static func _trader_to_dict(trader: TraderState) -> Dictionary:
@@ -194,6 +211,9 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 					"destination": ship.destination,
 					"voyage_hours": ship.voyage_hours,
 					"hours_sailed": ship.hours_sailed,
+					"route": ship.route_id,
+					"route_stop": ship.route_stop,
+					"route_note": ship.route_note,
 				}
 			)
 		)
@@ -217,12 +237,32 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 			{"city": kontor.city_id, "cargo": kontor.cargo.duplicate(), "workshops": workshops}
 		)
 	kontors.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["city"] < b["city"])
+	var routes: Array = []
+	for route in trader.routes:
+		var stops: Array = []
+		for stop in route.stops:
+			var orders: Array = []
+			for order in stop.orders:
+				(
+					orders
+					. append(
+						{
+							"action": RouteOrder.Action.keys()[order.action],
+							"good": order.good_id,
+							"quantity": order.quantity,
+							"price_limit": order.price_limit,
+						}
+					)
+				)
+			stops.append({"city": stop.city_id, "orders": orders})
+		routes.append({"id": route.id, "name": route.name, "stops": stops})
 	return {
 		"id": trader.id,
 		"name": trader.name,
 		"coins": trader.coins,
 		"ships": ships,
 		"kontors": kontors,
+		"routes": routes,
 	}
 
 
@@ -298,7 +338,7 @@ func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String
 		city.price_history[good.id] = history
 
 
-func _read_trader(data: GameData, raw_value: Variant, ctx: String) -> TraderState:
+func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int) -> TraderState:
 	if not raw_value is Dictionary:
 		errors.append("%s: must be an object" % ctx)
 		return null
@@ -306,11 +346,20 @@ func _read_trader(data: GameData, raw_value: Variant, ctx: String) -> TraderStat
 	var trader := TraderState.new(
 		_string(raw, "id", ctx), _string(raw, "name", ctx), _int(raw, "coins", ctx)
 	)
+	if version >= 3:
+		var routes := _array(raw, "routes", ctx)
+		for i in routes.size():
+			var route := _read_route(data, routes[i], "%s routes[%d]" % [ctx, i])
+			if route != null:
+				trader.routes.append(route)
 	var ships := _array(raw, "ships", ctx)
 	for i in ships.size():
 		var ship := _read_ship(data, ships[i], "%s ships[%d]" % [ctx, i])
-		if ship != null:
-			trader.ships.append(ship)
+		if ship == null:
+			continue
+		if version >= 3:
+			_read_ship_route(trader, ship, ships[i], "%s ships[%d]" % [ctx, i])
+		trader.ships.append(ship)
 	var kontors := _array(raw, "kontors", ctx)
 	for i in kontors.size():
 		var kontor := _read_kontor(data, kontors[i], "%s kontors[%d]" % [ctx, i])
@@ -339,6 +388,69 @@ func _read_ship(data: GameData, raw_value: Variant, ctx: String) -> ShipState:
 	ship.voyage_hours = _int(raw, "voyage_hours", ctx)
 	ship.hours_sailed = _int(raw, "hours_sailed", ctx)
 	return ship
+
+
+## A ship's route must be one of its owner's routes, with the stop index in range.
+func _read_ship_route(trader: TraderState, ship: ShipState, raw: Dictionary, ctx: String) -> void:
+	ship.route_id = _string(raw, "route", ctx)
+	ship.route_stop = _int(raw, "route_stop", ctx)
+	ship.route_note = _string(raw, "route_note", ctx)
+	if ship.route_id.is_empty():
+		if ship.route_stop != 0 or not ship.route_note.is_empty():
+			errors.append("%s: route_stop and route_note need a route" % ctx)
+		return
+	var route := trader.get_route(ship.route_id)
+	if route == null:
+		errors.append("%s: unknown route '%s'" % [ctx, ship.route_id])
+	elif ship.route_stop < 0 or ship.route_stop >= route.stops.size():
+		errors.append("%s: route_stop %d outside the route" % [ctx, ship.route_stop])
+
+
+func _read_route(data: GameData, raw_value: Variant, ctx: String) -> RouteState:
+	if not raw_value is Dictionary:
+		errors.append("%s: must be an object" % ctx)
+		return null
+	var raw: Dictionary = raw_value
+	var stops: Array[RouteStop] = []
+	var raw_stops := _array(raw, "stops", ctx)
+	for i in raw_stops.size():
+		var stop_ctx := "%s stops[%d]" % [ctx, i]
+		if not raw_stops[i] is Dictionary:
+			errors.append("%s: must be an object" % stop_ctx)
+			continue
+		var raw_stop: Dictionary = raw_stops[i]
+		var orders: Array[RouteOrder] = []
+		var raw_orders := _array(raw_stop, "orders", stop_ctx)
+		for j in raw_orders.size():
+			var order_ctx := "%s orders[%d]" % [stop_ctx, j]
+			if not raw_orders[j] is Dictionary:
+				errors.append("%s: must be an object" % order_ctx)
+				continue
+			var raw_order: Dictionary = raw_orders[j]
+			var action := _string(raw_order, "action", order_ctx)
+			if not RouteOrder.Action.has(action):
+				errors.append("%s: unknown action '%s'" % [order_ctx, action])
+				continue
+			(
+				orders
+				. append(
+					(
+						RouteOrder
+						. new(
+							RouteOrder.Action[action] as RouteOrder.Action,
+							_string(raw_order, "good", order_ctx),
+							_int(raw_order, "quantity", order_ctx),
+							_int(raw_order, "price_limit", order_ctx),
+						)
+					)
+				)
+			)
+		stops.append(RouteStop.new(_string(raw_stop, "city", stop_ctx), orders))
+	var route := RouteState.new(_string(raw, "id", ctx), _string(raw, "name", ctx), stops)
+	var problem := RouteState.check(data, route.name, stops)
+	if not problem.is_empty():
+		errors.append("%s: %s" % [ctx, problem])
+	return route
 
 
 func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorState:

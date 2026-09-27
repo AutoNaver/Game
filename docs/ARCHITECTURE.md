@@ -42,8 +42,9 @@ straight lanes. `SeaChart` finds the shortest route (Dijkstra, deterministic tie
 
 ## Time
 
-`Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Every 24
-ticks it runs the daily systems in a fixed order: city production, the traders' workshops
+`Simulation.tick()` advances one hour and moves every ship at sea (`MovementSystem`). Then ships
+on trade routes act at their stops (`RouteSystem`, ADR 0007), which issues ordinary commands
+through `Simulation.execute` like any player or AI action. Every 24 ticks it runs the daily systems in a fixed order: city production, the traders' workshops
 (`WorkshopSystem`), consumption, off-map trade (`OffMapTradeSystem`), and finally
 `PriceHistorySystem`, which records each market's closing price for the UI's charts. Current
 prices are not stored: `Pricing` derives them from current stock whenever they are needed, so they
@@ -65,7 +66,8 @@ identical state. A test will enforce this from M1.
 `SaveGame.to_dict()` / `from_dict()` turn a `WorldState` into a plain JSON-compatible dictionary
 with `save_version` and back. Definitions are *not* saved. Saves reference goods and cities by id
 and are validated against the loaded `GameData` on load, then checked with `EconomyInvariants`.
-Older versions are migrated in `from_dict()` (version 1 saves get an empty price history). Saves
+Older versions are migrated in `from_dict()` (version 1 saves get an empty price history,
+version 1 and 2 saves get no trade routes). Saves
 are named slots in `user://saves`, plus an autosave every few in-game days.
 
 ## Testing

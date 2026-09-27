@@ -13,6 +13,12 @@ var origin: String = ""
 var destination: String = ""
 var voyage_hours: int = 0
 var hours_sailed: int = 0
+## The trade route this ship follows (an id among its owner's routes), or "" if none.
+var route_id: String = ""
+## Index of the route stop the ship is at or heading to.
+var route_stop: int = 0
+## What went wrong at the last stop (for the UI), or "" if everything was carried out.
+var route_note: String = ""
 
 
 func _init(p_id: String, p_type_id: String, p_name: String, p_docked_at: String) -> void:

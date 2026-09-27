@@ -10,6 +10,8 @@ signal message_posted(text: String)
 signal notified(entry: String)
 ## The HUD asks for the save menu, for saving (`saving`) or loading.
 signal save_menu_requested(saving: bool)
+## A panel asks for the route editor, on route `route_id` or a new route ("").
+signal route_editor_requested(route_id: String)
 
 ## Selectable game speeds, as multipliers of HOURS_PER_SECOND. 0 is paused.
 const SPEEDS: Array[int] = [0, 1, 2, 4]
@@ -110,7 +112,9 @@ func set_speed(value: int) -> void:
 
 ## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive
 ## and workshops that stop working, each dated when it happened. If pause_on_arrival is set and
-## time is running, stops right after the tick in which a ship arrives, even mid-batch.
+## time is running, stops right after the tick in which a ship arrives, even mid-batch. Ships on
+## trade routes leave again in the hour they arrive, so they neither notify nor pause; their
+## problems are reported instead (_notify_route_problems).
 func advance(hours: int) -> void:
 	var at_sea: Array[ShipState] = []
 	for ship in player().ships:
@@ -119,7 +123,9 @@ func advance(hours: int) -> void:
 	var statuses := _workshop_statuses()
 	var day_before := sim.day()
 	for i in hours:
+		var notes := _route_notes()
 		sim.tick()
+		_notify_route_problems(notes)
 		var arrived := false
 		for ship: ShipState in at_sea.duplicate():
 			if ship.is_docked():
@@ -195,6 +201,25 @@ func _process(delta: float) -> void:
 	if hours > 0:
 		_pending_hours -= hours
 		advance(hours)
+
+
+## The route note of each of the player's ships on a route, by ship id.
+func _route_notes() -> Dictionary[String, String]:
+	var notes: Dictionary[String, String] = {}
+	for ship in player().ships:
+		if not ship.route_id.is_empty():
+			notes[ship.id] = ship.route_note
+	return notes
+
+
+## Notifies when a route ship reports a new problem at a stop. Ships clear their note at each stop
+## that goes smoothly, so a repeated problem is reported again only after a good stop.
+func _notify_route_problems(before: Dictionary[String, String]) -> void:
+	for ship in player().ships:
+		if ship.route_note.is_empty() or before.get(ship.id, "") == ship.route_note:
+			continue
+		var route := player().get_route(ship.route_id)
+		notify("%s (%s): %s" % [ship.name, route.name, ship.route_note])
 
 
 ## "status/missing good" per workshop id of the player's, to spot changes across a step.
