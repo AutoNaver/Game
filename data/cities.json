@@ -1,6 +1,30 @@
 [
-  { "id": "lubeck", "name": "Lübeck", "map_position": [136, 710], "population": 12000 },
-  { "id": "danzig", "name": "Danzig", "map_position": [772, 665], "population": 9000 },
-  { "id": "visby", "name": "Visby", "map_position": [744, 340], "population": 5000 },
-  { "id": "stockholm", "name": "Stockholm", "map_position": [726, 167], "population": 7000 }
+  {
+    "id": "lubeck",
+    "name": "Lübeck",
+    "map_position": [136, 710],
+    "population": 12000,
+    "production": { "salt": 22, "fish": 20, "wool": 8, "beer": 60, "cloth": 18, "tools": 5, "wine": 5.5 }
+  },
+  {
+    "id": "danzig",
+    "name": "Danzig",
+    "map_position": [772, 665],
+    "population": 9000,
+    "production": { "grain": 80, "timber": 18, "beer": 45, "tools": 6 }
+  },
+  {
+    "id": "visby",
+    "name": "Visby",
+    "map_position": [744, 340],
+    "population": 5000,
+    "production": { "grain": 30, "fish": 40, "wool": 10 }
+  },
+  {
+    "id": "stockholm",
+    "name": "Stockholm",
+    "map_position": [726, 167],
+    "population": 7000,
+    "production": { "fish": 30, "timber": 20, "iron": 11 }
+  }
 ]

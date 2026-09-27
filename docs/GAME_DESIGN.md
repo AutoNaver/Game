@@ -44,7 +44,17 @@ until your trading house shapes the prices of the whole sea.
 - **Price** follows the stock-to-target ratio along a clamped curve around the good's base price.
   Buy and sell prices differ by a spread.
 - Trading moves the price **per unit**, so large trades walk up (or down) the curve.
-- The exact formulas get an ADR in M1 and must keep the economy invariants in AGENTS.md.
+- City workshops **idle** once stock reaches a cap (target × `stock_cap_factor`), so gluts are
+  bounded without destroying goods.
+- When stock runs out, the unmet demand is recorded as a **shortage**. It will feed city mood and
+  growth later.
+- Formulas: [ADR 0003](adr/0003-market-pricing-curve.md). Tuning: `data/economy.json`,
+  `data/goods.json` (`consumption_per_1000`), `data/cities.json` (`production`).
+
+**Known and intended (for now):** there are no other traders yet, so cities that don't produce a
+good drain to empty (maximum price) within about `days_of_cover` days, and producer cities fill up
+to their cap. That gap is the player's opportunity. Background trade arrives with the AI traders
+after the MVP.
 
 ## Player progression (MVP)
 

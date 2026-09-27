@@ -1,9 +1,9 @@
 [
-  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40 },
-  { "id": "grain", "name": "Grain Again", "category": "raw", "base_price": 40 },
-  { "id": "Fish", "name": "Fish", "category": "raw", "base_price": 60 },
-  { "id": "salt", "name": " ", "category": "mineral", "base_price": -5 },
-  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 12.5, "colour": "red" },
-  { "id": "beer", "name": "Beer", "category": "processed" },
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40, "consumption_per_1000": 3 },
+  { "id": "grain", "name": "Grain Again", "category": "raw", "base_price": 40, "consumption_per_1000": 3 },
+  { "id": "Fish", "name": "Fish", "category": "raw", "base_price": 60, "consumption_per_1000": 2 },
+  { "id": "salt", "name": " ", "category": "mineral", "base_price": -5, "consumption_per_1000": -1 },
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 12.5, "consumption_per_1000": 0.1, "colour": "red" },
+  { "id": "beer", "name": "Beer", "category": "processed", "consumption_per_1000": 3 },
   "not an object"
 ]

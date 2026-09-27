@@ -33,12 +33,17 @@ func test_valid_fixture_is_parsed_in_file_order() -> void:
 	assert_eq(cloth.name, "Cloth")
 	assert_eq(cloth.category, "processed")
 	assert_eq(cloth.base_price, 140)
+	assert_eq(cloth.consumption_per_1000, 0.0)
+	assert_almost_eq(data.get_good("grain").consumption_per_1000, 3.0, 0.0001)
 
 	assert_eq(data.cities.size(), 1)
 	var lubeck := data.get_city("lubeck")
 	assert_eq(lubeck.name, "Lübeck")
 	assert_eq(lubeck.map_position, Vector2(136, 710))
 	assert_eq(lubeck.population, 12000)
+	assert_eq(lubeck.production_of("cloth"), 18.0)
+	assert_eq(lubeck.production_of("grain"), 0.5)
+	assert_eq(lubeck.production_of("wine"), 0.0)
 
 
 func test_unknown_ids_return_null() -> void:
@@ -63,12 +68,16 @@ func test_invalid_data_reports_every_problem() -> void:
 		"goods.json[3]: 'name' must be a non-empty string",
 		"goods.json[3]: 'category' must be one of raw, processed, luxury (got 'mineral')",
 		"goods.json[3]: 'base_price' must be a positive integer",
+		"goods.json[3]: 'consumption_per_1000' must be a number at least 0.0 and less than 1000.0",
 		"goods.json[4]: unknown field 'colour'",
 		"goods.json[4]: 'base_price' must be a positive integer",
 		"goods.json[5]: missing field 'base_price'",
 		"goods.json[6]: entry must be an object",
 		"cities.json[0]: 'map_position' must be an array of two numbers",
 		"cities.json[1]: 'population' must be a positive integer",
+		"cities.json[1]: 'production' has unknown good 'amber'",
+		"cities.json[1]: 'production.grain' must be a number greater than 0.0 and less than 10000.0",
+		"cities.json[2]: 'production' must be an object",
 	]
 	assert_eq(Array(loader.errors), expected)
 
