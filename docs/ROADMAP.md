@@ -111,6 +111,6 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 Deferred P2 review findings go here, with the PR they came from.
 
-## Later (parked, see GAME_DESIGN "Out of scope")
+## Later (parked, see GAME_DESIGN "After the MVP")
 
 Reputation and ranks (unlocking loans and banking), convoys with pirates and combat, politics.
