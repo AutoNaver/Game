@@ -9,8 +9,8 @@ extends RefCounted
 ## that score every day, and the population moves a share of the way towards what that
 ## satisfaction sustains (PopulationDef). Everything is integer arithmetic, in millionths.
 ##
-## People with jobs in traders' workshops stay: a city never shrinks below the population whose
-## workforce covers the workers already employed, so no workshop loses its workers.
+## A city that shrinks below the workers its traders' workshops employ leaves them understaffed,
+## so they work slower (CityEconomy.staffing, WorkshopSystem).
 
 
 static func run_day(data: GameData, world: WorldState) -> void:
@@ -20,8 +20,7 @@ static func run_day(data: GameData, world: WorldState) -> void:
 		var score := supply_score(data, city)
 		@warning_ignore("integer_division")
 		city.satisfaction += (score - city.satisfaction) * weight_steps / CityEconomy.RATE_STEPS
-		var change := daily_change(data, city)
-		city.population = maxi(city.population + change, worker_floor(data, world, city))
+		city.population += daily_change(data, city)
 
 
 ## How well the market covers today's needs, in millionths: 1 000 000 when every good is at or
@@ -42,8 +41,8 @@ static func supply_score(data: GameData, city: CityState) -> int:
 	return weighted / total_weight
 
 
-## People moving in (positive) or out (negative) per day at the current satisfaction, before the
-## worker floor: growth_rate of the gap to the sustainable population, rounded towards zero.
+## People moving in (positive) or out (negative) per day at the current satisfaction:
+## growth_rate of the gap to the sustainable population, rounded towards zero.
 static func daily_change(data: GameData, city: CityState) -> int:
 	var gap := sustainable_population(data, city) - city.population
 	@warning_ignore("integer_division")
@@ -72,13 +71,3 @@ static func sustainable_population(data: GameData, city: CityState) -> int:
 	@warning_ignore("integer_division")
 	var sustained := home * factor / CityEconomy.PARTS_PER_UNIT
 	return clampi(sustained, population.min_population(home), population.max_population(home))
-
-
-## Fewest people whose workforce still covers the workers employed in traders' workshops here.
-static func worker_floor(data: GameData, world: WorldState, city: CityState) -> int:
-	var employed := CityEconomy.workers_employed(data, world, city.id)
-	var share := CityEconomy.rate_steps(data.economy.workforce_share)
-	if employed == 0 or share == 0:
-		return 0
-	@warning_ignore("integer_division")
-	return (employed * CityEconomy.RATE_STEPS + share - 1) / share

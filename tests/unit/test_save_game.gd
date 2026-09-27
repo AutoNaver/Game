@@ -245,14 +245,16 @@ func test_price_history_from_an_older_balance_is_clamped() -> void:
 	assert_eq(Array(world.get_city("port").price_history["wine"]), [lowest, 22000, highest])
 
 
-func test_population_and_satisfaction_round_trip() -> void:
+func test_population_satisfaction_and_workshop_progress_round_trip() -> void:
 	var sim := _played_simulation()
 	var town := sim.world.get_city("town")
 	town.population = 1234
 	town.satisfaction = 654_321
+	sim.world.player().get_kontor("port").workshops[0].progress = 250_000
 	var world := _load(sim, _through_json(SaveGame.to_dict(sim.world)))
 	assert_eq(world.get_city("town").population, 1234, "any population within the bounds")
 	assert_eq(world.get_city("town").satisfaction, 654_321)
+	assert_eq(world.player().get_kontor("port").workshops[0].progress, 250_000)
 
 
 func test_version_4_saves_load_at_neutral_satisfaction() -> void:
@@ -261,10 +263,13 @@ func test_version_4_saves_load_at_neutral_satisfaction() -> void:
 	save["save_version"] = 4
 	for city: Dictionary in save["cities"]:
 		city.erase("satisfaction")
+	for workshop: Dictionary in save["traders"][0]["kontors"][0]["workshops"]:
+		workshop.erase("progress")
 	var world := _load(sim, save)
 	for city in world.cities:
 		assert_eq(city.satisfaction, 500_000)
 		assert_eq(city.population, 1000)
+	assert_eq(world.player().get_kontor("port").workshops[0].progress, 0)
 
 
 func test_populations_and_satisfaction_out_of_range_are_rejected() -> void:
@@ -272,6 +277,7 @@ func test_populations_and_satisfaction_out_of_range_are_rejected() -> void:
 	var save := _through_json(SaveGame.to_dict(sim.world))
 	save["cities"][0]["population"] = 2001
 	save["cities"][1]["satisfaction"] = -1
+	save["traders"][0]["kontors"][0]["workshops"][0]["progress"] = 1_000_001
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(
@@ -279,5 +285,6 @@ func test_populations_and_satisfaction_out_of_range_are_rejected() -> void:
 		[
 			"cities[0]: population 2001 outside 500 to 2000",
 			"cities[1]: satisfaction -1 outside 0 to 1000000",
+			"traders[0] kontors[0] workshops[0]: progress 1000001 outside 0 to 1000000",
 		]
 	)

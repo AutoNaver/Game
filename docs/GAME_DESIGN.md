@@ -71,8 +71,9 @@ empty grain market hurts more than a lack of wine. **Satisfaction** follows that
 ten days. A city at 90% satisfaction keeps its home population (`data/cities.json`); above it the
 city can sustain more people, below it fewer, between half and twice its home size. The
 population drifts slowly towards that size, and more people mean more demand (higher target
-stock, so firmer prices) and a larger workforce for workshops. People with jobs in traders'
-workshops never leave.
+stock, so firmer prices) and a larger workforce for workshops. A city that shrinks below the jobs
+in traders' workshops leaves them short of workers: they work (and pay wages) at the share of
+workers they still have, and the player is told.
 
 Without the player the cities settle near their home size, Stockholm a little smaller and Visby a
 little larger. A player who keeps a city supplied makes it grow by up to about 30%, and the city

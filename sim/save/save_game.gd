@@ -17,7 +17,8 @@ extends RefCounted
 ## Version 4 added the rival houses (ADR 0008). Their shape is an ordinary trader's; older saves
 ## get every rival added as it starts a new game.
 ## Version 5 added cities' satisfaction, and population may differ from data/cities.json within
-## the bounds of data/population.json (ADR 0010); older saves load at neutral satisfaction.
+## the bounds of data/population.json (ADR 0010), and workshops' batch progress (understaffed
+## workshops work slower); older saves load at neutral satisfaction and no progress.
 const SAVE_VERSION: int = 5
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
@@ -242,6 +243,7 @@ static func _trader_to_dict(trader: TraderState) -> Dictionary:
 						"type": workshop.type_id,
 						"status": WorkshopState.Status.keys()[workshop.status],
 						"missing_good": workshop.missing_good,
+						"progress": workshop.progress,
 					}
 				)
 			)
@@ -386,7 +388,7 @@ func _read_trader(data: GameData, raw_value: Variant, ctx: String, version: int)
 		trader.ships.append(ship)
 	var kontors := _array(raw, "kontors", ctx)
 	for i in kontors.size():
-		var kontor := _read_kontor(data, kontors[i], "%s kontors[%d]" % [ctx, i])
+		var kontor := _read_kontor(data, kontors[i], "%s kontors[%d]" % [ctx, i], version)
 		if kontor == null:
 			continue
 		if trader.kontors.has(kontor.city_id):
@@ -477,7 +479,7 @@ func _read_route(data: GameData, raw_value: Variant, ctx: String) -> RouteState:
 	return route
 
 
-func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorState:
+func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int) -> KontorState:
 	if not raw_value is Dictionary:
 		errors.append("%s: must be an object" % ctx)
 		return null
@@ -510,6 +512,11 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorStat
 				errors.append("%s: unknown missing good '%s'" % [workshop_ctx, missing])
 		elif workshop.missing_good != "":
 			errors.append("%s: missing_good is only allowed for NO_INPUTS" % workshop_ctx)
+		if version >= 5:
+			workshop.progress = _int(entry, "progress", workshop_ctx)
+			if workshop.progress < 0 or workshop.progress > CityEconomy.PARTS_PER_UNIT:
+				var bounds := [workshop_ctx, workshop.progress, CityEconomy.PARTS_PER_UNIT]
+				errors.append("%s: progress %d outside 0 to %d" % bounds)
 		kontor.workshops.append(workshop)
 	return kontor
 

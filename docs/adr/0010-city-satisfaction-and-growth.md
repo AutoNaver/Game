@@ -32,14 +32,24 @@ gives no brake on growth for such a city.
   and the fixed home anchor are the brake that supply alone lacks: a city can't run away however
   well it is fed, and a fully supplied city settles at a definite size.
 - **Growth.** The population moves `growth_rate` of the gap to the sustainable population each
-  day, rounded towards zero. It never shrinks below the population whose workforce covers the
-  workers already employed in traders' workshops, so no workshop loses its workers and the
-  "employed ≤ workforce" invariant holds.
+  day, rounded towards zero.
+- **Understaffed workshops.** A city can shrink below the workers its traders' workshops employ.
+  Nobody is kept in town for that: every workshop in the city gets the same share of its workers
+  (`CityEconomy.staffing` = workforce / jobs) and works that much slower. Each day it pays that
+  share of its wages (rounded up) and adds the share to its `progress`; it makes one full batch
+  whenever progress reaches a whole batch, so a half-staffed workshop makes a batch every other
+  day with whole units and an exact goods ledger. Progress is capped at one batch, so a stalled
+  workshop doesn't bank days. City workshops get no workers while traders' jobs are unfilled.
+  `free_workers` is never negative, so no new workshop can be built there. The player is told
+  when their workshops in a city run short of workers and when they are fully staffed again,
+  and the kontor panel shows the staffing. The former invariant "employed ≤ workforce" is
+  replaced by a range check on progress. An earlier draft kept a population floor for employed
+  workers instead; the owner preferred that shrinking cities slow their workshops down.
 - **All integer arithmetic** (millionths and 1/1000 steps, like `CityEconomy`), so runs are exact
   and deterministic. No randomness.
 - **Order.** `PopulationSystem` runs after consumption and before off-map trade, so today's
   shortages count before overland traders refill the market.
-- **Saves.** Version 5 saves each city's satisfaction. Population is no longer required to match
+- **Saves.** Version 5 saves each city's satisfaction and each workshop's progress. Population is no longer required to match
   `data/cities.json`, only to lie within the bounds; older saves load at neutral satisfaction.
   The loader checks the stock-cap overflow at `max_factor × home`, the largest a city can be.
 - **UI.** The city panel shows population with its direction, satisfaction, and the scarcest goods

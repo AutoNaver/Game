@@ -106,7 +106,7 @@ func test_growth_raises_demand_and_workforce() -> void:
 	assert_eq(CityEconomy.workforce(sim.data.economy, town), 130)
 
 
-func test_cities_do_not_shrink_below_their_employed_workers() -> void:
+func test_a_shrinking_city_leaves_its_workshops_understaffed() -> void:
 	var sim := SmallWorld.simulation()
 	sim.world.player().coins = 5000
 	assert_eq(sim.execute(BuyKontorCommand.new(PLAYER, "port")), "")
@@ -118,9 +118,9 @@ func test_cities_do_not_shrink_below_their_employed_workers() -> void:
 	var port := sim.world.get_city("port")
 	port.satisfaction = 0
 	PopulationSystem.run_day(sim.data, sim.world)
-	# Unhappy enough for 100 people, but the vintner's 30 workers need a workforce of 30.
-	assert_eq(port.population, 300)
-	assert_eq(CityEconomy.free_workers(sim.data, sim.world, port), 0)
+	# Unhappy enough for only 100 people: a workforce of 10 for the vintner's 30 jobs.
+	assert_eq(port.population, 100)
+	assert_eq(CityEconomy.staffing(sim.data, sim.world, port), 333_333)
 	assert_eq(Array(EconomyInvariants.check(sim.data, sim.world)), [])
 
 

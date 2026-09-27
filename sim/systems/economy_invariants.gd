@@ -41,11 +41,6 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
 	for city in world.cities:
 		violations.append_array(_check_population(data, world.hour, city))
-		var employed := CityEconomy.workers_employed(data, world, city.id)
-		var workforce := CityEconomy.workforce(data.economy, city)
-		if employed > workforce:
-			var message := "hour %d, %s: %d workers employed of a workforce of %d"
-			violations.append(message % [world.hour, city.id, employed, workforce])
 	violations.append_array(_check_conservation(data, world))
 	return violations
 
@@ -80,6 +75,9 @@ static func _check_kontor(
 	for workshop in kontor.workshops:
 		if not data.has_workshop(workshop.type_id):
 			violations.append("%s: unknown workshop type '%s'" % [where, workshop.type_id])
+		if workshop.progress < 0 or workshop.progress > CityEconomy.PARTS_PER_UNIT:
+			var progress := [where, workshop.id, workshop.progress]
+			violations.append("%s: %s progress %d out of range" % progress)
 	return violations
 
 
