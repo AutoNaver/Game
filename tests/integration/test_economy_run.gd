@@ -21,8 +21,9 @@ func test_shipped_data_holds_invariants_for_120_days() -> void:
 func test_same_seed_gives_identical_worlds() -> void:
 	var first := SmallWorld.simulation(7)
 	var second := SmallWorld.simulation(7)
-	first.advance_days(50)
-	second.advance_days(50)
+	for sim: Simulation in [first, second]:
+		_play_scripted_turns(sim)
+		sim.advance_days(50)
 	assert_eq(_fingerprint(first), _fingerprint(second))
 
 
@@ -51,11 +52,25 @@ func test_goods_created_outside_production_are_caught() -> void:
 	assert_string_contains(violations[0], expected % [ledger + 2, ledger])
 
 
+## Every command must succeed, or both runs would take the same no-op path and prove nothing.
+func _play_scripted_turns(sim: Simulation) -> void:
+	var player := WorldState.PLAYER_ID
+	assert_eq(sim.execute(BuyCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.execute(SailCommand.new(player, SmallWorld.SHIP_ID, "town")), "")
+	sim.advance_days(1)
+	assert_eq(sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
+	assert_eq(sim.world.player().get_ship(SmallWorld.SHIP_ID).cargo, {}, "the trip really happened")
+
+
 func _fingerprint(sim: Simulation) -> Array:
-	var cities: Array = [sim.world.hour, sim.world.rng.state]
+	var parts: Array = [sim.world.hour, sim.world.rng.state, sim.world.next_ship_number]
 	for city in sim.world.cities:
-		cities.append(
+		parts.append(
 			[city.id, city.stock, city.production_carry, city.consumption_carry, city.shortage]
 		)
-	cities.append(sim.world.goods_ledger)
-	return cities
+	parts.append(sim.world.goods_ledger)
+	for trader in sim.world.traders:
+		parts.append([trader.id, trader.coins])
+		for ship in trader.ships:
+			parts.append([ship.id, ship.cargo, ship.docked_at, ship.destination, ship.hours_sailed])
+	return parts
