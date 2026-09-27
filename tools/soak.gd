@@ -1,11 +1,12 @@
 extends SceneTree
 ## Headless soak run: simulates the shipped data for N days, checks the economy invariants every
-## day, and prints where each market ends up. Exits 1 on any violation.
+## day, and prints where each market ends up. Exits 1 on any violation, 2 on bad arguments.
 ##
 ## Usage: godot --headless -s res://tools/soak.gd -- [--days 365] [--seed 1]
 
 const DEFAULT_DAYS: int = 365
 const DEFAULT_SEED: int = 1
+const USAGE_ERROR: int = 2
 
 
 func _initialize() -> void:
@@ -13,14 +14,22 @@ func _initialize() -> void:
 
 
 func _run() -> int:
-	var days := DEFAULT_DAYS
-	var seed_value := DEFAULT_SEED
+	var options := {"--days": DEFAULT_DAYS, "--seed": DEFAULT_SEED}
 	var args := OS.get_cmdline_user_args()
-	for i in args.size() - 1:
-		if args[i] == "--days":
-			days = args[i + 1].to_int()
-		elif args[i] == "--seed":
-			seed_value = args[i + 1].to_int()
+	# Reject anything unexpected: a typo must fail loudly, never silently shorten the run.
+	var i := 0
+	while i < args.size():
+		var flag := args[i]
+		if not options.has(flag) or i + 1 >= args.size() or not args[i + 1].is_valid_int():
+			printerr("Usage: soak.gd -- [--days <positive int>] [--seed <int>] (got %s)" % args)
+			return USAGE_ERROR
+		options[flag] = args[i + 1].to_int()
+		i += 2
+	var days: int = options["--days"]
+	var seed_value: int = options["--seed"]
+	if days <= 0:
+		printerr("--days must be a positive integer (got %d)" % days)
+		return USAGE_ERROR
 
 	var loader := GameDataLoader.new()
 	var data := loader.load_dir(GameDataLoader.DEFAULT_DIR)
