@@ -41,6 +41,16 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
 	for city in world.cities:
 		violations.append_array(_check_population(data, world.hour, city))
+	@warning_ignore("integer_division")
+	var day := world.hour / Simulation.HOURS_PER_DAY
+	for event in world.events:
+		if not data.has_event(event.type_id) or not data.has_city(event.city_id):
+			violations.append("hour %d, %s: unknown type or city" % [world.hour, event.id])
+		# EventSystem starts events on their first day and drops them once over, so every event
+		# kept in the world is running today.
+		if not event.is_active(day):
+			var span := [world.hour, event.id, event.start_day, event.end_day, day]
+			violations.append("hour %d, %s: days %d to %d don't include day %d" % span)
 	violations.append_array(_check_conservation(data, world))
 	return violations
 
@@ -69,6 +79,7 @@ static func _check_kontor(
 	for good_id: String in kontor.cargo.keys():
 		if not data.has_good(good_id) or kontor.cargo[good_id] <= 0:
 			violations.append("%s: bad entry %s=%d" % [where, good_id, kontor.cargo[good_id]])
+	violations.append_array(_check_spoil_carry(data, where, kontor))
 	if kontor.cargo_total() > data.kontor.capacity:
 		var sizes := [where, kontor.cargo_total(), data.kontor.capacity]
 		violations.append("%s: holds %d, over capacity %d" % sizes)
@@ -87,6 +98,7 @@ static func _check_ship(data: GameData, hour: int, ship: ShipState) -> PackedStr
 	for good_id: String in ship.cargo.keys():
 		if not data.has_good(good_id) or ship.cargo[good_id] <= 0:
 			violations.append("%s: bad cargo entry %s=%d" % [where, good_id, ship.cargo[good_id]])
+	violations.append_array(_check_spoil_carry(data, where, ship))
 	if not data.has_ship(ship.type_id):
 		violations.append("%s: unknown ship type '%s'" % [where, ship.type_id])
 	elif ship.cargo_total() > data.get_ship(ship.type_id).capacity:
@@ -102,6 +114,15 @@ static func _check_ship(data: GameData, hour: int, ship: ShipState) -> PackedStr
 		or ship.hours_sailed >= ship.voyage_hours
 	):
 		violations.append("%s: invalid voyage %s -> %s" % [where, ship.origin, ship.destination])
+	return violations
+
+
+static func _check_spoil_carry(data: GameData, where: String, hold: Hold) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	for good_id: String in hold.spoil_carry.keys():
+		var parts: int = hold.spoil_carry[good_id]
+		if not data.has_good(good_id) or parts <= 0 or parts >= CityEconomy.PARTS_PER_UNIT:
+			violations.append("%s: bad spoilage carry %s=%d" % [where, good_id, parts])
 	return violations
 
 

@@ -25,6 +25,12 @@ static func run_day(data: GameData, world: WorldState) -> void:
 				continue
 			var gap := absi(target - stock)
 			var steps := import_steps if stock < target else export_steps
+			if stock < target:
+				# A war (EventSystem) cuts the city off from part of its overland supply.
+				@warning_ignore("integer_division")
+				steps = (
+					steps * EventSystem.import_steps(data, world, city.id) / CityEconomy.RATE_STEPS
+				)
 			@warning_ignore("integer_division")
 			var parts := demand * steps / CityEconomy.RATE_STEPS * gap / target
 			var flow := parts + city.trade_carry[good.id]

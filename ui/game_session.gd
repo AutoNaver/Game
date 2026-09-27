@@ -24,6 +24,8 @@ const MAX_LOG: int = 50
 ## The running game is saved to AUTOSAVE_SLOT every this many in-game days.
 const AUTOSAVE_DAYS: int = 3
 const AUTOSAVE_SLOT: String = "autosave"
+## A hold losing at least this many units to spoilage in a day is worth a notification.
+const LARGE_SPOILAGE: int = 5
 
 var sim: Simulation
 var speed: int = 1
@@ -119,8 +121,9 @@ func set_speed(value: int) -> void:
 
 
 ## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive,
-## workshops that stop working or run short of workers and the rival houses' new ships and
-## workshops, each dated when it happened. If pause_on_arrival is set and
+## workshops that stop working or run short of workers, world events starting and ending, the
+## player's goods lost to fires and large spoilage, and the rival houses' new ships and workshops,
+## each dated when it happened. If pause_on_arrival is set and
 ## time is running, stops right after the tick in which a ship arrives, even mid-batch. Ships on
 ## trade routes leave again in the hour they arrive, so they neither notify nor pause; their
 ## problems are reported instead (_notify_route_problems).
@@ -132,6 +135,7 @@ func advance(hours: int) -> void:
 	var statuses := _workshop_statuses()
 	var short_staffed := _short_staffed_cities()
 	var rival_assets := _rival_assets()
+	var events := _event_ids()
 	var day_before := sim.day()
 	for i in hours:
 		var notes := _route_notes()
@@ -150,6 +154,9 @@ func advance(hours: int) -> void:
 			short_staffed = _short_staffed_cities()
 			_notify_rival_news(rival_assets)
 			rival_assets = _rival_assets()
+			_notify_events(events)
+			events = _event_ids()
+			_notify_losses()
 		if arrived and pause_on_arrival and speed != 0:
 			speed = 0
 			_pending_hours = 0.0
@@ -261,6 +268,69 @@ func _notify_stopped_workshops(before: Dictionary[String, String]) -> void:
 			var workshop_type := sim.data.get_workshop(workshop.type_id)
 			var status := KontorPanel.status_text(sim.data, workshop)
 			notify("%s in %s: %s" % [workshop_type.name, _city_name(kontor.city_id), status])
+
+
+## Headlines of the running events by id, so an event that ends can still be named.
+func _event_ids() -> Dictionary[String, String]:
+	var headlines: Dictionary[String, String] = {}
+	for event in sim.world.events:
+		headlines[event.id] = EventText.headline(sim.data, event)
+	return headlines
+
+
+## Notifies when a world event starts, and when one that was running is over.
+func _notify_events(before: Dictionary[String, String]) -> void:
+	var data := sim.data
+	var now := _event_ids()
+	for event in sim.world.events:
+		if not before.has(event.id):
+			var effect := EventText.effect(data, event)
+			var days := event.end_day - event.start_day
+			var text := "%s: %s" % [EventText.headline(data, event), effect]
+			if data.get_event(event.type_id).kind != EventDef.FIRE:
+				text += " for %d days" % days
+			notify(text)
+	for id: String in before:
+		if not now.has(id):
+			notify("Over: %s" % before[id])
+
+
+## Notifies about the player's goods lost on the last day: every fire, and spoilage of at least
+## LARGE_SPOILAGE units in one ship or kontor.
+func _notify_losses() -> void:
+	var by_hold: Dictionary[String, Array] = {}
+	var holds := PackedStringArray()
+	for loss in sim.world.losses:
+		if loss.trader_id != WorldState.PLAYER_ID:
+			continue
+		var key := "%s|%s" % [loss.cause, loss.hold_id]
+		if not by_hold.has(key):
+			by_hold[key] = [] as Array[GoodsLoss]
+			holds.append(key)
+		by_hold[key].append(loss)
+	for key in holds:
+		var losses: Array[GoodsLoss] = []
+		losses.assign(by_hold[key])
+		var cause := key.get_slice("|", 0)
+		var hold_id := key.get_slice("|", 1)
+		var place := _hold_name(hold_id)
+		var goods := EventText.goods_list(sim.data, losses)
+		if cause == GoodsLoss.SPOILAGE:
+			var units := 0
+			for loss in losses:
+				units += loss.units
+			if units >= LARGE_SPOILAGE:
+				notify("Spoiled %s: %s" % [place, goods])
+		else:
+			notify("%s destroyed %s: %s" % [sim.data.get_event(cause).name, place, goods])
+
+
+## "aboard Adler" for a ship id, "in your kontor in Lübeck" for a city id.
+func _hold_name(hold_id: String) -> String:
+	var ship := player().get_ship(hold_id)
+	if ship != null:
+		return "aboard %s" % ship.name
+	return "in your kontor in %s" % _city_name(hold_id)
 
 
 ## Cities where the player has workshops that are short of workers (CityEconomy.staffing).

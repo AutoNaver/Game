@@ -1,0 +1,5 @@
+[
+  { "id": "grain", "name": "Grain", "category": "raw", "base_price": 40, "consumption_per_1000": 3.0, "spoilage_per_day": 0.01 },
+  { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140, "consumption_per_1000": 0 },
+  { "id": "salt", "name": "Salt", "category": "raw", "base_price": 50, "consumption_per_1000": 0.6, "spoilage_per_day": 0.0005 }
+]

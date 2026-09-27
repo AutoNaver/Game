@@ -5,6 +5,9 @@ extends RefCounted
 
 ## Units stored by good id. Goods with zero units have no entry.
 var cargo: Dictionary[String, int] = {}
+## Fractions of a unit already spoiled, by good id, in millionths (1..999999; SpoilageSystem).
+## Goods with no fraction have no entry.
+var spoil_carry: Dictionary[String, int] = {}
 
 
 func cargo_of(good_id: String) -> int:
@@ -18,7 +21,8 @@ func cargo_total() -> int:
 	return total
 
 
-## Adds (or with a negative amount removes) goods, dropping entries that reach zero.
+## Adds (or with a negative amount removes) goods, dropping entries that reach zero. A good that
+## runs out also drops its spoilage fraction, so it can't carry over to goods bought later.
 ## Refuses to go below zero: returns false and changes nothing. Commands validate first.
 func change_cargo(good_id: String, amount: int) -> bool:
 	var units := cargo_of(good_id) + amount
@@ -26,6 +30,7 @@ func change_cargo(good_id: String, amount: int) -> bool:
 		return false
 	if units == 0:
 		cargo.erase(good_id)
+		spoil_carry.erase(good_id)
 	else:
 		cargo[good_id] = units
 	return true

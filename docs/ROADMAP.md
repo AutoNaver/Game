@@ -98,11 +98,11 @@ Automates the core loop once the player runs more ships than they want to sail b
 ## M10: Events and spoilage
 
 - [x] Owner decision on goods losses (2026-09-27): event losses and spoilage are allowed sinks, booked in the goods ledger (ADR 0006, AGENTS.md rule 7)
-- [ ] Data-driven, seeded events with a clear duration: storms (ships delayed), harvest failures (production cut), war (off-map imports cut), fires (kontor stock lost, booked as a loss)
-- [ ] Events announced through notifications, with their effect visible in the price tooltip
-- [ ] Spoilage: a daily spoilage rate per good in `data/goods.json` (0 for goods that keep), applied with an exact carry to goods in ships and kontors; decide in the milestone whether city markets spoil too (ADR 0006)
-- [ ] Spoilage visible where goods are stored (cargo and kontor), with a notification for large losses
-- [ ] Events and spoilage saved; soak and `tools/balance.gd` runs with both enabled, rebalanced if needed
+- [x] Data-driven, seeded events with a clear duration: storms (ships delayed), harvest failures (production cut), war (off-map imports cut), fires (kontor stock lost, booked as a loss) (`data/events.json`, `EventSystem`, ADR 0011)
+- [x] Events announced through notifications, with their effect visible in the price tooltip (also in the city panel and on slowed ships)
+- [x] Spoilage: a daily spoilage rate per good in `data/goods.json` (0 for goods that keep), applied with an exact carry to goods in ships and kontors; city markets don't spoil (`SpoilageSystem`, ADR 0011)
+- [x] Spoilage visible where goods are stored (cargo manifest and kontor tooltips), with a notification for large losses
+- [x] Events and spoilage saved (save version 6); soak and `tools/balance.gd` runs with both enabled, no rebalance needed (ADR 0011)
 
 ## M11: More of the Baltic
 

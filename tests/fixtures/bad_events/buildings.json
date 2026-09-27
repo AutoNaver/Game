@@ -1,0 +1,15 @@
+{
+  "kontor": { "price": 3000, "capacity": 300 },
+  "workshops": [
+    {
+      "id": "tailor",
+      "name": "Tailor",
+      "output": "cloth",
+      "output_per_day": 2,
+      "inputs": { "grain": 3 },
+      "workers": 10,
+      "build_cost": 1000,
+      "wages_per_day": 20
+    }
+  ]
+}

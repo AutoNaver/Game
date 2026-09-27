@@ -25,7 +25,7 @@ is fun, and every milestone ends in something a human can play.
 |---|---|
 | `sim/` | The pure simulation: `RefCounted` classes, no Nodes. `defs/` static definitions and loader, `state/` mutable world state, `systems/` daily/hourly rules, `commands/` player and AI actions. |
 | `ui/` | Godot scenes and scripts. Read sim state and issue commands, nothing else. |
-| `data/` | JSON definitions (goods, cities, population, ships, buildings, rival houses, scenario). Balance lives here. |
+| `data/` | JSON definitions (goods, cities, population, ships, buildings, rival houses, events, scenario). Balance lives here. |
 | `tests/` | GUT tests. `unit/` for single classes, `integration/` for multi-day runs. `fixtures/` for test data. |
 | `tools/` | Headless dev tools (`soak.gd`, `balance.gd`) and map scripts. Same rules as `sim/`: typed, deterministic. |
 | `scripts/check.sh` | Every check CI runs, in one command. |
