@@ -215,10 +215,8 @@ func test_bad_price_histories_are_rejected() -> void:
 	too_long.resize(PriceHistorySystem.HISTORY_DAYS + 1)
 	too_long.fill(4000)
 	history["grain"] = too_long
-	history["wine"] = [22000, 99999999]
+	history["wine"] = [22000, -5, 1.5]
 	history["amber"] = []
-	var highest := PriceHistorySystem.max_scaled_price(sim.data.economy, sim.data.get_good("wine"))
-	var lowest := PriceHistorySystem.min_scaled_price(sim.data.economy, sim.data.get_good("wine"))
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(
@@ -226,6 +224,18 @@ func test_bad_price_histories_are_rejected() -> void:
 		[
 			"cities[0] price_history: unknown good 'amber'",
 			"cities[0] price_history grain: 31 days, at most 30",
-			"cities[0] price_history wine[1]: price 99999999 outside [%d, %d]" % [lowest, highest],
+			"cities[0] price_history wine[1]: price -5 is negative",
+			"cities[0] price_history wine[2]: 'price' must be a whole number",
 		]
 	)
+
+
+func test_price_history_from_an_older_balance_is_clamped() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var wine := sim.data.get_good("wine")
+	var lowest := PriceHistorySystem.min_scaled_price(sim.data.economy, wine)
+	var highest := PriceHistorySystem.max_scaled_price(sim.data.economy, wine)
+	save["cities"][0]["price_history"]["wine"] = [0, 22000, 99999999]
+	var world := _load(sim, save)
+	assert_eq(Array(world.get_city("port").price_history["wine"]), [lowest, 22000, highest])

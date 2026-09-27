@@ -273,8 +273,10 @@ static func _history_to_dict(city: CityState) -> Dictionary:
 	return history
 
 
-## Every good needs a history of at most HISTORY_DAYS whole prices within the clamped range
-## (PriceHistorySystem's scale).
+## Every good needs a history of at most HISTORY_DAYS whole, non-negative prices (in
+## PriceHistorySystem's scale). A balance change can move the clamped price range after a game was
+## saved, and the history is only drawn, so prices outside today's range are clamped into it
+## instead of rejecting the save.
 func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String) -> void:
 	for key: Variant in raw.keys():
 		if not data.has_good(str(key)):
@@ -290,10 +292,9 @@ func _read_history(data: GameData, city: CityState, raw: Dictionary, ctx: String
 		var highest := PriceHistorySystem.max_scaled_price(data.economy, good)
 		for i in entries.size():
 			var price := _int({"price": entries[i]}, "price", "%s[%d]" % [good_ctx, i])
-			if price < lowest or price > highest:
-				var bounds := [good_ctx, i, price, lowest, highest]
-				errors.append("%s[%d]: price %d outside [%d, %d]" % bounds)
-			history.append(price)
+			if price < 0:
+				errors.append("%s[%d]: price %d is negative" % [good_ctx, i, price])
+			history.append(clampi(price, lowest, highest))
 		city.price_history[good.id] = history
 
 

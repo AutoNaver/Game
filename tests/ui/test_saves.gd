@@ -99,6 +99,14 @@ func test_the_game_autosaves_every_few_days() -> void:
 	assert_eq(_session.save_slot, "", "the autosave isn't offered as the player's slot")
 
 
+func test_loading_starts_a_fresh_log() -> void:
+	assert_true(_session.save_game("Clean"))
+	_session.notify("Adler arrived in Danzig")
+	assert_true(_session.load_game("Clean"))
+	assert_eq(Array(_session.notification_log), [])
+	assert_eq(_text("LogEntries"), "Nothing yet.")
+
+
 func _start_screen() -> StartScreen:
 	return _main.get_node("StartScreen")
 

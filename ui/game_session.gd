@@ -33,8 +33,8 @@ var save_slot: String = ""
 var trade_quantity: int = 1
 ## Pause the game when one of the player's ships arrives, so arrivals aren't missed at speed.
 var pause_on_arrival: bool = true
-## Dated notifications, oldest first: arrivals and workshops that stopped. Kept for the session;
-## the last MAX_LOG entries only.
+## Dated notifications, oldest first: arrivals and workshops that stopped. The last MAX_LOG
+## entries of the running game; not saved, and cleared when a game is loaded.
 var notification_log: PackedStringArray = []
 
 var _pending_hours: float = 0.0
@@ -70,6 +70,8 @@ func load_game(slot: String) -> bool:
 		message_posted.emit("Load failed: %s" % loader.errors[0])
 		return false
 	sim = Simulation.new(sim.data, world)
+	# The log belongs to the game that was running; the loaded one starts with a fresh log.
+	notification_log.clear()
 	if slot != AUTOSAVE_SLOT:
 		save_slot = slot
 	var ships := player().ships
