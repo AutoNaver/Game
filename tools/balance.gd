@@ -47,6 +47,7 @@ func _run() -> int:
 		if (day + 1) % REPORT_EVERY_DAYS == 0:
 			print("day %3d: %6d coins, %d voyages" % [day + 1, sim.world.player().coins, voyages])
 			_print_rivals(sim)
+			_print_cities(sim)
 		var violations := EconomyInvariants.check(data, sim.world)
 		if not violations.is_empty():
 			printerr("\n".join(violations))
@@ -115,3 +116,11 @@ func _print_rivals(sim: Simulation) -> void:
 				]
 			)
 		)
+
+
+func _print_cities(sim: Simulation) -> void:
+	var cells: PackedStringArray = []
+	for city in sim.world.cities:
+		var percent := city.satisfaction / float(CityEconomy.PARTS_PER_UNIT) * 100.0
+		cells.append("%s %d (%.0f%%)" % [city.id, city.population, percent])
+	print("         cities: %s" % ", ".join(cells))

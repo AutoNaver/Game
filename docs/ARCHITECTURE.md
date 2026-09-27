@@ -46,8 +46,8 @@ straight lanes. `SeaChart` finds the shortest route (Dijkstra, deterministic tie
 on trade routes act at their stops (`RouteSystem`, ADR 0007), and the rival houses' docked ships
 trade and sail (`RivalSystem`, ADR 0008). Both issue ordinary commands through
 `Simulation.execute` like any player action. Every 24 ticks it runs the daily systems in a fixed
-order: city production, the traders' workshops (`WorkshopSystem`), consumption, off-map trade
-(`OffMapTradeSystem`), `PriceHistorySystem`, which records each market's closing price for the
+order: city production, the traders' workshops (`WorkshopSystem`), consumption, city
+satisfaction and population (`PopulationSystem`, ADR 0010), off-map trade (`OffMapTradeSystem`), `PriceHistorySystem`, which records each market's closing price for the
 UI's charts, and finally the rivals' daily step (kontor supplies, closing and expansion). Current
 prices are not stored: `Pricing` derives them from current stock whenever they are needed, so they
 can never go stale. The UI's speed setting decides how many ticks run per real second, so pausing
@@ -70,8 +70,9 @@ identical state. A test will enforce this from M1.
 with `save_version` and back. Definitions are *not* saved. Saves reference goods and cities by id
 and are validated against the loaded `GameData` on load, then checked with `EconomyInvariants`.
 Older versions are migrated in `from_dict()` (version 1 saves get an empty price history,
-version 1 and 2 saves get no trade routes, and version 1 to 3 saves get the rival houses as they
-start). Every trader in a save must be the player or a house from `data/rivals.json`. Saves
+version 1 and 2 saves get no trade routes, version 1 to 3 saves get the rival houses as they
+start, and version 1 to 4 saves get neutral city satisfaction). City populations change in play,
+so saves check them against the bounds in `data/population.json` rather than `data/cities.json`. Every trader in a save must be the player or a house from `data/rivals.json`. Saves
 are named slots in `user://saves`, plus an autosave every few in-game days.
 
 ## Testing

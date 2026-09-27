@@ -134,6 +134,39 @@ func test_stock_cap_overflow_is_rejected() -> void:
 	assert_eq(Array(loader.errors), [expected], "wine is not consumed, so only grain overflows")
 
 
+func test_stock_cap_overflow_counts_the_largest_population() -> void:
+	# The home population fits (a cap of 599 400 000), but twice as many people would not.
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/overflow_growth"))
+	var expected := (
+		"cities.json[0]: stock cap for 'grain' exceeds 1000000000 units;"
+		+ " lower population or consumption"
+	)
+	assert_eq(Array(loader.errors), [expected])
+
+
+func test_valid_fixture_has_population_rules() -> void:
+	var population := GameDataLoader.new().load_dir(VALID_DIR).population
+	assert_almost_eq(population.satisfaction_weight, 0.2, 0.0001)
+	assert_almost_eq(population.neutral_satisfaction, 0.8, 0.0001)
+	assert_almost_eq(population.sensitivity, 2.0, 0.0001)
+	assert_almost_eq(population.growth_rate, 0.02, 0.0001)
+	assert_eq([population.min_population(1001), population.max_population(1001)], [601, 1501])
+
+
+func test_population_rules_are_validated() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_population"))
+	var expected: Array[String] = [
+		"population.json: unknown field 'mood'",
+		"population.json: 'satisfaction_weight' must be a number greater than 0.0 and at most 1.0",
+		"population.json: 'neutral_satisfaction' must be a number at least 0.0 and at most 1.0",
+		"population.json: 'sensitivity' must be a multiple of 0.001 (got 0.0005)",
+		"population.json: 'max_factor' must be a number at least 1.0 and less than 100.0",
+	]
+	assert_eq(Array(loader.errors), expected)
+
+
 func test_stock_cap_factor_must_be_a_multiple_of_a_thousandth() -> void:
 	var loader := GameDataLoader.new()
 	assert_null(loader.load_dir("res://tests/fixtures/bad_cap_factor"))
@@ -157,6 +190,7 @@ func test_missing_directory_reports_each_file() -> void:
 		files.append(message.get_slice(":", 0))
 	var expected_files: Array[String] = [
 		"economy.json",
+		"population.json",
 		"goods.json",
 		"map.json",
 		"cities.json",

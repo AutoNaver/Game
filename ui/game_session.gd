@@ -113,8 +113,8 @@ func set_speed(value: int) -> void:
 
 
 ## Runs up to `hours` ticks immediately, regardless of speed. Notifies about ships that arrive,
-## workshops that stop working and the rival houses' new ships and workshops, each dated when it
-## happened. If pause_on_arrival is set and
+## workshops that stop working or run short of workers and the rival houses' new ships and
+## workshops, each dated when it happened. If pause_on_arrival is set and
 ## time is running, stops right after the tick in which a ship arrives, even mid-batch. Ships on
 ## trade routes leave again in the hour they arrive, so they neither notify nor pause; their
 ## problems are reported instead (_notify_route_problems).
@@ -124,6 +124,7 @@ func advance(hours: int) -> void:
 		if not ship.is_docked():
 			at_sea.append(ship)
 	var statuses := _workshop_statuses()
+	var short_staffed := _short_staffed_cities()
 	var rival_assets := _rival_assets()
 	var day_before := sim.day()
 	for i in hours:
@@ -139,6 +140,8 @@ func advance(hours: int) -> void:
 		if sim.world.hour % Simulation.HOURS_PER_DAY == 0:
 			_notify_stopped_workshops(statuses)
 			statuses = _workshop_statuses()
+			_notify_staffing(short_staffed)
+			short_staffed = _short_staffed_cities()
 			_notify_rival_news(rival_assets)
 			rival_assets = _rival_assets()
 		if arrived and pause_on_arrival and speed != 0:
@@ -252,6 +255,34 @@ func _notify_stopped_workshops(before: Dictionary[String, String]) -> void:
 			var workshop_type := sim.data.get_workshop(workshop.type_id)
 			var status := KontorPanel.status_text(sim.data, workshop)
 			notify("%s in %s: %s" % [workshop_type.name, _city_name(kontor.city_id), status])
+
+
+## Cities where the player has workshops that are short of workers (CityEconomy.staffing).
+func _short_staffed_cities() -> PackedStringArray:
+	var cities := PackedStringArray()
+	for kontor in player().kontors_in_order(sim.data.cities):
+		var city := sim.world.get_city(kontor.city_id)
+		var full := CityEconomy.staffing(sim.data, sim.world, city) == CityEconomy.PARTS_PER_UNIT
+		if not kontor.workshops.is_empty() and not full:
+			cities.append(kontor.city_id)
+	return cities
+
+
+## Notifies once when the player's workshops in a city run short of workers, and when they are
+## fully staffed again.
+func _notify_staffing(before: PackedStringArray) -> void:
+	var now := _short_staffed_cities()
+	for city_id in now:
+		if not before.has(city_id):
+			var city := sim.world.get_city(city_id)
+			var staffing := CityEconomy.staffing(sim.data, sim.world, city)
+			var percent := roundi(staffing * 100.0 / CityEconomy.PARTS_PER_UNIT)
+			var text := "%s has shrunk: your workshops there are %d%% staffed and work slower"
+			notify(text % [_city_name(city_id), percent])
+	for city_id in before:
+		if not now.has(city_id) and player().get_kontor(city_id) != null:
+			if not player().get_kontor(city_id).workshops.is_empty():
+				notify("Your workshops in %s are fully staffed again" % _city_name(city_id))
 
 
 ## The rival houses' ships and workshops as keys ("ship/<id>/<type>",
