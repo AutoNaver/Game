@@ -47,3 +47,10 @@ func test_a_city_with_more_links_beyond_the_map_imports_more() -> void:
 	)
 	assert_almost_eq(expected, 3.2, 0.001, "at the new stock of 4 of 20: 2 × 2 × 16 / 20")
 	assert_eq(Array(EconomyInvariants.check(sim.data, sim.world)), [])
+
+
+func test_newer_houses_must_come_after_older_ones() -> void:
+	var loader := GameDataLoader.new()
+	assert_null(loader.load_dir("res://tests/fixtures/bad_since_order"))
+	var message := "rivals.json: 'later' is older than the house before it"
+	assert_eq(Array(loader.errors), [message + GameDataLoader.SINCE_ORDER])

@@ -52,6 +52,8 @@ const EVENT_FIELDS: PackedStringArray = [
 ## Longest an event may last, and the most a storm may slow ships.
 const MAX_EVENT_DAYS: int = 3650
 const MAX_STORM_SLOWDOWN: int = 24
+## Saves hold the older cities and houses first, so newer ones must come after them.
+const SINCE_ORDER: String = " (since_save must not decrease: add new ones at the end)"
 const MAP_FIELDS: PackedStringArray = [
 	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
 ]
@@ -143,6 +145,13 @@ func load_dir(dir: String) -> GameData:
 			data.add_city(city)
 			_check_stock_caps(city, data, ctx)
 
+	for i in range(1, data.cities.size()):
+		if data.cities[i].since_save < data.cities[i - 1].since_save:
+			_error(
+				CITIES_FILE,
+				"'%s' is older than the city before it" % data.cities[i].id + SINCE_ORDER
+			)
+
 	var sea_lanes: Variant = _read_json(dir.path_join(SEA_LANES_FILE), TYPE_DICTIONARY)
 	if sea_lanes != null:
 		data.sea_chart = _parse_sea_lanes(sea_lanes as Dictionary, SEA_LANES_FILE, data)
@@ -169,6 +178,13 @@ func load_dir(dir: String) -> GameData:
 	var rivals: Variant = _read_json(dir.path_join(RIVALS_FILE), TYPE_DICTIONARY)
 	if rivals != null:
 		_parse_rivals(rivals as Dictionary, RIVALS_FILE, data)
+
+	for i in range(1, data.rivals.size()):
+		if data.rivals[i].since_save < data.rivals[i - 1].since_save:
+			_error(
+				RIVALS_FILE,
+				"'%s' is older than the house before it" % data.rivals[i].id + SINCE_ORDER
+			)
 
 	var events := _read_array(dir.path_join(EVENTS_FILE))
 	for i in events.size():
