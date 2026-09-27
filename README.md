@@ -5,6 +5,9 @@ A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4
 Status: **M7**: the MVP (trade, ships, kontors, workshops, save/load) plus readable markets, cargo
 ideas, notifications, save slots and trade routes. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
+The fleet panel summarizes ship locations and capacity. Select a ship to see its cargo and, while
+docked, what selling that cargo in the current port would pay at today's prices.
+
 ## Requirements
 
 - [Godot 4.7.2](https://godotengine.org/download) (standard build). On Windows: `winget install GodotEngine.GodotEngine`

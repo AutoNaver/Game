@@ -2,11 +2,14 @@ class_name FleetPanel
 extends VBoxContainer
 ## The player's ships: where each one is and what it carries. Click a ship to select it; a docked
 ## selected ship can be sent to another city with the "Sail to" buttons, and any selected ship can
-## be put on one of the player's trade routes.
+## be put on one of the player's trade routes. The cargo manifest values goods only at a port the
+## ship has reached, so it does not reveal a distant market ahead of the ship.
 
 var _session: GameSession
 var _ship_list: VBoxContainer = VBoxContainer.new()
 var _ship_buttons: Dictionary[String, Button] = {}
+var _summary: Label = Label.new()
+var _manifest: Label = Label.new()
 var _sail_row: HFlowContainer = HFlowContainer.new()
 var _sail_buttons: Dictionary[String, Button] = {}
 var _route_row: HBoxContainer = HBoxContainer.new()
@@ -19,7 +22,14 @@ var _picker_routes: PackedStringArray = []
 func setup(session: GameSession) -> void:
 	_session = session
 	add_child(UiStyle.label("Fleet", UiStyle.HEADER_LABEL))
+	_summary.name = "FleetSummary"
+	_summary.theme_type_variation = UiStyle.MUTED_LABEL
+	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_summary)
 	add_child(_ship_list)
+	_manifest.name = "CargoManifest"
+	_manifest.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_manifest)
 	_sail_row.add_child(UiStyle.label("Sail to:", UiStyle.MUTED_LABEL))
 	for city in _session.sim.data.cities:
 		var button := Button.new()
@@ -43,6 +53,7 @@ func setup(session: GameSession) -> void:
 
 func refresh() -> void:
 	var ships := _session.player().ships
+	_refresh_summary(ships)
 	# Rebuild when the set of ships changed (bought, sold or a game loaded), not just the count.
 	var ids := PackedStringArray()
 	for ship in ships:
@@ -54,6 +65,7 @@ func refresh() -> void:
 		button.text = _describe(ship)
 		button.set_pressed_no_signal(ship.id == _session.selected_ship)
 	var selected := _session.player().get_ship(_session.selected_ship)
+	_refresh_manifest(selected)
 	_refresh_route(selected)
 	_sail_row.visible = selected != null and selected.is_docked()
 	if not _sail_row.visible:
@@ -66,6 +78,57 @@ func refresh() -> void:
 			_session.sim.data, ship_type, selected.docked_at, city.id
 		)
 		button.text = "%s (%dh)" % [city.name, hours]
+
+
+func _refresh_summary(ships: Array[ShipState]) -> void:
+	var docked := 0
+	var sailing := 0
+	var on_routes := 0
+	var loaded := 0
+	var capacity := 0
+	for ship in ships:
+		if ship.is_docked():
+			docked += 1
+		else:
+			sailing += 1
+		if not ship.route_id.is_empty():
+			on_routes += 1
+		loaded += ship.cargo_total()
+		capacity += _session.sim.data.get_ship(ship.type_id).capacity
+	_summary.text = (
+		"Ships %d · Docked %d · Sailing %d · Routes %d\nCargo %d/%d"
+		% [ships.size(), docked, sailing, on_routes, loaded, capacity]
+	)
+
+
+func _refresh_manifest(ship: ShipState) -> void:
+	if ship == null:
+		_manifest.text = "Select a ship to see its cargo."
+		return
+	var lines: PackedStringArray = ["%s cargo:" % ship.name]
+	if ship.cargo_total() == 0:
+		lines.append("Empty hold")
+		_manifest.text = "\n".join(lines)
+		return
+	var port: CityState = null
+	if ship.is_docked():
+		port = _session.sim.world.get_city(ship.docked_at)
+	var total := 0
+	for good in _session.sim.data.goods:
+		var units := ship.cargo_of(good.id)
+		if units == 0:
+			continue
+		var line := "%d %s" % [units, good.name]
+		if port != null:
+			var revenue := CityEconomy.sell_revenue(_session.sim.data.economy, port, good, units)
+			line += " · %d coins" % revenue
+			total += revenue
+		lines.append(line)
+	if port != null:
+		lines.append("Sell here now: %d coins total" % total)
+	else:
+		lines.append("Sale prices available when docked")
+	_manifest.text = "\n".join(lines)
 
 
 func _refresh_route(ship: ShipState) -> void:
