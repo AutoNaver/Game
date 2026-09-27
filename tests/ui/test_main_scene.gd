@@ -36,6 +36,14 @@ func test_the_game_uses_the_shared_theme() -> void:
 	assert_eq(title.get_theme_color("font_color"), UiStyle.GOLD)
 
 
+func test_focused_buttons_show_a_visible_ring() -> void:
+	var button := _find("Hud").find_children("*", "Button", true, false)[0] as Button
+	var focus := button.get_theme_stylebox("focus") as StyleBoxFlat
+	assert_not_null(focus, "focus style must be a visible box, not empty")
+	assert_eq(focus.border_color, UiStyle.GOLD)
+	assert_gt(focus.border_width_top, 0)
+
+
 func test_time_advances_and_the_hud_follows() -> void:
 	_session.advance(Simulation.HOURS_PER_DAY + 5)
 	assert_eq(_text("Hud", "DateLabel"), "Day 2, 05:00")

@@ -46,7 +46,7 @@ static func make_theme() -> Theme:
 	theme.set_stylebox(
 		"disabled", "Button", _box(BUTTON_DISABLED, BUTTON_DISABLED, 4, [1, 1, 1, 1])
 	)
-	theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+	theme.set_stylebox("focus", "Button", _focus_ring())
 	theme.set_color("font_color", "Button", INK)
 	theme.set_color("font_hover_color", "Button", Color.WHITE)
 	theme.set_color("font_pressed_color", "Button", Color.WHITE)
@@ -96,6 +96,18 @@ static func _box(fill: Color, border: Color, radius: int, borders: Array[int]) -
 	box.content_margin_top = 4
 	box.content_margin_bottom = 4
 	return box
+
+
+## A gold outline drawn over a focused control, so keyboard and controller players can see which
+## button will activate. Transparent fill keeps the button's own style visible underneath.
+static func _focus_ring() -> StyleBoxFlat:
+	var ring := StyleBoxFlat.new()
+	ring.draw_center = false
+	ring.border_color = GOLD
+	ring.set_border_width_all(2)
+	ring.set_corner_radius_all(4)
+	ring.set_expand_margin_all(2)
+	return ring
 
 
 static func _line(color: Color) -> StyleBoxLine:
