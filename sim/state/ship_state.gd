@@ -39,10 +39,13 @@ func cargo_total() -> int:
 
 
 ## Adds (or with a negative amount removes) cargo, dropping entries that reach zero.
-func change_cargo(good_id: String, amount: int) -> void:
+## Refuses to go below zero: returns false and changes nothing. Commands validate first.
+func change_cargo(good_id: String, amount: int) -> bool:
 	var units := cargo_of(good_id) + amount
-	assert(units >= 0, "cargo of %s would go negative" % good_id)
+	if units < 0:
+		return false
 	if units == 0:
 		cargo.erase(good_id)
 	else:
 		cargo[good_id] = units
+	return true
