@@ -273,6 +273,8 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorStat
 		return null
 	var raw: Dictionary = raw_value
 	var kontor := KontorState.new(_string(raw, "city", ctx))
+	if not data.has_city(kontor.city_id):
+		errors.append("%s: unknown city '%s'" % [ctx, kontor.city_id])
 	kontor.cargo = _goods(data, _dict(raw, "cargo", ctx), "%s cargo" % ctx, false)
 	var workshops := _array(raw, "workshops", ctx)
 	for i in workshops.size():
@@ -290,9 +292,14 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String) -> KontorStat
 			errors.append("%s: unknown status '%s'" % [workshop_ctx, status])
 		else:
 			workshop.status = WorkshopState.Status[status] as WorkshopState.Status
+		# The kontor panel names the missing good for NO_INPUTS, so it must exist then and only then.
 		workshop.missing_good = _string(entry, "missing_good", workshop_ctx)
-		if workshop.missing_good != "" and not data.has_good(workshop.missing_good):
-			errors.append("%s: unknown good '%s'" % [workshop_ctx, workshop.missing_good])
+		if workshop.status == WorkshopState.Status.NO_INPUTS:
+			if not data.has_good(workshop.missing_good):
+				var missing := workshop.missing_good
+				errors.append("%s: unknown missing good '%s'" % [workshop_ctx, missing])
+		elif workshop.missing_good != "":
+			errors.append("%s: missing_good is only allowed for NO_INPUTS" % workshop_ctx)
 		kontor.workshops.append(workshop)
 	return kontor
 

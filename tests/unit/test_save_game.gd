@@ -99,7 +99,6 @@ func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
 	var save := _through_json(SaveGame.to_dict(sim.world))
 	save["traders"][0]["ships"][0]["type"] = "galleon"
 	save["traders"][0]["kontors"][0]["cargo"]["amber"] = 3
-	save["traders"][0]["kontors"][0]["workshops"][0]["missing_good"] = "amber"
 	save["cities"][0]["population"] = -500
 	save["cities"][1]["id"] = "riga"
 	var population: int = sim.data.cities[0].population
@@ -112,7 +111,6 @@ func test_saves_that_do_not_fit_the_game_data_are_rejected() -> void:
 			"cities[1]: expected city 'town', got 'riga'",
 			"traders[0] ships[0]: unknown ship type 'galleon'",
 			"traders[0] kontors[0] cargo: unknown good 'amber'",
-			"traders[0] kontors[0] workshops[0]: unknown good 'amber'",
 		]
 	)
 
@@ -148,3 +146,39 @@ func test_duplicate_traders_are_rejected() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))
 	assert_eq(Array(loader.errors), ["duplicate trader id 'player'"])
+
+
+func test_workshop_status_and_missing_good_must_agree() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	var workshop: Dictionary = save["traders"][0]["kontors"][0]["workshops"][0]
+	workshop["status"] = "NO_INPUTS"
+	workshop["missing_good"] = "grain"
+	var world := _load(sim, save)
+	assert_eq(world.player().get_kontor("port").workshops[0].missing_good, "grain")
+
+	var errors: Array = []
+	for pair: Array in [["NO_INPUTS", ""], ["NO_INPUTS", "amber"], ["WORKED", "grain"]]:
+		workshop["status"] = pair[0]
+		workshop["missing_good"] = pair[1]
+		var loader := SaveGame.new()
+		assert_null(loader.from_dict(sim.data, save))
+		errors.append_array(Array(loader.errors))
+	var ctx := "traders[0] kontors[0] workshops[0]"
+	assert_eq(
+		errors,
+		[
+			"%s: unknown missing good ''" % ctx,
+			"%s: unknown missing good 'amber'" % ctx,
+			"%s: missing_good is only allowed for NO_INPUTS" % ctx,
+		]
+	)
+
+
+func test_kontors_in_unknown_cities_are_rejected() -> void:
+	var sim := _played_simulation()
+	var save := _through_json(SaveGame.to_dict(sim.world))
+	save["traders"][0]["kontors"].append({"city": "riga", "cargo": {}, "workshops": []})
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_eq(Array(loader.errors), ["traders[0] kontors[1]: unknown city 'riga'"])
