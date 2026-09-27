@@ -156,3 +156,11 @@ func test_tiny_consumption_in_a_small_town_still_adds_up() -> void:
 	assert_eq(port.stock["amber"], 5)
 	ConsumptionSystem.run_day(sim.data, sim.world)
 	assert_eq(port.stock["amber"], 4)
+
+
+func test_target_stock_is_exact_for_whole_results() -> void:
+	# 3000 x 0.1/1000 x 10 days is exactly 3; as floats it was 3.0000000000000004 -> 4.
+	var economy := EconomyDef.new(10, 2.0, 2.5, 0.35, 0.1)
+	var good := GoodDef.new("salt", "Salt", "raw", 50, 0.1)
+	assert_eq(CityEconomy.target_stock(economy, CityState.new("port", 3000), good), 3)
+	assert_eq(CityEconomy.target_stock(economy, CityState.new("port", 3001), good), 4, "rounds up")
