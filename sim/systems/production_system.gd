@@ -16,10 +16,11 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			if room <= 0:
 				continue
 			var output := rate + city.production_carry[good.id]
-			var units := floori(output)
-			if units > room:
+			if output >= room:
+				# Saturated: fill to the cap and drop any fraction, even when output fits exactly.
 				city.stock[good.id] += room
 				city.production_carry[good.id] = 0.0
 			else:
+				var units := floori(output)
 				city.stock[good.id] += units
 				city.production_carry[good.id] = output - units
