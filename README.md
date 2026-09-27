@@ -14,6 +14,9 @@ ideas, notifications, save slots and trade routes. See [docs/ROADMAP.md](docs/RO
 
 Open the folder in Godot and press F5, or run `godot` from the repo root.
 
+With cargo aboard a docked ship, **Cargo destinations** compares what other ports would pay for
+the entire load at today's prices. Its Sail button sends the ship through the normal command.
+
 ## Download a build
 
 Every CI run on a PR or on `main` exports a Windows build. Open the run under the repository's
