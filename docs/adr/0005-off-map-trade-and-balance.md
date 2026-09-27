@@ -46,5 +46,7 @@ any economy change and compare.
 
 - Markets drift back toward their targets, so a route you've just saturated recovers, and
   scarcity is less extreme, but trade opportunities never vanish.
+- AGENTS.md rule 7 lists off-map imports and exports as the only goods sources and sinks besides
+  production and consumption. Player and AI trading still never create or destroy goods.
 - Off-map trade is the natural hook for events later, such as war cutting off imports.
 - AI traders (post-MVP) can reuse the bot's route choice as a starting point.
