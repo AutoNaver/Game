@@ -97,6 +97,35 @@ func test_invariants_catch_broken_ships_and_coins() -> void:
 	player.coins = -1
 	ship.cargo["grain"] = 11
 	var violations := EconomyInvariants.check(sim.data, sim.world)
-	assert_eq(violations.size(), 2)
+	assert_eq(violations.size(), 3)
 	assert_string_contains(violations[0], "player: negative coins -1")
 	assert_string_contains(violations[1], "ship_1: cargo 11 over capacity 10")
+	assert_string_contains(violations[2], "grain: 51 units exist", "cargo counts toward the ledger")
+
+
+func test_change_cargo_adds_and_removes_units() -> void:
+	var ship := ShipState.new("ship_9", "boat", "Probe", "port")
+	assert_true(ship.change_cargo("grain", 4))
+	ship.change_cargo("wine", 1)
+	ship.change_cargo("grain", 3)
+	assert_eq(ship.cargo, {"grain": 7, "wine": 1})
+	assert_eq(ship.cargo_total(), 8)
+	ship.change_cargo("grain", -2)
+	assert_eq(ship.cargo_of("grain"), 5)
+
+
+func test_change_cargo_drops_entries_that_reach_zero() -> void:
+	var ship := ShipState.new("ship_9", "boat", "Probe", "port")
+	ship.change_cargo("wine", 2)
+	ship.change_cargo("wine", -2)
+	assert_eq(ship.cargo, {}, "no zero-valued entries left behind")
+	assert_eq(ship.cargo_of("wine"), 0)
+	assert_eq(ship.cargo_total(), 0)
+
+
+func test_change_cargo_rejects_removing_more_than_aboard() -> void:
+	var ship := ShipState.new("ship_9", "boat", "Probe", "port")
+	ship.change_cargo("grain", 1)
+	assert_false(ship.change_cargo("grain", -2))
+	assert_false(ship.change_cargo("wine", -1))
+	assert_eq(ship.cargo, {"grain": 1}, "a refused change leaves the cargo as it was")

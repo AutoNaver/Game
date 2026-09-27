@@ -13,8 +13,8 @@ static func daily_demand(city: CityState, good: GoodDef) -> float:
 	return city.population / 1000.0 * good.consumption_per_1000
 
 
-## Thousandths of a unit of `good` the population wants per day. Exact for rates with up to three
-## decimals, which covers any sensible data.
+## Thousandths of a unit of `good` the population wants per day, rounded to the nearest
+## thousandth. The rounding is deterministic and at most 0.0005 units a day.
 static func daily_demand_millis(city: CityState, good: GoodDef) -> int:
 	return roundi(city.population * good.consumption_per_1000)
 

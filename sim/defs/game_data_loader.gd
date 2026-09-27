@@ -233,8 +233,14 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 			continue
 		var field := "production.%s" % good_id
 		var rate := _get_float_between({field: rates[key]}, field, 0.0, MAX_PRODUCTION_PER_DAY, ctx)
-		if rate > 0.0:
-			production[good_id] = rate
+		if rate <= 0.0:
+			continue
+		# The simulation counts thousandths of a unit; finer rates would silently be rounded.
+		var millis := rate * CityEconomy.MILLIS_PER_UNIT
+		if absf(millis - roundf(millis)) > 1e-6:
+			_error(ctx, "'%s' must be a multiple of 0.001 (got %s)" % [field, rate])
+			continue
+		production[good_id] = rate
 	return production
 
 

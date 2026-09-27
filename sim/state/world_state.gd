@@ -10,6 +10,10 @@ var hour: int = 0
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## In GameData city order.
 var cities: Array[CityState] = []
+## Units of each good that should exist in the world: starting stock plus everything produced
+## minus everything consumed. Trading only moves goods, so the actual total must always match
+## (checked by EconomyInvariants).
+var goods_ledger: Dictionary[String, int] = {}
 ## The player first; AI traders later.
 var traders: Array[TraderState] = []
 ## Ship ids are "ship_<n>", numbered in creation order so they are stable and deterministic.
