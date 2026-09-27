@@ -1,8 +1,12 @@
 extends Control
-## Placeholder entry scene. Loads the game data and shows a summary, so broken data is visible
-## right away on launch. The map UI replaces this in M3.
+## Entry scene: loads the game data, starts a session and lays out the HUD, map and side panel.
+## If the data is broken, shows every loader error instead of a half-working game.
 
-@onready var _status_label: Label = %StatusLabel
+## Fixed until there is a new-game menu; nothing draws from the RNG yet.
+const NEW_GAME_SEED: int = 1
+const SIDE_PANEL_WIDTH: float = 420.0
+
+var session: GameSession = GameSession.new()
 
 
 func _ready() -> void:
@@ -11,7 +15,41 @@ func _ready() -> void:
 	if data == null:
 		for message in loader.errors:
 			push_error(message)
-		_status_label.text = "Game data failed to load:\n%s" % "\n".join(loader.errors)
+		_show_fatal("Game data failed to load:\n%s" % "\n".join(loader.errors))
 		return
-	var summary := "Loaded %d goods and %d cities."
-	_status_label.text = summary % [data.goods.size(), data.cities.size()]
+
+	session.name = "Session"
+	add_child(session)
+	var layout := VBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(layout)
+
+	var hud := Hud.new()
+	hud.name = "Hud"
+	layout.add_child(hud)
+	var body := HBoxContainer.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(body)
+	var map := MapView.new()
+	map.name = "Map"
+	map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(map)
+	var side := SidePanel.new()
+	side.name = "SidePanel"
+	side.custom_minimum_size = Vector2(SIDE_PANEL_WIDTH, 0.0)
+	body.add_child(side)
+
+	hud.setup(session)
+	map.setup(session)
+	side.setup(session)
+	session.start(data, NEW_GAME_SEED)
+
+
+func _show_fatal(text: String) -> void:
+	var label := Label.new()
+	label.name = "FatalLabel"
+	label.text = text
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(label)
