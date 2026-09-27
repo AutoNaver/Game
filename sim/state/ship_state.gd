@@ -19,6 +19,8 @@ var route_id: String = ""
 var route_stop: int = 0
 ## What went wrong at the last stop (for the UI), or "" if everything was carried out.
 var route_note: String = ""
+## Market report carried from the port where this ship last departed, for harbour gossip.
+var news: MarketRecord = null
 
 
 func _init(p_id: String, p_type_id: String, p_name: String, p_docked_at: String) -> void:

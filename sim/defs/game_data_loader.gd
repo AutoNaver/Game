@@ -84,6 +84,7 @@ const RIVAL_AI_FIELDS: PackedStringArray = [
 	"input_price_limit",
 	"keep_free_workers",
 ]
+const RIVAL_AI_OPTIONAL_FIELDS: PackedStringArray = ["explore_chance"]
 const RIVAL_FIELDS: PackedStringArray = ["id", "name", "color", "start_city", "coins", "ships"]
 const RIVAL_OPTIONAL_FIELDS: PackedStringArray = ["since_save"]
 
@@ -682,7 +683,7 @@ func _parse_rivals(entry: Dictionary, ctx: String, data: GameData) -> void:
 
 func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 	var error_count := errors.size()
-	_check_fields(entry, RIVAL_AI_FIELDS, ctx)
+	_check_fields(entry, RIVAL_AI_FIELDS, ctx, RIVAL_AI_OPTIONAL_FIELDS)
 	var top_choices := _get_positive_int(entry, "top_choices", ctx)
 	var cash_reserve := _get_non_negative_int(entry, "cash_reserve", ctx)
 	var max_ships := _get_positive_int(entry, "max_ships", ctx)
@@ -691,9 +692,10 @@ func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 	var input_days := _get_positive_int(entry, "workshop_input_days", ctx)
 	var price_limit := _get_float_between(entry, "input_price_limit", 0.0, 100.0, ctx)
 	var keep_free := _get_float_between(entry, "keep_free_workers", 0.0, 1.0, ctx, true)
+	var explore := _get_float_between(entry, "explore_chance", 0.0, 1.0, ctx, true, true)
 	if errors.size() > error_count:
 		return null
-	return RivalAiDef.new(
+	var ai := RivalAiDef.new(
 		top_choices,
 		cash_reserve,
 		max_ships,
@@ -703,6 +705,8 @@ func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 		price_limit,
 		keep_free
 	)
+	ai.explore_chance = explore
+	return ai
 
 
 func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:

@@ -67,7 +67,8 @@ func test_current_saves_must_cover_the_whole_world() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(data, save))
 	assert_eq(loader.errors[0], "goods_ledger: missing honey")
-	assert_true(loader.errors.has("save has 2 cities, its version 7 has 3"))
+	var cities := "save has 2 cities, its version %d has 3" % SaveGame.SAVE_VERSION
+	assert_true(loader.errors.has(cities))
 
 
 func test_old_saves_must_hold_the_cities_of_their_own_world() -> void:

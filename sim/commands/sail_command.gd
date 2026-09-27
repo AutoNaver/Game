@@ -28,6 +28,9 @@ func validate(sim: Simulation) -> String:
 
 func apply(sim: Simulation) -> void:
 	var ship := Command.find_ship(sim, trader_id, ship_id)
+	ship.news = MarketKnowledgeSystem.current_report(
+		sim.data, sim.world.get_city(ship.docked_at), sim.day()
+	)
 	var ship_type := sim.data.get_ship(ship.type_id)
 	ship.origin = ship.docked_at
 	ship.destination = destination

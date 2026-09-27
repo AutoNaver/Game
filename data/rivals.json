@@ -7,7 +7,8 @@
     "expansion_days": 20,
     "workshop_input_days": 4,
     "input_price_limit": 1.1,
-    "keep_free_workers": 0.5
+    "keep_free_workers": 0.5,
+    "explore_chance": 0.15
   },
   "houses": [
     {

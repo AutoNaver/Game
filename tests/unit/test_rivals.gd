@@ -16,6 +16,13 @@ func _rival() -> TraderState:
 	return _sim.world.get_trader(RIVAL)
 
 
+func _give_rival_report(city_id: String) -> void:
+	MarketKnowledgeSystem.observe_presence(_sim.data, _sim.world)
+	_rival().market_book[city_id] = MarketKnowledgeSystem.current_report(
+		_sim.data, _sim.world.get_city(city_id), _sim.day()
+	)
+
+
 ## Runs the rivals' daily step as on day `day` (an expansion day if it divides by 5).
 func _run_day(day: int) -> void:
 	_sim.world.hour = day * Simulation.HOURS_PER_DAY
@@ -36,6 +43,7 @@ func test_new_games_start_the_rivals_after_the_player() -> void:
 func test_a_docked_rival_ship_buys_a_profitable_load_and_sails() -> void:
 	SmallWorld.set_stock(_sim, "port", "grain", 40)
 	SmallWorld.set_stock(_sim, "town", "grain", 0)
+	_give_rival_report("town")
 	_sim.tick()
 	var ship := _rival().ships[0]
 	assert_false(ship.is_docked(), "sailed in the hour it was docked")
@@ -48,6 +56,7 @@ func test_a_docked_rival_ship_buys_a_profitable_load_and_sails() -> void:
 func test_a_rival_ship_sells_its_cargo_on_arrival() -> void:
 	SmallWorld.set_stock(_sim, "port", "grain", 40)
 	SmallWorld.set_stock(_sim, "town", "grain", 0)
+	_give_rival_report("town")
 	_sim.tick()
 	var coins_at_sea := _rival().coins
 	var ship := _rival().ships[0]
@@ -124,6 +133,7 @@ func test_a_rival_that_cannot_spare_the_reserve_does_not_expand() -> void:
 func test_a_rival_with_a_full_fleet_sets_up_the_best_workshop() -> void:
 	_sim.data.rival_ai.max_ships = 1
 	SmallWorld.set_stock(_sim, "town", "wine", 0)
+	_give_rival_report("town")
 	_run_day(SmallWorld.RIVAL_EXPANSION_DAYS)
 	var kontor := _rival().get_kontor("town")
 	assert_not_null(kontor, "town, where wine is scarce, pays best")
@@ -139,6 +149,7 @@ func test_rivals_do_not_open_a_workshop_type_another_house_runs_there() -> void:
 	_sim.world.player().coins = 5000
 	assert_eq(_sim.execute(BuyKontorCommand.new(player, "port")), "")
 	assert_eq(_sim.execute(BuildWorkshopCommand.new(player, "port", "vintner")), "")
+	_give_rival_report("town")
 	_run_day(SmallWorld.RIVAL_EXPANSION_DAYS)
 	assert_null(_rival().get_kontor("port"))
 	assert_not_null(_rival().get_kontor("town"), "the vintner goes to the other city")

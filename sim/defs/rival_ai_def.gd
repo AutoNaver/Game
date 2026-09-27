@@ -20,6 +20,9 @@ var input_price_limit: float
 ## A house only builds a workshop if at least this share of the city's workforce stays free after
 ## it, so rivals never crowd the player out of a city's workers.
 var keep_free_workers: float
+## Chance that a ship leaving port sails for the city its house has the oldest report of (or none),
+## to refresh its market book, instead of taking the best known trade. 0 when missing from data.
+var explore_chance: float = 0.0
 
 
 func _init(

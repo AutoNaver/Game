@@ -117,14 +117,16 @@ by net worth, and the log reports the rivals' new ships and workshops. Details a
 - **Close** a workshop that doesn't pay (M8): its workers leave and its wages stop.
 - Measure yourself against the rival houses' net worth (M8).
 
-## Progression plan: from skipper to trading house (M12 to M15)
+## Progression: from skipper to trading house (M12 to M15)
 
-Today everything is unlocked from the first day. The plan in
-[ADR 0009](adr/0009-progression.md) makes growth a sequence of new capabilities:
+Market knowledge is in play. The remaining progression in
+[ADR 0009](adr/0009-progression.md) adds further capabilities:
 
 1. **What you know (M12).** You see live prices only where you have presence: you in person, a
    docked ship or a kontor. Elsewhere you see your last known prices and their age. Ships bring
    news and harbour gossip; the planner works from what you know. Rivals follow the same rules.
+   Until M13, you remain ashore in the starting city. Details are in
+   [ADR 0013](adr/0013-market-knowledge.md).
 2. **Who sails for you (M13).** You start as the captain of your own ship. More ships need hired
    captains (tavern pools, wages, seamanship and trading skills that improve with voyages), and
    only captained ships follow trade routes.
@@ -152,5 +154,5 @@ politics.
 - How visible should city needs be? Decided in M9: satisfaction and the scarcest goods under the
   city title, with tooltips ([ADR 0010](adr/0010-city-satisfaction-and-growth.md)).
 - Map presentation: stylized painted map or clean schematic?
-- Market knowledge: decided in [ADR 0009](adr/0009-progression.md) (live prices only with
-  presence, remembered prices elsewhere), built in M12.
+- Market knowledge: decided in [ADR 0009](adr/0009-progression.md) and built in
+  [ADR 0013](adr/0013-market-knowledge.md).

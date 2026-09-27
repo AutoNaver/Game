@@ -38,6 +38,7 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 		world.add_ship(player, ship.type_id, ship.name, scenario.start_city)
 	for rival in p_data.rivals:
 		add_rival(world, rival)
+	MarketKnowledgeSystem.initialize(p_data, world)
 	return Simulation.new(p_data, world)
 
 
@@ -86,12 +87,14 @@ func execute(command: Command) -> String:
 	var error := command.validate(self)
 	if error.is_empty():
 		command.apply(self)
+		MarketKnowledgeSystem.observe_presence(data, world)
 	return error
 
 
 func tick() -> void:
 	world.hour += 1
-	MovementSystem.run_hour(data, world)
+	var arrivals := MovementSystem.run_hour(data, world)
+	MarketKnowledgeSystem.on_arrivals(data, world, arrivals)
 	RouteSystem.run_hour(self)
 	RivalSystem.run_hour(self)
 	if world.hour % HOURS_PER_DAY == 0:
@@ -105,6 +108,7 @@ func tick() -> void:
 		OffMapTradeSystem.run_day(data, world)
 		PriceHistorySystem.run_day(data, world)
 		RivalSystem.run_day(self)
+		MarketKnowledgeSystem.record_day(data, world)
 
 
 func advance_days(days: int) -> void:
