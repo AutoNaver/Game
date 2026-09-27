@@ -1,12 +1,11 @@
 class_name ShipState
-extends RefCounted
+extends Hold
 ## One ship owned by a trader: either docked in a city or on a voyage between two cities.
+## Its cargo lives in the Hold it extends.
 
 var id: String
 var type_id: String
 var name: String
-## Units aboard by good id. Goods with zero units have no entry.
-var cargo: Dictionary[String, int] = {}
 ## City the ship is docked in; empty while at sea.
 var docked_at: String = ""
 ## The current voyage; only meaningful while at sea.
@@ -25,27 +24,3 @@ func _init(p_id: String, p_type_id: String, p_name: String, p_docked_at: String)
 
 func is_docked() -> bool:
 	return not docked_at.is_empty()
-
-
-func cargo_of(good_id: String) -> int:
-	return cargo.get(good_id, 0)
-
-
-func cargo_total() -> int:
-	var total := 0
-	for units: int in cargo.values():
-		total += units
-	return total
-
-
-## Adds (or with a negative amount removes) cargo, dropping entries that reach zero.
-## Refuses to go below zero: returns false and changes nothing. Commands validate first.
-func change_cargo(good_id: String, amount: int) -> bool:
-	var units := cargo_of(good_id) + amount
-	if units < 0:
-		return false
-	if units == 0:
-		cargo.erase(good_id)
-	else:
-		cargo[good_id] = units
-	return true

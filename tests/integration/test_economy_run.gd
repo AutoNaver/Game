@@ -60,6 +60,12 @@ func _play_scripted_turns(sim: Simulation) -> void:
 	sim.advance_days(1)
 	assert_eq(sim.execute(SellCommand.new(player, SmallWorld.SHIP_ID, "grain", 6)), "")
 	assert_eq(sim.world.player().get_ship(SmallWorld.SHIP_ID).cargo, {}, "the trip really happened")
+	# Production: a kontor and a vintner in port, fed with grain.
+	sim.world.player().coins += 5000
+	assert_eq(sim.execute(BuyKontorCommand.new(player, "port")), "")
+	assert_eq(sim.execute(BuyCommand.for_kontor(player, "port", "grain", 8)), "")
+	assert_eq(sim.execute(BuildWorkshopCommand.new(player, "port", "vintner")), "")
+	assert_eq(sim.execute(BuyShipCommand.new(player, "port", "boat")), "")
 
 
 func _fingerprint(sim: Simulation) -> Array:
@@ -73,4 +79,11 @@ func _fingerprint(sim: Simulation) -> Array:
 		parts.append([trader.id, trader.coins])
 		for ship in trader.ships:
 			parts.append([ship.id, ship.cargo, ship.docked_at, ship.destination, ship.hours_sailed])
+		for kontor in trader.kontors_in_order(sim.data.cities):
+			parts.append([kontor.city_id, kontor.cargo])
+			for workshop in kontor.workshops:
+				parts.append(
+					[workshop.id, workshop.type_id, workshop.status, workshop.missing_good]
+				)
+	parts.append(sim.world.next_workshop_number)
 	return parts

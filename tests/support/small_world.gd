@@ -9,11 +9,15 @@ extends RefCounted
 ## - wine: consumed 0.5/day, target stock 5, cap 10
 ## A direct sea lane joins them. Ship type "boat": capacity 10, speed 10 (10 hours per trip).
 ## The player starts in port with 1000 coins and one boat, ship_1 "Test".
+## Kontors cost 300 and hold 20 units. Workshop type "vintner": 4 grain -> 2 wine a day, 30 workers
+## (a city's workforce is 10% of 1000 = 100), costs 200 to build, 10 a day in wages.
 
 const DAYS_OF_COVER: int = 10
 const STOCK_CAP_FACTOR: float = 2.0
 const START_COINS: int = 1000
 const SHIP_ID: String = "ship_1"
+const KONTOR_PRICE: int = 300
+const KONTOR_CAPACITY: int = 20
 
 
 static func data() -> GameData:
@@ -32,6 +36,9 @@ static func data() -> GameData:
 	game_data.add_ship(ShipDef.new("boat", "Boat", 10, 10.0, 500))
 	var ships: Array[ScenarioDef.StartingShip] = [ScenarioDef.StartingShip.new("boat", "Test")]
 	game_data.scenario = ScenarioDef.new("port", START_COINS, ships)
+	game_data.kontor = KontorDef.new(KONTOR_PRICE, KONTOR_CAPACITY)
+	var inputs: Dictionary[String, int] = {"grain": 4}
+	game_data.add_workshop(WorkshopDef.new("vintner", "Vintner", "wine", 2, inputs, 30, 200, 10))
 	return game_data
 
 

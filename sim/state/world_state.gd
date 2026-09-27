@@ -18,6 +18,8 @@ var goods_ledger: Dictionary[String, int] = {}
 var traders: Array[TraderState] = []
 ## Ship ids are "ship_<n>", numbered in creation order so they are stable and deterministic.
 var next_ship_number: int = 1
+## Workshop ids are "workshop_<n>", numbered the same way.
+var next_workshop_number: int = 1
 
 var _cities_by_id: Dictionary[String, CityState] = {}
 
@@ -53,3 +55,11 @@ func add_ship(
 	next_ship_number += 1
 	trader.ships.append(ship)
 	return ship
+
+
+## Creates a workshop of `type_id` with the next free id in `kontor`.
+func add_workshop(kontor: KontorState, type_id: String) -> WorkshopState:
+	var workshop := WorkshopState.new("workshop_%d" % next_workshop_number, type_id)
+	next_workshop_number += 1
+	kontor.workshops.append(workshop)
+	return workshop

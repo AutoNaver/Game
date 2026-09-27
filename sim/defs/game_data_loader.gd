@@ -162,7 +162,9 @@ func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
 	var min_multiplier := _get_float_between(entry, "price_min_multiplier", 0.0, 1.0, ctx)
 	var spread := _get_float_between(entry, "spread", 0.0, 1.0, ctx)
 	var resale := _get_float_between(entry, "ship_resale_factor", 0.0, 1.0, ctx, true)
+	_check_rate_resolution(resale, "ship_resale_factor", ctx)
 	var workforce := _get_float_between(entry, "workforce_share", 0.0, 1.0, ctx, true)
+	_check_rate_resolution(workforce, "workforce_share", ctx)
 	if errors.size() > error_count:
 		return null
 	return EconomyDef.new(
