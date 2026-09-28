@@ -156,6 +156,11 @@ Follow-ups from M14 (ADR 0015):
 - [ ] Reputation discount on building and hiring in a city (ADR 0009 proposed it; ADR 0015 left it out)
 - [ ] Rivals could give their kontors factor orders instead of `RivalSystem._run_kontors`
 
+Follow-ups from M15 (ADR 0016):
+
+- [ ] Rivals grow in step under their AI's fleet and kontor limits, so rival buy-outs and sales
+  almost never happen; raise the limits with rank if long games need more movement
+
 From a code review of `main` at c40d4c8 (2026-09-27):
 
 - [ ] Rivals churn workshops (#18): `_close_losing_workshops` judges today's margin, which the

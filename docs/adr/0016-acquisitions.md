@@ -96,4 +96,13 @@ done is disabled with the reason. The log reports deals, offers and bankruptcy s
 
 ## Balance
 
-TBD
+`tools/balance.gd` over 365 days, seeds 1 to 5, is within noise of ADR 0015: the one-ship bot
+ends with 107,000 to 151,000 coins, every rival reaches Trading house and one or two per seed
+Councillor, and no house goes bankrupt. A three-year run of seed 1 keeps every invariant: one
+rival reaches Alderman and the others Councillor, all between 700,000 and 875,000 worth.
+
+The rivals grow in step, each held to its AI's three ships and two kontors, so none ever comes
+near twice another's worth, and none goes short of coins, so rival-to-rival deals stay rare. That
+is acceptable for now: acquisitions are mainly the player's tool, and a rival's offers reach the
+player once it is a Councillor. If long games need more movement, the AI's fleet and kontor
+limits are the lever (backlog).
