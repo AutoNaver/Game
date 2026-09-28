@@ -97,7 +97,7 @@ func _make_hints() -> Array[Hint]:
 		),
 		Hint.new(
 			"sell",
-			"Sell where the Sell price is green. Profits buy more ships at the Shipyard.",
+			"Sell where the Sell price is green. Growing worth raises your rank (see Houses).",
 			func() -> bool: return _session.player().coins > start_coins
 		),
 		Hint.new(

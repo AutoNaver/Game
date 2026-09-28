@@ -85,4 +85,11 @@ at load; without reputation they can reach Merchant at most until they build sta
 
 ## Balance
 
-TBD
+`tools/balance.gd` over 365 days, seeds 1 to 5 (it now prints each rival's rank): the one-ship
+bot ends with 110,000 to 147,000 coins (about 127,000 on average) after 107 to 144 voyages,
+within noise of ADR 0014, since one ship is all a Skipper may have anyway. Every rival reaches
+Trading house within the year, and one to three per seed reach Councillor; they stay solvent and
+end at 170,000 to 295,000 worth with their AI's three ships and two kontors, close to ADR 0014.
+Cities stay near 0.9x of home. The Skipper phase only delays the rivals' second ship by the
+weeks it takes to be worth 25,000, so no rate changed. Whether Merchant at 25,000 comes too
+soon for a human player is a play-test question.
