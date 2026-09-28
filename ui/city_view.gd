@@ -137,7 +137,11 @@ func _draw_landmarks(road_col: int, road_row: int) -> void:
 		elif section == "town_hall":
 			color = Color("#ddd0ae")
 		elif section == "kontor":
-			color = PLAYER
+			color = (
+				PLAYER
+				if _session.player().get_kontor(_session.selected_city) != null
+				else Color("#ada18c")
+			)
 		_draw_block(at, 23.0 if section == "town_hall" else 17.0, color, ROOF, 0.78)
 		_draw_label(at + Vector2(0, -30), _landmark_name(section), 13)
 
@@ -228,6 +232,8 @@ func _draw_ships(city_id: String) -> void:
 				),
 				color
 			)
+			if trader.id == WorldState.PLAYER_ID:
+				_draw_label(at + Vector2(0, 22), ship.name, 11)
 			index += 1
 
 
