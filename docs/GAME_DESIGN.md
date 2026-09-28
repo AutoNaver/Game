@@ -62,6 +62,32 @@ isometric grid, migrating older workshops to saved plots. Housing and public wor
 mayor and wall expansion (M19), and town requests and celebrations (M20) give later city growth a
 direct link to trading and reputation.
 
+### City art direction
+
+The owner accepted M16's first visual draft on 2026-09-28 and supplied a Patrician city screenshot
+as the target for a later art pass. Aim for a busy, lived-in Hanseatic port, with original artwork
+and the following qualities:
+
+- A closer isometric camera that shows building detail, with pan and zoom for navigating the town.
+  Streets, waterfront, and city walls should form connected neighbourhoods.
+- Tall brick merchant houses, stepped gables, half-timbered workshops, red tiled roofs, and
+  distinctive civic landmarks. Vary footprints, heights, rooflines, and facades to make each
+  street recognisable; keep ownership and clickable landmarks easy to identify.
+- Textured cobbled streets and squares, grass at their edges, trees, gardens, and consistent
+  shadows that ground buildings. Use depth sorting so people and ships pass behind scenery
+  correctly, and keep important interactions readable when buildings overlap.
+- A harbour integrated into the town's shoreline, with stone quays, wooden piers, moored sailing
+  ships, cranes, barrels, crates, and market stalls. Cargo props should make the waterfront feel
+  active without claiming to represent individual simulated goods.
+- Small animated citizens moving through streets and gathering near markets and docks. Preserve
+  M16's visual-only role for these people.
+- A warm parchment, wood, and brass interface, with a compact contextual side panel and a Baltic
+  minimap. Preserve readable text, clear controls, notifications, and useful city space at 1280x720.
+
+Develop the look first in one harbour neighbourhood, review it with the owner, then extend the
+shared art set across all nine cities while retaining their distinct layouts. M17's placement
+previews and footprints should use the same scale and remain legible among the detailed buildings.
+
 ## Economy model (first version, refined in M1)
 
 - Each city has a population that **consumes** goods daily and **produces** goods according to its

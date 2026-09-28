@@ -195,6 +195,23 @@ existing simulation; building placement begins in M17.
 
 Deferred P2 review findings go here, with the PR they came from.
 
+City art follow-up from the owner's M16 visual feedback (2026-09-28):
+
+The first draft is accepted as a prototype. Use the supplied Patrician city screenshot and
+GAME_DESIGN's "City art direction" as the target for a dedicated visual pass.
+
+- [ ] Build one detailed harbour neighbourhood with original brick and half-timbered buildings,
+  gabled roofs, textured cobbles, greenery, and consistent shadows; review its look with the owner
+- [ ] Add a closer camera with pan and zoom, depth sorting, and readable landmark selection
+- [ ] Integrate quays, piers, sailing ships, cargo props, and market stalls into the shoreline;
+  animate small citizens along the streets and near busy landmarks
+- [ ] Extend the shared artwork across all nine distinct city layouts, keeping workshop ownership
+  clear and aligning building scale with M17's footprints and placement previews
+- [ ] Give the HUD and contextual side panel a parchment, wood, and brass treatment, with a Baltic
+  minimap and readable controls at 1280x720
+- [ ] **Owner play-test** of the visual pass at 1280x720, checking city navigation, landmark access,
+  workshop selection, and readability in a dense neighbourhood
+
 Follow-ups from M14 (ADR 0015):
 
 - [ ] Reputation discount on building and hiring in a city (ADR 0009 proposed it; ADR 0015 left it out)
