@@ -154,6 +154,11 @@ func test_factor_orders_save_and_bad_ones_are_rejected() -> void:
 	var loaded := SaveGame.new().from_dict(_sim.data, save)
 	assert_eq(loaded.player().get_kontor("port").factor_orders.size(), 2)
 	assert_eq(SaveGame.to_dict(loaded), save)
+	var below: Dictionary = save.duplicate(true)
+	below["traders"][0]["rank"] = "merchant"
+	var refused := SaveGame.new()
+	assert_null(refused.from_dict(_sim.data, below), "a save can't give a Merchant a factor")
+	assert_has(refused.errors, "player: factor orders in port below the rank that unlocks factors")
 	save["traders"][0]["kontors"][0]["factor"][1]["good"] = "grain"
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(_sim.data, save))

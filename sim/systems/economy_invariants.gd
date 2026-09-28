@@ -94,11 +94,21 @@ static func _check_captains(data: GameData, trader: TraderState) -> PackedString
 	return violations
 
 
-## A known rank, and reputation only for known cities within 1 and the maximum.
+## A known rank, reputation only for known cities within 1 and the maximum, and factor orders only
+## at a rank that unlocks factors (ranks never fall, so a house that set them still may).
 static func _check_standing(data: GameData, trader: TraderState) -> PackedStringArray:
 	var violations: PackedStringArray = []
 	if data.rank_index(trader.rank_id) < 0:
 		violations.append("%s: unknown rank '%s'" % [trader.id, trader.rank_id])
+	elif not RankSystem.has_unlock(data, trader, RankDef.FACTORS):
+		for kontor in trader.kontors_in_order(data.cities):
+			if not kontor.factor_orders.is_empty():
+				violations.append(
+					(
+						"%s: factor orders in %s below the rank that unlocks factors"
+						% [trader.id, kontor.city_id]
+					)
+				)
 	for city_id: String in trader.reputation:
 		var points: int = trader.reputation[city_id]
 		if not data.has_city(city_id) or points <= 0 or points > data.reputation.max:
