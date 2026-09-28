@@ -1,0 +1,9 @@
+{
+  "asset_premium": 1.5,
+  "buy_out_premium": 1.5,
+  "buy_out_worth_factor": 2.0,
+  "bankruptcy_discount": 0.6,
+  "bankruptcy_sale_days": 14,
+  "offer_days": 7,
+  "offer_chance": 0.25
+}

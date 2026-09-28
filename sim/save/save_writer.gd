@@ -100,6 +100,7 @@ static func trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Dic
 		"routes": routes,
 		"market_book": market_book,
 		"rank": trader.rank_id,
+		"sale_end_day": trader.sale_end_day,
 		"reputation": _reputation(trader, cities),
 	}
 
@@ -156,3 +157,22 @@ static func market_to_dict(record: MarketRecord) -> Dictionary:
 		"shortage": record.shortage.duplicate(),
 		"history": history,
 	}
+
+
+static func offers_to_dict(world: WorldState) -> Array:
+	var offers: Array = []
+	for offer in world.offers:
+		(
+			offers
+			. append(
+				{
+					"id": offer.id,
+					"buyer": offer.buyer_id,
+					"kind": OfferState.Kind.keys()[offer.kind],
+					"asset": offer.asset_id,
+					"price": offer.price,
+					"last_day": offer.last_day,
+				}
+			)
+		)
+	return offers

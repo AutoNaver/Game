@@ -5,8 +5,9 @@ extends RefCounted
 ## sail (RivalSystem); both act through commands. The daily systems run whenever a tick completes
 ## a day, in a fixed order: world events (EventSystem), spoilage of stored goods, city
 ## production, traders' workshops and the reputation they earn, wages, consumption, city
-## satisfaction and population, off-map trade, price history, the rivals' kontors and expansion,
-## the kontor factors' standing orders, then the houses' ranks. Actions enter only through
+## satisfaction and population, off-map trade, price history, the rivals' kontors, deals and
+## expansion, the kontor factors' standing orders, offers lapsing and bankruptcy sales ending
+## (AcquisitionSystem), then the houses' ranks. Actions enter only through
 ## execute().
 ##
 ## Current prices are not stored: they are derived from stock on demand (see Pricing,
@@ -117,6 +118,7 @@ func tick() -> void:
 		PriceHistorySystem.run_day(data, world)
 		RivalSystem.run_day(self)
 		FactorSystem.run_day(self)
+		AcquisitionSystem.run_day(data, world, day())
 		RankSystem.run_day(data, world)
 		MarketKnowledgeSystem.record_day(data, world)
 

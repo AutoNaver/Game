@@ -15,6 +15,8 @@ extends RefCounted
 
 static func run_day(data: GameData, world: WorldState) -> void:
 	for trader in world.traders:
+		if trader.bankrupt:
+			continue
 		for kontor in trader.kontors_in_order(data.cities):
 			var staffing := CityEconomy.staffing(data, world, world.get_city(kontor.city_id))
 			for workshop in kontor.workshops:

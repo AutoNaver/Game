@@ -196,6 +196,7 @@ func test_missing_directory_reports_each_file() -> void:
 		"map.json",
 		"cities.json",
 		"sea_lanes.json",
+		"acquisitions.json",
 		"ranks.json",
 		"ships.json",
 		"buildings.json",

@@ -119,8 +119,7 @@ by net worth, and the log reports the rivals' new ships and workshops. Details a
 
 ## Progression: from skipper to trading house (M12 to M15)
 
-Market knowledge, captains, reputation and ranks are in play; acquisitions come last. The
-progression in [ADR 0009](adr/0009-progression.md) adds these capabilities:
+The whole progression of [ADR 0009](adr/0009-progression.md) is in play:
 
 1. **What you know (M12).** You see live prices only where you have presence: you in person, a
    docked ship or a kontor. Elsewhere you see your last known prices and their age. Ships bring
@@ -138,11 +137,15 @@ progression in [ADR 0009](adr/0009-progression.md) adds these capabilities:
    Councillor, Alderman) need net worth and standing in several cities, are never lost, and gate
    more ships and kontors, trade routes, hulks and factors. Details are in
    [ADR 0015](adr/0015-reputation-ranks-and-factors.md).
-4. **Who you have beaten (M15).** Buy a struggling rival's ships or kontors, and eventually buy
-   out a whole house. Rivals can do the same to each other.
+4. **Who you have beaten (M15).** From Councillor you can buy a rival's ships and kontors at
+   their value plus a premium, if it agrees (it sells when short of coins or when a kontor loses
+   money); from Alderman, buy out a house worth half as much as you or less. Rivals do the same
+   to each other and make you offers for your assets, which you accept or refuse. Details are in
+   [ADR 0016](adr/0016-acquisitions.md).
 
-Houses can go **bankrupt** when they can't pay wages for about a week: the player loses (load a
-save or start over), and a bankrupt rival leaves the game with its assets sold off.
+Houses can go **bankrupt** when they can't pay wages for two weeks: the player loses (load a
+save or start over). A bankrupt rival's ships and kontors are for sale at a discount for two
+weeks, to any house; then the rest is sold off and it leaves the game.
 
 ## After the MVP
 

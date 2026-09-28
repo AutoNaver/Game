@@ -132,7 +132,7 @@ func test_tavern_candidates_with_bad_skills_are_rejected_on_load() -> void:
 		assert_string_contains(" ".join(loader.errors), "tavern", field)
 
 
-func test_bankrupt_rival_leaves_and_goods_return_to_the_market() -> void:
+func test_bankrupt_rival_is_for_sale_then_leaves_and_goods_return_to_the_market() -> void:
 	var sim := SmallWorld.rival_simulation()
 	var rival := sim.world.get_trader(SmallWorld.RIVAL_ID)
 	var ship := rival.ships[0]
@@ -142,6 +142,11 @@ func test_bankrupt_rival_leaves_and_goods_return_to_the_market() -> void:
 	rival.debt_days = sim.data.captains.bankruptcy_grace_days - 1
 	rival.debt = 1000
 	CaptainSystem.run_day(sim.data, sim.world, 1)
+	assert_true(rival.bankrupt)
+	assert_eq(rival.sale_end_day, 1 + sim.data.acquisitions.bankruptcy_sale_days)
+	AcquisitionSystem.run_day(sim.data, sim.world, rival.sale_end_day - 1)
+	assert_not_null(sim.world.get_trader(SmallWorld.RIVAL_ID), "for sale until the sale ends")
+	AcquisitionSystem.run_day(sim.data, sim.world, rival.sale_end_day)
 	assert_null(sim.world.get_trader(SmallWorld.RIVAL_ID))
 	assert_eq(sim.world.get_city("port").stock["grain"], before + 3)
 	assert_eq(EconomyInvariants.check(sim.data, sim.world), PackedStringArray())

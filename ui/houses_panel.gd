@@ -2,8 +2,9 @@ class_name HousesPanel
 extends PanelContainer
 ## The trading houses ordered by net worth (HouseValue): the player and the rival houses, with
 ## their rank (ADR 0015), coins, ships, kontors and workshops, and what the player needs for the
-## next rank, so the player can measure their progress. Shown over the map's top-right corner; the
-## HUD's "Houses" button toggles it.
+## next rank, so the player can measure their progress, and deals with the other houses
+## (DealsPanel, ADR 0016) through each rival's Deal button. Shown over the map's top-right corner;
+## the HUD's "Houses" button toggles it.
 
 const COLUMNS: PackedStringArray = [
 	"House", "Rank", "Worth", "Coins", "Ships", "Kontors", "Workshops"
@@ -17,6 +18,7 @@ var _session: GameSession
 var _rows: VBoxContainer = VBoxContainer.new()
 var _trader_ids: PackedStringArray = []
 var _next_rank: Label = Label.new()
+var _deals: DealsPanel = DealsPanel.new()
 
 
 func setup(session: GameSession) -> void:
@@ -45,6 +47,9 @@ func setup(session: GameSession) -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD
 	note.custom_minimum_size = Vector2(NAME_WIDTH + RANK_WIDTH + NUMBER_WIDTH * 5, 0)
 	column.add_child(note)
+	_deals.name = "DealsPanel"
+	_deals.setup(_session)
+	column.add_child(_deals)
 	_session.houses_toggled.connect(toggle)
 	_session.changed.connect(refresh)
 	refresh()
@@ -84,12 +89,15 @@ func refresh() -> void:
 		var workshops := 0
 		for kontor in trader.kontors_in_order(data.cities):
 			workshops += kontor.workshops.size()
-		(row.get_child(1) as Label).text = RankSystem.rank(data, trader).name
+		(row.get_child(1) as Label).text = (
+			"Bankrupt" if trader.bankrupt else RankSystem.rank(data, trader).name
+		)
 		var cells := [worth[trader.id], trader.coins, trader.ships.size(), trader.kontors.size()]
 		cells.append(workshops)
 		for j in cells.size():
 			(row.get_child(j + 2) as Label).text = str(cells[j])
 	_next_rank.text = next_rank_text(_session.sim, _session.player())
+	_deals.refresh()
 
 
 ## What the trader's next rank needs and unlocks, or that it holds the highest rank.
@@ -138,6 +146,13 @@ func _rebuild(traders: Array[TraderState]) -> void:
 			cell.name = COLUMNS[i]
 			_size_cell(cell, i)
 			row.add_child(cell)
+		if trader.id != WorldState.PLAYER_ID:
+			var deal := Button.new()
+			deal.name = "Deal_%s" % trader.id
+			deal.text = "Deal"
+			deal.tooltip_text = "Buy this house's ships or kontors, or the whole house"
+			deal.pressed.connect(_deals.show_house.bind(trader.id))
+			row.add_child(deal)
 		_rows.add_child(row)
 
 

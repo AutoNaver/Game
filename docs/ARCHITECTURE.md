@@ -79,6 +79,12 @@ commands that buy ships and kontors, save or assign routes and set factor orders
 rank or reputation they need. The UI asks the same functions to show those actions locked with
 the reason, and the rivals ask them before planning a purchase.
 
+Deals between houses (ADR 0016) are commands too: `BuyAssetCommand`, `BuyOutHouseCommand` and
+`AnswerOfferCommand`. `AcquisitionSystem` prices them from `HouseValue`, decides whether a rival
+agrees, moves ownership, runs the rivals' deals on their expansion days, lets offers lapse and
+ends bankruptcy sales. Completed deals are kept for a month in `WorldState.deals` (not saved) for
+the UI's news.
+
 ## Determinism
 
 One seeded `RandomNumberGenerator` lives in the world state and is serialized with it. Systems

@@ -14,6 +14,8 @@ extends RefCounted
 ## Populations stay put (growth_rate 0) unless a test sets PopulationDef.growth_rate: satisfaction
 ## remembers a tenth of each day, neutral at 0.5, sensitivity 1, bounds 0.5x to 2x of home.
 ## with_rival() adds rival house "hanse" (1000 coins, one boat "Rival") and the rival AI rules.
+## Deals: assets at 1.5x their value, buy-outs at 1.5x worth for a buyer worth 2x, bankruptcy sales
+## at half value for 5 days, offers stand 3 days and rivals always make one when they can.
 ## Every house holds the one rank "open", which limits nothing and unlocks everything, and
 ## reputation (max 100) never gates a kontor. with_ranks() swaps in a real ladder for rank tests.
 
@@ -55,6 +57,7 @@ static func data() -> GameData:
 	var inputs: Dictionary[String, int] = {"grain": 4}
 	game_data.add_workshop(WorkshopDef.new("vintner", "Vintner", "wine", 2, inputs, 30, 200, 10))
 	game_data.reputation = ReputationDef.new(100, 20, 0, 1, 1, 1, 2)
+	game_data.acquisitions = AcquisitionDef.new(1.5, 1.5, 2.0, 0.5, 5, 3, 1.0)
 	game_data.ranks.append(RankDef.new("open", "Open", 0, 0, false, 0, 0, RankDef.UNLOCKS))
 	return game_data
 
