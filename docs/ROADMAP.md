@@ -141,11 +141,11 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 
 ## M15: Acquisitions
 
-- [ ] Buy a rival's ship or kontor (with workshops and stock) at value times a premium; the rival accepts or refuses with a reason
-- [ ] Buy out a whole house when far ahead; its assets pass to the buyer and it leaves the game
-- [ ] Rivals buy from each other, and can make offers to the player
-- [ ] Acquisitions move only coins and ownership; invariants and saves cover removed houses
-- [ ] A bankrupt rival's ships and kontors go up for sale at a discount before being sold off
+- [x] Buy a rival's ship or kontor (with workshops and stock) at value times a premium; the rival accepts or refuses with a reason (ADR 0016)
+- [x] Buy out a whole house when far ahead; its assets pass to the buyer and it leaves the game
+- [x] Rivals buy from each other, and can make offers to the player
+- [x] Acquisitions move only coins and ownership; invariants and saves cover removed houses
+- [x] A bankrupt rival's ships and kontors go up for sale at a discount before being sold off
 
 ## Backlog (deferred review findings and small follow-ups)
 

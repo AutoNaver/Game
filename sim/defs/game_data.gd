@@ -26,6 +26,8 @@ var events: Array[EventDef] = []
 ## Ranks of a trading house in ascending order, and how reputation works (data/ranks.json).
 var ranks: Array[RankDef] = []
 var reputation: ReputationDef
+## Prices and timing of deals between houses (data/acquisitions.json).
+var acquisitions: AcquisitionDef
 
 var _goods_by_id: Dictionary[String, GoodDef] = {}
 var _cities_by_id: Dictionary[String, CityDef] = {}

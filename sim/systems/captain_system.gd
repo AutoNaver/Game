@@ -64,24 +64,7 @@ static func run_day(data: GameData, world: WorldState, day: int) -> void:
 		else:
 			trader.debt_days = 0
 		if trader.debt_days >= data.captains.bankruptcy_grace_days:
-			trader.bankrupt = true
-	for trader: TraderState in world.traders.duplicate():
-		if trader.bankrupt and trader.id != WorldState.PLAYER_ID:
-			_liquidate(data, world, trader)
-
-
-## Assets of a failed rival return to their local city markets; M15 can replace this with sales.
-static func _liquidate(data: GameData, world: WorldState, trader: TraderState) -> void:
-	for ship in trader.ships:
-		var city_id := ship.docked_at if ship.is_docked() else ship.destination
-		var city := world.get_city(city_id)
-		for good in data.goods:
-			city.stock[good.id] += ship.cargo_of(good.id)
-	for kontor in trader.kontors_in_order(data.cities):
-		var city := world.get_city(kontor.city_id)
-		for good in data.goods:
-			city.stock[good.id] += kontor.cargo_of(good.id)
-	world.traders.erase(trader)
+			AcquisitionSystem.declare_bankrupt(data, world, trader, day)
 
 
 ## Progress after a completed voyage, capped at the configured skill limit.

@@ -46,7 +46,7 @@ func test_the_ranking_lists_every_house_by_worth() -> void:
 	var castorp := _session.sim.world.get_trader("castorp")
 	var worth := HouseValue.net_worth(data, castorp)
 	var cells: Array[String] = []
-	for i in range(1, first.get_child_count()):
+	for i in range(1, HousesPanel.COLUMNS.size()):
 		cells.append((first.get_child(i) as Label).text)
 	assert_eq(cells, ["Skipper", str(worth), "90000", "1", "0", "0"])
 	var player_row := rows.get_node("House_player")

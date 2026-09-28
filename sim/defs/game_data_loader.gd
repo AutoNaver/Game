@@ -1,5 +1,5 @@
 class_name GameDataLoader
-extends RefCounted
+extends DataReader
 ## Loads and validates the JSON definitions in a data directory.
 ##
 ## Validation collects every problem instead of stopping at the first, so one run shows all
@@ -23,6 +23,7 @@ const RIVALS_FILE: String = "rivals.json"
 const EVENTS_FILE: String = "events.json"
 const CAPTAINS_FILE: String = "captains.json"
 const RANKS_FILE: String = "ranks.json"
+const ACQUISITIONS_FILE: String = "acquisitions.json"
 const RANKS_FIELDS: PackedStringArray = ["reputation", "ranks"]
 const CAPTAIN_FIELDS: PackedStringArray = [
 	"daily_wage",
@@ -110,15 +111,6 @@ const MAX_SHIP_SPEED: float = 1000.0
 ## voyage stays below a million hours: far inside int range.
 const MIN_SHIP_SPEED: float = 0.1
 
-## Upper bound for plain integers. JSON allows values like 1e100 that overflow int, so anything
-## beyond this is rejected as a data error.
-const MAX_INT_VALUE: int = 1_000_000_000
-
-## Problems found by the last load_dir() call, formatted as "<file>[<index>]: <message>".
-var errors: PackedStringArray = []
-
-var _id_pattern: RegEx = RegEx.create_from_string("^[a-z][a-z0-9_]*$")
-
 
 ## Returns the loaded data, or null if any file is missing or invalid (see errors).
 func load_dir(dir: String) -> GameData:
@@ -174,6 +166,10 @@ func load_dir(dir: String) -> GameData:
 	if sea_lanes != null:
 		data.sea_chart = _parse_sea_lanes(sea_lanes as Dictionary, SEA_LANES_FILE, data)
 
+	var deals: Variant = _read_json(dir.path_join(ACQUISITIONS_FILE), TYPE_DICTIONARY)
+	if deals != null:
+		data.acquisitions = _parse_acquisitions(deals as Dictionary, ACQUISITIONS_FILE)
+
 	var ranks: Variant = _read_json(dir.path_join(RANKS_FILE), TYPE_DICTIONARY)
 	if ranks != null:
 		_parse_ranks(ranks as Dictionary, RANKS_FILE, data)
@@ -222,11 +218,6 @@ func load_dir(dir: String) -> GameData:
 	if not errors.is_empty():
 		return null
 	return data
-
-
-func _read_array(path: String) -> Array:
-	var value: Variant = _read_json(path, TYPE_ARRAY)
-	return value as Array if value != null else []
 
 
 func _parse_captains(entry: Dictionary, ctx: String) -> CaptainDef:
@@ -281,6 +272,21 @@ func _parse_ranks(entry: Dictionary, ctx: String, data: GameData) -> void:
 		data.ranks.append(rank)
 
 
+func _parse_acquisitions(entry: Dictionary, ctx: String) -> AcquisitionDef:
+	var before := errors.size()
+	_check_fields(entry, AcquisitionDef.FIELDS, ctx)
+	var asset := _get_float_between(entry, "asset_premium", 1.0, 10.0, ctx, true, true)
+	var buy_out := _get_float_between(entry, "buy_out_premium", 1.0, 10.0, ctx, true, true)
+	var factor := _get_float_between(entry, "buy_out_worth_factor", 1.0, 100.0, ctx, true, true)
+	var discount := _get_float_between(entry, "bankruptcy_discount", 0.0, 1.0, ctx, false, true)
+	var sale_days := _get_positive_int(entry, "bankruptcy_sale_days", ctx)
+	var offer_days := _get_positive_int(entry, "offer_days", ctx)
+	var chance := _get_float_between(entry, "offer_chance", 0.0, 1.0, ctx, true, true)
+	if errors.size() > before:
+		return null
+	return AcquisitionDef.new(asset, buy_out, factor, discount, sale_days, offer_days, chance)
+
+
 func _parse_reputation(entry: Dictionary, ctx: String) -> ReputationDef:
 	var before := errors.size()
 	_check_fields(entry, ReputationDef.FIELDS, ctx)
@@ -329,25 +335,6 @@ func _parse_rank(raw: Variant, ctx: String) -> RankDef:
 	return RankDef.new(
 		id, rank_name, worth, standing, richest == true, max_ships, max_kontors, unlocks
 	)
-
-
-## Returns the parsed top-level value, or null after reporting why it is unusable.
-func _read_json(path: String, expected_type: Variant.Type) -> Variant:
-	var file_name := path.get_file()
-	if not FileAccess.file_exists(path):
-		_error(file_name, "file not found at %s" % path)
-		return null
-	var json := JSON.new()
-	if json.parse(FileAccess.get_file_as_string(path)) != OK:
-		# get_error_line() is 0-based; editors count from 1.
-		var line := json.get_error_line() + 1
-		_error(file_name, "invalid JSON at line %d: %s" % [line, json.get_error_message()])
-		return null
-	if typeof(json.data) != expected_type:
-		var expected := "an array" if expected_type == TYPE_ARRAY else "an object"
-		_error(file_name, "top level must be %s" % expected)
-		return null
-	return json.data
 
 
 func _parse_economy(entry: Dictionary, ctx: String) -> EconomyDef:
@@ -655,16 +642,6 @@ func _parse_lane(raw: Variant, ctx: String, chart: SeaChart, river: bool = false
 		chart.add_lane(a, b, river)
 
 
-## Returns the array in `field`, or an empty one after reporting that it is not an array.
-func _get_array(entry: Dictionary, field: String, ctx: String) -> Array:
-	if not entry.has(field):
-		return []
-	if not entry[field] is Array:
-		_error(ctx, "'%s' must be an array" % field)
-		return []
-	return entry[field] as Array
-
-
 ## Goods must already be loaded. Sets data.kontor and adds the workshop types.
 func _parse_buildings(entry: Dictionary, ctx: String, data: GameData) -> void:
 	_check_fields(entry, BUILDINGS_FIELDS, ctx)
@@ -883,95 +860,6 @@ func _check_rate_resolution(rate: float, field: String, ctx: String) -> bool:
 	return false
 
 
-## Reports missing and unknown fields. The typed getters below skip missing fields so each
-## problem is reported once.
-func _check_fields(
-	entry: Dictionary,
-	fields: PackedStringArray,
-	ctx: String,
-	optional: PackedStringArray = PackedStringArray(),
-) -> void:
-	for field in fields:
-		if not entry.has(field):
-			_error(ctx, "missing field '%s'" % field)
-	for key: Variant in entry.keys():
-		if not fields.has(str(key)) and not optional.has(str(key)):
-			_error(ctx, "unknown field '%s'" % key)
-
-
-func _get_string(entry: Dictionary, field: String, ctx: String) -> String:
-	if not entry.has(field):
-		return ""
-	var value: Variant = entry[field]
-	if not value is String or (value as String).strip_edges().is_empty():
-		_error(ctx, "'%s' must be a non-empty string" % field)
-		return ""
-	return value as String
-
-
-func _get_id(entry: Dictionary, ctx: String) -> String:
-	var id := _get_string(entry, "id", ctx)
-	if not id.is_empty() and _id_pattern.search(id) == null:
-		_error(ctx, "'id' must be lower snake_case (got '%s')" % id)
-	return id
-
-
-func _get_positive_int(entry: Dictionary, field: String, ctx: String) -> int:
-	if not entry.has(field):
-		return 0
-	var value: Variant = entry[field]
-	# JSON numbers arrive as floats; accept only whole values.
-	if not (value is int or value is float):
-		_error(ctx, "'%s' must be a positive integer" % field)
-		return 0
-	var number := float(value)
-	if number != floorf(number) or number <= 0.0:
-		_error(ctx, "'%s' must be a positive integer" % field)
-		return 0
-	if number > MAX_INT_VALUE:
-		_error(ctx, "'%s' must be at most %d" % [field, MAX_INT_VALUE])
-		return 0
-	return int(number)
-
-
-## Like _get_positive_int, but 0 is allowed too.
-func _get_non_negative_int(entry: Dictionary, field: String, ctx: String) -> int:
-	if not entry.has(field):
-		return 0
-	var value: Variant = entry[field]
-	if (value is int or value is float) and float(value) == 0.0:
-		return 0
-	if (value is int or value is float) and float(value) > 0.0:
-		return _get_positive_int(entry, field, ctx)
-	_error(ctx, "'%s' must be a whole number of at least 0" % field)
-	return 0
-
-
-## Accepts numbers strictly between low and high, or equal to low if low_inclusive.
-func _get_float_between(
-	entry: Dictionary,
-	field: String,
-	low: float,
-	high: float,
-	ctx: String,
-	low_inclusive: bool = false,
-	high_inclusive: bool = false,
-) -> float:
-	if not entry.has(field):
-		return 0.0
-	var value: Variant = entry[field]
-	if value is int or value is float:
-		var number := float(value)
-		var above_low := number >= low if low_inclusive else number > low
-		var below_high := number <= high if high_inclusive else number < high
-		if above_low and below_high:
-			return number
-	var bound := "at least" if low_inclusive else "greater than"
-	var upper := "at most" if high_inclusive else "less than"
-	_error(ctx, "'%s' must be a number %s %s and %s %s" % [field, bound, low, upper, high])
-	return 0.0
-
-
 ## Reads "coordinates": [lon, lat], checks they lie inside the map frame and projects them to km.
 func _get_map_position(entry: Dictionary, ctx: String, data: GameData) -> Vector2:
 	if not entry.has("coordinates"):
@@ -994,7 +882,3 @@ func _get_map_position(entry: Dictionary, ctx: String, data: GameData) -> Vector
 			return data.map.project(float(lon), float(lat))
 	_error(ctx, "'coordinates' must be an array of two numbers [lon, lat]")
 	return Vector2.ZERO
-
-
-func _error(ctx: String, message: String) -> void:
-	errors.append("%s: %s" % [ctx, message])

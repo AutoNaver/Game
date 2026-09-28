@@ -9,9 +9,11 @@ extends RefCounted
 ##
 ## Daily, after the daily systems: each rival sells its workshops' output from its kontors and
 ## buys their inputs for a few days ahead. Every `expansion_days` days it closes workshops that
-## lose money at today's prices, then may buy a ship or set up a workshop (buying a kontor for it
-## if needed), keeping `cash_reserve` coins back. A rival runs at most one workshop per kontor and
-## never opens a workshop type in a city where any house already runs one.
+## lose money at today's prices, makes its deals with other houses
+## (AcquisitionSystem.run_rival), then may buy a ship or set up a workshop (buying a kontor for
+## it if needed), keeping `cash_reserve` coins back. Bankrupt rivals do nothing. A rival runs at
+## most one workshop per kontor and never opens a workshop type in a city where any house already
+## runs one.
 
 ## Coins that never limit a purchase, for asking only whether a market can supply goods.
 const UNLIMITED_COINS: int = 1 << 62
@@ -19,7 +21,7 @@ const UNLIMITED_COINS: int = 1 << 62
 
 static func run_hour(sim: Simulation) -> void:
 	for trader in sim.world.traders:
-		if not sim.data.has_rival(trader.id):
+		if not sim.data.has_rival(trader.id) or trader.bankrupt:
 			continue
 		for ship in trader.ships:
 			if ship.captain_id.is_empty() and ship.is_docked():
@@ -32,12 +34,18 @@ static func run_hour(sim: Simulation) -> void:
 
 static func run_day(sim: Simulation) -> void:
 	var ai := sim.data.rival_ai
-	for trader in sim.world.traders:
-		if not sim.data.has_rival(trader.id):
+	for trader: TraderState in sim.world.traders.duplicate():
+		# A house bought out earlier today is gone.
+		if (
+			not sim.data.has_rival(trader.id)
+			or trader.bankrupt
+			or not sim.world.traders.has(trader)
+		):
 			continue
 		_run_kontors(sim, trader)
 		if sim.day() % ai.expansion_days == 0:
 			_close_losing_workshops(sim, trader)
+			AcquisitionSystem.run_rival(sim, trader)
 			_expand(sim, trader)
 
 

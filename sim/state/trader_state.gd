@@ -16,6 +16,8 @@ var person_city_id: String = ""
 var debt: int = 0
 var debt_days: int = 0
 var bankrupt: bool = false
+## For a bankrupt rival: the day its bankruptcy sale ends and the rest is sold off (ADR 0016).
+var sale_end_day: int = -1
 ## Kontors by city id. Iterate with kontors_in_order() so the order never depends on the dictionary.
 var kontors: Dictionary[String, KontorState] = {}
 ## Trade routes, in creation order.

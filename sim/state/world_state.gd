@@ -32,6 +32,13 @@ var next_event_number: int = 1
 ## Goods traders lost on the last day (spoilage, fires), for the UI. Cleared at the start of each
 ## day and not saved: the goods ledger already books every loss.
 var losses: Array[GoodsLoss] = []
+## Rivals' standing offers for the player's ships and kontors, in the order they were made.
+var offers: Array[OfferState] = []
+## Offer ids are "offer_<n>", numbered the same way.
+var next_offer_number: int = 1
+## Deals between houses in the last DealRecord.DEAL_LOG_DAYS days, for the UI's news. Not saved.
+var deals: Array[DealRecord] = []
+var next_deal_number: int = 1
 
 var _cities_by_id: Dictionary[String, CityState] = {}
 

@@ -31,7 +31,9 @@ extends RefCounted
 ## saves give every ship a captain and put the player aboard their first ship.
 ## Version 10 added each house's rank and reputation per city, and kontors' factor orders
 ## (ADR 0015). Older saves start without reputation or orders and at the rank their worth earns.
-const SAVE_VERSION: int = 10
+## Version 11 added rivals' offers to the player and next_offer_number, and a bankrupt rival's
+## sale_end_day (ADR 0016). Older saves have no offers and never hold a bankrupt rival.
+const SAVE_VERSION: int = 11
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -101,6 +103,8 @@ static func to_dict(world: WorldState) -> Dictionary:
 		"next_workshop_number": world.next_workshop_number,
 		"next_route_number": world.next_route_number,
 		"next_event_number": world.next_event_number,
+		"next_offer_number": world.next_offer_number,
+		"offers": SaveWriter.offers_to_dict(world),
 		"events": events,
 		"goods_ledger": world.goods_ledger.duplicate(),
 		"cities": cities,
@@ -237,6 +241,9 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 		_migrate_market_books(data, world)
 	if version < 10 and errors.is_empty():
 		RankSystem.run_day(data, world)
+	if version >= 11:
+		world.next_offer_number = _int(save, "next_offer_number", "save")
+		_read_offers(data, world, _array(save, "offers", "save"))
 	_check_unique_ids(data, world)
 	if errors.is_empty():
 		_check_trader_order(data, world)
@@ -274,6 +281,8 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 			_see_id(seen, route.id, "route")
 	for event in world.events:
 		_see_id(seen, event.id, "event")
+	for offer in world.offers:
+		_see_id(seen, offer.id, "offer")
 	for city in data.cities:
 		var pool: Array = world.taverns.get(city.id, [])
 		for captain: CaptainState in pool:
@@ -284,6 +293,7 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 		"workshop": world.next_workshop_number,
 		"route": world.next_route_number,
 		"event": world.next_event_number,
+		"offer": world.next_offer_number,
 	}
 	for id: String in seen:
 		var kind := seen[id]
@@ -445,6 +455,8 @@ func _read_trader(
 				trader.captains.append(captain)
 	if version >= 10:
 		trader.rank_id = _string(raw, "rank", ctx)
+	if version >= 11:
+		trader.sale_end_day = _int(raw, "sale_end_day", ctx)
 		if data.rank_index(trader.rank_id) < 0:
 			errors.append("%s: unknown rank '%s'" % [ctx, trader.rank_id])
 		var reputation := _dict(raw, "reputation", ctx)
@@ -787,6 +799,34 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int)
 	if version >= 10:
 		_read_factor(data, kontor, _array(raw, "factor", ctx), ctx)
 	return kontor
+
+
+## Offers from known rivals for the player's assets, each with a known kind and a positive price.
+## Whether the asset still exists is checked when the player accepts.
+func _read_offers(data: GameData, world: WorldState, entries: Array) -> void:
+	for i in entries.size():
+		var ctx := "offers[%d]" % i
+		if not entries[i] is Dictionary:
+			errors.append("%s: must be an object" % ctx)
+			continue
+		var raw: Dictionary = entries[i]
+		var kind := _string(raw, "kind", ctx)
+		if not OfferState.Kind.has(kind):
+			errors.append("%s: unknown kind '%s'" % [ctx, kind])
+			continue
+		var offer := OfferState.new(
+			_string(raw, "id", ctx),
+			_string(raw, "buyer", ctx),
+			OfferState.Kind[kind] as OfferState.Kind,
+			_string(raw, "asset", ctx),
+			_int(raw, "price", ctx),
+			_int(raw, "last_day", ctx)
+		)
+		if not data.has_rival(offer.buyer_id):
+			errors.append("%s: unknown buyer '%s'" % [ctx, offer.buyer_id])
+		if offer.price <= 0:
+			errors.append("%s: price must be positive" % ctx)
+		world.offers.append(offer)
 
 
 func _read_factor(data: GameData, kontor: KontorState, entries: Array, ctx: String) -> void:

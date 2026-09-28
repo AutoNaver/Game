@@ -10,13 +10,23 @@ extends RefCounted
 static func net_worth(data: GameData, trader: TraderState) -> int:
 	var worth := trader.coins
 	for ship in trader.ships:
-		worth += SellShipCommand.resale_price(data, data.get_ship(ship.type_id))
-		worth += goods_value(data, ship)
+		worth += ship_value(data, ship)
 	for kontor in trader.kontors_in_order(data.cities):
-		worth += data.kontor.price + goods_value(data, kontor)
-		for workshop in kontor.workshops:
-			worth += data.get_workshop(workshop.type_id).build_cost
+		worth += kontor_value(data, kontor)
 	return worth
+
+
+## A ship at its resale value, with its cargo at base price.
+static func ship_value(data: GameData, ship: ShipState) -> int:
+	return SellShipCommand.resale_price(data, data.get_ship(ship.type_id)) + goods_value(data, ship)
+
+
+## A kontor and its workshops at what they cost, with its goods at base price.
+static func kontor_value(data: GameData, kontor: KontorState) -> int:
+	var value := data.kontor.price + goods_value(data, kontor)
+	for workshop in kontor.workshops:
+		value += data.get_workshop(workshop.type_id).build_cost
+	return value
 
 
 ## The goods in a ship or kontor at base price.

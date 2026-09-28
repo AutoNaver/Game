@@ -23,6 +23,8 @@ static func on_sale(
 static func run_day(data: GameData, world: WorldState) -> void:
 	var rules := data.reputation
 	for trader in world.traders:
+		if trader.bankrupt:
+			continue
 		for kontor in trader.kontors_in_order(data.cities):
 			var change := rules.per_kontor_day
 			for workshop in kontor.workshops:

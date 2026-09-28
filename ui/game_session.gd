@@ -45,6 +45,9 @@ var pause_on_arrival: bool = true
 var notification_log: PackedStringArray = []
 
 var _pending_hours: float = 0.0
+## Deals and offers already reported (ADR 0016), so each is reported once.
+var _seen_deal: int = 0
+var _seen_offers: PackedStringArray = []
 
 
 func start(data: GameData, seed_value: int) -> void:
@@ -55,6 +58,7 @@ func start(data: GameData, seed_value: int) -> void:
 	selected_city = data.scenario.start_city
 	var ships := sim.world.player().ships
 	selected_ship = ships[0].id if not ships.is_empty() else ""
+	_reset_deal_news()
 	changed.emit()
 
 
@@ -87,6 +91,7 @@ func load_game(slot: String) -> bool:
 	var ships := player().ships
 	if player().get_ship(selected_ship) == null:
 		selected_ship = ships[0].id if not ships.is_empty() else ""
+	_reset_deal_news()
 	message_posted.emit("Game loaded (day %d)" % (sim.day() + 1))
 	changed.emit()
 	return true
@@ -162,6 +167,8 @@ func advance(hours: int) -> void:
 			statuses = _workshop_statuses()
 			_notify_staffing(short_staffed)
 			short_staffed = _short_staffed_cities()
+			_notify_deals()
+			_notify_offers()
 			_notify_rival_news(rival_assets)
 			rival_assets = _rival_assets()
 			_notify_events(events)
@@ -200,6 +207,8 @@ func execute(command: Command) -> bool:
 		# A sold ship may have been the selected one.
 		if player().get_ship(selected_ship) == null:
 			selected_ship = player().ships[0].id if not player().ships.is_empty() else ""
+		_notify_deals()
+		_notify_offers()
 		changed.emit()
 		return true
 	message_posted.emit(error)
@@ -387,25 +396,119 @@ func _rival_assets() -> Dictionary[String, PackedStringArray]:
 		for kontor in trader.kontors_in_order(sim.data.cities):
 			for workshop in kontor.workshops:
 				keys.append("workshop/%s/%s/%s" % [workshop.id, kontor.city_id, workshop.type_id])
+		if trader.bankrupt:
+			keys.append("bankrupt")
 		assets[trader.id] = keys
 	return assets
 
 
-## Notifies when a rival house bought a ship or opened or closed a workshop.
+## Notifies when a rival house bought a ship, opened or closed a workshop, went bankrupt, or was
+## sold off. Ships and workshops that changed hands in a deal are reported as deals instead.
 func _notify_rival_news(before: Dictionary[String, PackedStringArray]) -> void:
 	var now := _rival_assets()
+	var known := PackedStringArray()
+	for keys: PackedStringArray in before.values():
+		for key in keys:
+			known.append(key.get_slice("/", 1))
 	for rival in sim.data.rivals:
-		if before.has(rival.id) and not now.has(rival.id):
-			notify("%s has gone bankrupt" % rival.name)
+		var trader := sim.world.get_trader(rival.id)
+		if before.has(rival.id) and trader == null and not _bought_out(rival.id):
+			notify("%s's last assets were sold off" % rival.name)
+		if (
+			trader != null
+			and trader.bankrupt
+			and before.has(rival.id)
+			and not before[rival.id].has("bankrupt")
+		):
+			notify(
+				(
+					"%s is bankrupt: its ships and kontors are for sale until day %d (Houses)"
+					% [rival.name, trader.sale_end_day]
+				)
+			)
 	for trader in sim.world.traders:
 		if not before.has(trader.id) or not now.has(trader.id):
 			continue
 		for key in now[trader.id]:
-			if not before[trader.id].has(key):
+			if not before[trader.id].has(key) and not known.has(key.get_slice("/", 1)):
 				notify("%s %s" % [trader.name, _describe_asset(key, true)])
 		for key in before[trader.id]:
-			if not now[trader.id].has(key) and key.begins_with("workshop/"):
+			if (
+				not now[trader.id].has(key)
+				and key.begins_with("workshop/")
+				and not _still_owned(key)
+			):
 				notify("%s %s" % [trader.name, _describe_asset(key, false)])
+
+
+## True if the house left the game in a buy-out, which _notify_deals reports.
+func _bought_out(house_id: String) -> bool:
+	for deal in sim.world.deals:
+		if deal.buy_out and deal.seller_id == house_id:
+			return true
+	return false
+
+
+## True if a workshop with this key's id still runs in any house (it changed hands).
+func _still_owned(key: String) -> bool:
+	var id := key.get_slice("/", 1)
+	for trader in sim.world.traders:
+		for kontor in trader.kontors_in_order(sim.data.cities):
+			for workshop in kontor.workshops:
+				if workshop.id == id:
+					return true
+	return false
+
+
+func _reset_deal_news() -> void:
+	_seen_deal = sim.world.next_deal_number - 1
+	_seen_offers.clear()
+	for offer in sim.world.offers:
+		_seen_offers.append(offer.id)
+
+
+## Reports every deal since the last report: the player's own, and the rivals'.
+func _notify_deals() -> void:
+	for deal in sim.world.deals:
+		if deal.number <= _seen_deal:
+			continue
+		_seen_deal = deal.number
+		notify(deal_text(deal))
+
+
+## Reports each new offer for the player's assets once.
+func _notify_offers() -> void:
+	for offer in sim.world.offers:
+		if _seen_offers.has(offer.id):
+			continue
+		_seen_offers.append(offer.id)
+		var buyer := sim.world.get_trader(offer.buyer_id)
+		var what := AcquisitionSystem.asset_name(sim.data, player(), offer.kind, offer.asset_id)
+		notify("%s offers %d for %s (see Houses)" % [buyer.name, offer.price, what])
+
+
+## A deal in words: "You bought the kontor in Visby from Castorp for 1200".
+func deal_text(deal: DealRecord) -> String:
+	var buyer := _house_name(deal.buyer_id)
+	var seller := _house_name(deal.seller_id)
+	if deal.buy_out:
+		return "%s bought out %s for %d" % [buyer, seller, deal.price]
+	var what := "a ship"
+	if deal.kind == OfferState.Kind.KONTOR:
+		what = "the kontor in %s" % _city_name(deal.asset_id)
+	else:
+		for trader in sim.world.traders:
+			var ship := trader.get_ship(deal.asset_id)
+			if ship != null:
+				what = "the %s %s" % [sim.data.get_ship(ship.type_id).name, ship.name]
+	return "%s bought %s from %s for %d" % [buyer, what, seller, deal.price]
+
+
+func _house_name(house_id: String) -> String:
+	if house_id == WorldState.PLAYER_ID:
+		return "You"
+	var rival := sim.data.get_rival(house_id)
+	return rival.name if rival != null else house_id
 
 
 func _describe_asset(key: String, added: bool) -> String:

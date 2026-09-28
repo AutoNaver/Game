@@ -42,6 +42,7 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 		for kontor in trader.kontors_in_order(data.cities):
 			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
 	violations.append_array(_check_taverns(data, world))
+	violations.append_array(_check_deals(world))
 	for city in world.cities:
 		violations.append_array(_check_population(data, world.hour, city))
 	@warning_ignore("integer_division")
@@ -113,6 +114,23 @@ static func _check_standing(data: GameData, trader: TraderState) -> PackedString
 		var points: int = trader.reputation[city_id]
 		if not data.has_city(city_id) or points <= 0 or points > data.reputation.max:
 			violations.append("%s: invalid reputation %d in '%s'" % [trader.id, points, city_id])
+	return violations
+
+
+## Offers come from rivals still in the game and solvent; bankrupt rivals have a sale end day.
+static func _check_deals(world: WorldState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	for offer in world.offers:
+		var buyer := world.get_trader(offer.buyer_id)
+		if buyer == null or buyer.bankrupt or buyer.id == WorldState.PLAYER_ID:
+			violations.append(
+				"%s: offer from '%s', not a solvent rival" % [offer.id, offer.buyer_id]
+			)
+		if offer.price <= 0:
+			violations.append("%s: price %d" % [offer.id, offer.price])
+	for trader in world.traders:
+		if trader.bankrupt and trader.id != WorldState.PLAYER_ID and trader.sale_end_day < 0:
+			violations.append("%s: bankrupt without a sale end day" % trader.id)
 	return violations
 
 
