@@ -30,6 +30,8 @@ func set_values(values: PackedInt64Array, base: float) -> void:
 	_low = base
 	_high = base
 	for value in values:
+		if value < 0:
+			continue
 		_low = minf(_low, value)
 		_high = maxf(_high, value)
 	var missing := base * MIN_SPAN - (_high - _low)
@@ -56,8 +58,14 @@ func _draw() -> void:
 	var points := PackedVector2Array()
 	var step := size.x / float(_values.size() - 1)
 	for i in _values.size():
+		if _values[i] < 0:
+			if points.size() >= 2:
+				draw_polyline(points, LINE_COLOR, LINE_WIDTH, true)
+			points.clear()
+			continue
 		points.append(Vector2(i * step, _y(float(_values[i]))))
-	draw_polyline(points, LINE_COLOR, LINE_WIDTH, true)
+	if points.size() >= 2:
+		draw_polyline(points, LINE_COLOR, LINE_WIDTH, true)
 
 
 func _y(value: float) -> float:

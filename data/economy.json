@@ -6,6 +6,6 @@
   "spread": 0.1,
   "ship_resale_factor": 0.6,
   "workforce_share": 0.1,
-  "import_rate": 1.5,
+  "import_rate": 2.0,
   "export_rate": 0.6
 }

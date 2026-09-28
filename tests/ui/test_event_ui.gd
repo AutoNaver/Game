@@ -45,6 +45,12 @@ func test_events_are_announced_shown_in_the_city_and_their_end_logged() -> void:
 	var headline := EventText.headline(_session.sim.data, event)
 	assert_string_contains(_text("LogEntries"), headline + ": overland imports down to 20%")
 	_session.select_city(event.city_id)
+	if not MarketKnowledgeSystem.has_presence(_session.sim.data, _session.player(), event.city_id):
+		assert_false(_label("CityEvents").visible, "remote events are not live market knowledge")
+		assert_eq(
+			_session.sim.execute(BuyKontorCommand.new(WorldState.PLAYER_ID, event.city_id)), ""
+		)
+		_session.changed.emit()
 	assert_true(_label("CityEvents").visible)
 	assert_string_contains(_text("CityEvents"), "War: overland imports down to 20%")
 	var tooltip := (_main.find_child("Good_grain", true, false) as Label).tooltip_text

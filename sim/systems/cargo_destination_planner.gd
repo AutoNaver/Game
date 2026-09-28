@@ -1,7 +1,7 @@
 class_name CargoDestinationPlanner
 extends RefCounted
-## Compares the sale value of a docked ship's entire cargo across markets. The result is a
-## snapshot at today's prices; a destination market may change before the ship arrives.
+## Compares the sale value of a docked ship's entire cargo using its owner's market book. A stale
+## destination report can mislead; the result never reads the true remote market.
 
 
 ## One port that pays more for the whole cargo than selling it here.
@@ -33,16 +33,22 @@ class Option:
 
 ## Returns ports that pay more than selling here, ranked by extra coins per day of sailing.
 ## Ties use city id so the order does not depend on sort_custom's stability.
-static func plan(data: GameData, world: WorldState, ship: ShipState) -> Array[Option]:
+static func plan(data: GameData, trader: TraderState, ship: ShipState) -> Array[Option]:
 	var options: Array[Option] = []
 	if not ship.is_docked() or ship.cargo_total() == 0:
 		return options
-	var local_value := sale_value(data, world.get_city(ship.docked_at), ship)
+	var local: MarketRecord = trader.market_book.get(ship.docked_at)
+	if local == null:
+		return options
+	var local_value := sale_value(data, local, ship)
 	var ship_type := data.get_ship(ship.type_id)
 	for city in data.cities:
 		if city.id == ship.docked_at:
 			continue
-		var value := sale_value(data, world.get_city(city.id), ship)
+		var report: MarketRecord = trader.market_book.get(city.id)
+		if report == null:
+			continue
+		var value := sale_value(data, report, ship)
 		if value <= local_value:
 			continue
 		var hours := Navigation.travel_hours(data, ship_type, ship.docked_at, city.id)
@@ -57,8 +63,9 @@ static func plan(data: GameData, world: WorldState, ship: ShipState) -> Array[Op
 
 
 ## Exact proceeds if every cargo good is sold separately in this city right now.
-static func sale_value(data: GameData, city: CityState, ship: ShipState) -> int:
+static func sale_value(data: GameData, report: MarketRecord, ship: ShipState) -> int:
 	var total := 0
+	var city := report.as_city()
 	for good in data.goods:
 		var units := ship.cargo_of(good.id)
 		if units > 0:

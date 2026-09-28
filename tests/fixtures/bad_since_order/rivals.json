@@ -1,0 +1,41 @@
+{
+  "ai": {
+    "top_choices": 3,
+    "cash_reserve": 3000,
+    "max_ships": 4,
+    "max_kontors": 2,
+    "expansion_days": 10,
+    "workshop_input_days": 4,
+    "input_price_limit": 1.1,
+    "keep_free_workers": 0.5
+  },
+  "houses": [
+    {
+      "id": "castorp",
+      "name": "Castorp",
+      "color": "#5fb37a",
+      "start_city": "lubeck",
+      "coins": 4000,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Marienkrone"
+        }
+      ],
+      "since_save": 2
+    },
+    {
+      "id": "later",
+      "name": "Later",
+      "color": "#5fb37a",
+      "start_city": "lubeck",
+      "coins": 4000,
+      "ships": [
+        {
+          "type": "cog",
+          "name": "Marienkrone"
+        }
+      ]
+    }
+  ]
+}

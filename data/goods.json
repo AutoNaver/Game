@@ -8,5 +8,9 @@
   { "id": "beer", "name": "Beer", "category": "processed", "base_price": 55, "consumption_per_1000": 3.0, "spoilage_per_day": 0.005 },
   { "id": "cloth", "name": "Cloth", "category": "processed", "base_price": 140, "consumption_per_1000": 0.5 },
   { "id": "tools", "name": "Tools", "category": "processed", "base_price": 170, "consumption_per_1000": 0.3 },
-  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220, "consumption_per_1000": 0.15 }
+  { "id": "wine", "name": "Wine", "category": "luxury", "base_price": 220, "consumption_per_1000": 0.15 },
+  { "id": "furs", "name": "Furs", "category": "luxury", "base_price": 260, "consumption_per_1000": 0.1, "since_save": 7 },
+  { "id": "wax", "name": "Wax", "category": "raw", "base_price": 150, "consumption_per_1000": 0.2, "since_save": 7 },
+  { "id": "honey", "name": "Honey", "category": "raw", "base_price": 80, "consumption_per_1000": 0.4, "since_save": 7 },
+  { "id": "pitch", "name": "Pitch", "category": "raw", "base_price": 65, "consumption_per_1000": 0.3, "since_save": 7 }
 ]

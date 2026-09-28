@@ -55,20 +55,27 @@ const GOOD_FIELDS: PackedStringArray = [
 	"id", "name", "category", "base_price", "consumption_per_1000"
 ]
 ## Optional: goods without it keep forever.
-const GOOD_OPTIONAL_FIELDS: PackedStringArray = ["spoilage_per_day"]
+const GOOD_OPTIONAL_FIELDS: PackedStringArray = ["spoilage_per_day", "since_save"]
 const EVENT_FIELDS: PackedStringArray = [
 	"id", "name", "kind", "chance_per_day", "min_days", "max_days"
 ]
 ## Longest an event may last, and the most a storm may slow ships.
 const MAX_EVENT_DAYS: int = 3650
 const MAX_STORM_SLOWDOWN: int = 24
+## Saves hold the older cities and houses first, so newer ones must come after them.
+const SINCE_ORDER: String = " (since_save must not decrease: add new ones at the end)"
 const MAP_FIELDS: PackedStringArray = [
 	"image", "west_lon", "east_lon", "south_lat", "north_lat", "reference_lat"
 ]
 const CITY_FIELDS: PackedStringArray = ["id", "name", "coordinates", "population", "production"]
+const CITY_OPTIONAL_FIELDS: PackedStringArray = ["import_factor", "since_save"]
+## Highest import_factor a city may have.
+const MAX_IMPORT_FACTOR: float = 10.0
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
+## Optional: lanes up rivers to inland cities, exempt from the coastline check.
+const SEA_LANES_OPTIONAL_FIELDS: PackedStringArray = ["rivers"]
 const WAYPOINT_FIELDS: PackedStringArray = ["id", "coordinates"]
 const BUILDINGS_FIELDS: PackedStringArray = ["kontor", "workshops"]
 const KONTOR_FIELDS: PackedStringArray = ["price", "capacity"]
@@ -87,7 +94,9 @@ const RIVAL_AI_FIELDS: PackedStringArray = [
 	"input_price_limit",
 	"keep_free_workers",
 ]
+const RIVAL_AI_OPTIONAL_FIELDS: PackedStringArray = ["explore_chance"]
 const RIVAL_FIELDS: PackedStringArray = ["id", "name", "color", "start_city", "coins", "ships"]
+const RIVAL_OPTIONAL_FIELDS: PackedStringArray = ["since_save"]
 
 ## Sanity ceilings for per-day rates, to catch typos like an extra zero or two.
 const MAX_CONSUMPTION_PER_1000: float = 1000.0
@@ -150,6 +159,13 @@ func load_dir(dir: String) -> GameData:
 			data.add_city(city)
 			_check_stock_caps(city, data, ctx)
 
+	for i in range(1, data.cities.size()):
+		if data.cities[i].since_save < data.cities[i - 1].since_save:
+			_error(
+				CITIES_FILE,
+				"'%s' is older than the city before it" % data.cities[i].id + SINCE_ORDER
+			)
+
 	var sea_lanes: Variant = _read_json(dir.path_join(SEA_LANES_FILE), TYPE_DICTIONARY)
 	if sea_lanes != null:
 		data.sea_chart = _parse_sea_lanes(sea_lanes as Dictionary, SEA_LANES_FILE, data)
@@ -176,6 +192,13 @@ func load_dir(dir: String) -> GameData:
 	var rivals: Variant = _read_json(dir.path_join(RIVALS_FILE), TYPE_DICTIONARY)
 	if rivals != null:
 		_parse_rivals(rivals as Dictionary, RIVALS_FILE, data)
+
+	for i in range(1, data.rivals.size()):
+		if data.rivals[i].since_save < data.rivals[i - 1].since_save:
+			_error(
+				RIVALS_FILE,
+				"'%s' is older than the house before it" % data.rivals[i].id + SINCE_ORDER
+			)
 
 	var events := _read_array(dir.path_join(EVENTS_FILE))
 	for i in events.size():
@@ -309,9 +332,12 @@ func _parse_good(raw: Variant, ctx: String) -> GoodDef:
 	_check_rate_resolution(consumption, "consumption_per_1000", ctx)
 	var spoilage := _get_float_between(entry, "spoilage_per_day", 0.0, 1.0, ctx, true, true)
 	_check_rate_resolution(spoilage, "spoilage_per_day", ctx)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
-	return GoodDef.new(id, good_name, category, base_price, consumption, spoilage)
+	var good := GoodDef.new(id, good_name, category, base_price, consumption, spoilage)
+	good.since_save = since
+	return good
 
 
 ## The fields each event kind needs on top of EVENT_FIELDS.
@@ -407,15 +433,35 @@ func _parse_city(raw: Variant, ctx: String, data: GameData) -> CityDef:
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, CITY_FIELDS, ctx)
+	_check_fields(entry, CITY_FIELDS, ctx, CITY_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	var city_name := _get_string(entry, "name", ctx)
 	var map_position := _get_map_position(entry, ctx, data)
 	var population := _get_positive_int(entry, "population", ctx)
 	var production := _get_production(entry, ctx, data)
+	var import_factor := 1.0
+	if entry.has("import_factor"):
+		import_factor = _get_float_between(
+			entry, "import_factor", 0.0, MAX_IMPORT_FACTOR, ctx, true, true
+		)
+		_check_rate_resolution(import_factor, "import_factor", ctx)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
-	return CityDef.new(id, city_name, map_position, population, production)
+	var city := CityDef.new(id, city_name, map_position, population, production)
+	city.import_factor = import_factor
+	city.since_save = since
+	return city
+
+
+## The optional "since_save": the save version whose world first has the entry (1 by default).
+func _get_since_save(entry: Dictionary, ctx: String) -> int:
+	if not entry.has("since_save"):
+		return 1
+	var since := _get_positive_int(entry, "since_save", ctx)
+	if since > SaveGame.SAVE_VERSION:
+		_error(ctx, "'since_save' must be at most the save version %d" % SaveGame.SAVE_VERSION)
+	return since
 
 
 ## Fields that are fine on their own can multiply into a stock cap (population × consumption ×
@@ -458,7 +504,7 @@ func _get_production(entry: Dictionary, ctx: String, data: GameData) -> Dictiona
 ## Cities and the map must already be loaded. Every pair of cities must be connected by lanes.
 func _parse_sea_lanes(entry: Dictionary, ctx: String, data: GameData) -> SeaChart:
 	var error_count := errors.size()
-	_check_fields(entry, SEA_LANES_FIELDS, ctx)
+	_check_fields(entry, SEA_LANES_FIELDS, ctx, SEA_LANES_OPTIONAL_FIELDS)
 	var chart := SeaChart.new()
 	for city in data.cities:
 		chart.add_node(city.id, city.map_position)
@@ -466,6 +512,9 @@ func _parse_sea_lanes(entry: Dictionary, ctx: String, data: GameData) -> SeaChar
 		_parse_waypoint(entry["waypoints"][i], "%s waypoints[%d]" % [ctx, i], chart, data)
 	for i in _get_array(entry, "lanes", ctx).size():
 		_parse_lane(entry["lanes"][i], "%s lanes[%d]" % [ctx, i], chart)
+	if entry.has("rivers"):
+		for i in _get_array(entry, "rivers", ctx).size():
+			_parse_lane(entry["rivers"][i], "%s rivers[%d]" % [ctx, i], chart, true)
 	for a in data.cities.size():
 		for b in range(a + 1, data.cities.size()):
 			var from_id := data.cities[a].id
@@ -494,7 +543,7 @@ func _parse_waypoint(raw: Variant, ctx: String, chart: SeaChart, data: GameData)
 	chart.add_node(id, position)
 
 
-func _parse_lane(raw: Variant, ctx: String, chart: SeaChart) -> void:
+func _parse_lane(raw: Variant, ctx: String, chart: SeaChart, river: bool = false) -> void:
 	if not raw is Array or (raw as Array).size() != 2:
 		_error(ctx, "a lane must be an array of two node ids")
 		return
@@ -510,7 +559,7 @@ func _parse_lane(raw: Variant, ctx: String, chart: SeaChart) -> void:
 	elif chart.has_lane(a, b):
 		_error(ctx, "duplicate lane %s-%s" % [a, b])
 	else:
-		chart.add_lane(a, b)
+		chart.add_lane(a, b, river)
 
 
 ## Returns the array in `field`, or an empty one after reporting that it is not an array.
@@ -664,7 +713,7 @@ func _parse_rivals(entry: Dictionary, ctx: String, data: GameData) -> void:
 
 func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 	var error_count := errors.size()
-	_check_fields(entry, RIVAL_AI_FIELDS, ctx)
+	_check_fields(entry, RIVAL_AI_FIELDS, ctx, RIVAL_AI_OPTIONAL_FIELDS)
 	var top_choices := _get_positive_int(entry, "top_choices", ctx)
 	var cash_reserve := _get_non_negative_int(entry, "cash_reserve", ctx)
 	var max_ships := _get_positive_int(entry, "max_ships", ctx)
@@ -673,9 +722,10 @@ func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 	var input_days := _get_positive_int(entry, "workshop_input_days", ctx)
 	var price_limit := _get_float_between(entry, "input_price_limit", 0.0, 100.0, ctx)
 	var keep_free := _get_float_between(entry, "keep_free_workers", 0.0, 1.0, ctx, true)
+	var explore := _get_float_between(entry, "explore_chance", 0.0, 1.0, ctx, true, true)
 	if errors.size() > error_count:
 		return null
-	return RivalAiDef.new(
+	var ai := RivalAiDef.new(
 		top_choices,
 		cash_reserve,
 		max_ships,
@@ -685,6 +735,8 @@ func _parse_rival_ai(entry: Dictionary, ctx: String) -> RivalAiDef:
 		price_limit,
 		keep_free
 	)
+	ai.explore_chance = explore
+	return ai
 
 
 func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
@@ -693,7 +745,7 @@ func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, RIVAL_FIELDS, ctx)
+	_check_fields(entry, RIVAL_FIELDS, ctx, RIVAL_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	if id == WorldState.PLAYER_ID:
 		_error(ctx, "'id' '%s' is reserved for the player" % id)
@@ -715,9 +767,12 @@ func _parse_rival(raw: Variant, ctx: String, data: GameData) -> RivalDef:
 				var ship := _parse_starting_ship(raw_ships[i], "%s ships[%d]" % [ctx, i], data)
 				if ship != null:
 					ships.append(ship)
+	var since := _get_since_save(entry, ctx)
 	if errors.size() > error_count:
 		return null
-	return RivalDef.new(id, rival_name, Color.html(color_text), start_city, coins, ships)
+	var rival := RivalDef.new(id, rival_name, Color.html(color_text), start_city, coins, ships)
+	rival.since_save = since
+	return rival
 
 
 ## Rates must be multiples of 0.001 so daily flows stay exact (see CityEconomy); finer values would

@@ -1,7 +1,7 @@
 class_name TradePlanner
 extends RefCounted
 ## Suggests cargo for a ship: for each other city, the good that makes the most profit when bought
-## here and sold there at today's prices. A read-only query for the UI; it changes nothing.
+## here and sold there at the house's last known prices. A read-only query; it changes nothing.
 ##
 ## Buying walks this market's price up and selling walks the destination's down (ADR 0003), so each
 ## extra unit earns less. The load is the quantity with the best profit as the trade commands
@@ -45,16 +45,29 @@ class Option:
 ## One option per destination city with a profitable load, best profit per day first.
 ## `space` is the ship's free cargo space and `coins` what the trader can spend.
 static func plan(
-	data: GameData, world: WorldState, ship_type: ShipDef, from_city: String, space: int, coins: int
+	data: GameData,
+	trader: TraderState,
+	ship_type: ShipDef,
+	from_city: String,
+	space: int,
+	coins: int
 ) -> Array[Option]:
 	var options: Array[Option] = []
 	var order: Dictionary[Option, int] = {}
+	var source_record: MarketRecord = trader.market_book.get(from_city)
+	if source_record == null:
+		return options
+	var source := source_record.as_city()
 	for city_def in data.cities:
 		if city_def.id == from_city:
 			continue
+		var market_record: MarketRecord = trader.market_book.get(city_def.id)
+		if market_record == null:
+			continue
+		var market := market_record.as_city()
 		var best: Option = null
 		for good in data.goods:
-			var option := _best_load(data, world, from_city, city_def.id, good, space, coins)
+			var option := _best_load(data, source, market, good, space, coins)
 			if option != null and (best == null or option.profit() > best.profit()):
 				best = option
 		if best != null:
@@ -74,16 +87,13 @@ static func plan(
 ## The most profitable quantity of `good` from one city to another, or null if none pays.
 static func _best_load(
 	data: GameData,
-	world: WorldState,
-	from_city: String,
-	to_city: String,
+	source: CityState,
+	market: CityState,
 	good: GoodDef,
 	space: int,
 	coins: int,
 ) -> Option:
 	var economy := data.economy
-	var source := world.get_city(from_city)
-	var market := world.get_city(to_city)
 	var source_target := CityEconomy.target_stock(economy, source, good)
 	var market_target := CityEconomy.target_stock(economy, market, good)
 	var stock: int = source.stock[good.id]
@@ -121,4 +131,4 @@ static func _best_load(
 		return null
 	var cost := CityEconomy.buy_cost(economy, source, good, best_quantity)
 	var revenue := CityEconomy.sell_revenue(economy, market, good, best_quantity)
-	return Option.new(to_city, good.id, best_quantity, cost, revenue, 0)
+	return Option.new(market.id, good.id, best_quantity, cost, revenue, 0)

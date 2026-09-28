@@ -1,13 +1,15 @@
-"""Render the Baltic map image from Natural Earth coastline data.
+"""Render the Baltic map image from Natural Earth coastline and lake data.
 
 The projection and frame come from data/map.json, the same file the game reads, so city positions
-(projected in GameDataLoader / MapDef) line up with the picture exactly.
+(projected in GameDataLoader / MapDef) line up with the picture exactly. Lakes are drawn as water,
+and the river lanes in data/sea_lanes.json ("rivers") as narrow waterways, so ships sailing up a
+river to an inland city (Novgorod) are seen on water.
 
 Usage (needs Pillow and numpy):
-    python tools/map/render_map.py path/to/ne_10m_land.geojson
+    python tools/map/render_map.py path/to/ne_10m_land.geojson path/to/ne_10m_lakes.geojson
 
-Coastline data: Natural Earth "ne_10m_land" (public domain), https://www.naturalearthdata.com/
-The output is written to the image path configured in data/map.json.
+Data: Natural Earth "ne_10m_land" and "ne_10m_lakes" (public domain),
+https://www.naturalearthdata.com/. The output is written to the image path in data/map.json.
 """
 
 import json
@@ -68,7 +70,21 @@ def polygons_in_frame(geojson, config, margin_deg=2.0):
             yield poly
 
 
-def render(geojson_path):
+# Rivers are drawn this wide, in km.
+RIVER_KM = 2.5
+
+
+def river_lines(project):
+    """Yields each river lane in data/sea_lanes.json as a pair of projected points."""
+    lanes = json.loads((ROOT / "data" / "sea_lanes.json").read_text(encoding="utf-8"))
+    cities = json.loads((ROOT / "data" / "cities.json").read_text(encoding="utf-8"))
+    nodes = {c["id"]: c["coordinates"] for c in cities}
+    nodes.update({w["id"]: w["coordinates"] for w in lanes["waypoints"]})
+    for a, b in lanes.get("rivers", []):
+        yield project(*nodes[a]), project(*nodes[b])
+
+
+def render(geojson_path, lakes_path):
     config = load_map_config()
     width_km, height_km = frame_size_km(config)
     scale = PIXELS_PER_KM * SUPERSAMPLE
@@ -82,6 +98,13 @@ def render(geojson_path):
         draw.polygon([project(lon, lat) for lon, lat in poly[0]], fill=255)
         for hole in poly[1:]:
             draw.polygon([project(lon, lat) for lon, lat in hole], fill=0)
+    lakes = json.loads(Path(lakes_path).read_text(encoding="utf-8"))
+    for poly in polygons_in_frame(lakes, config):
+        draw.polygon([project(lon, lat) for lon, lat in poly[0]], fill=0)
+        for island in poly[1:]:
+            draw.polygon([project(lon, lat) for lon, lat in island], fill=255)
+    for start, end in river_lines(project):
+        draw.line([start, end], fill=0, width=max(1, round(RIVER_KM * scale)))
 
     # Sea: deep colour, lighter near the coast (blurred land mask as a shallow-water band).
     shallow = land_mask.filter(ImageFilter.GaussianBlur(18 * SUPERSAMPLE))
@@ -114,6 +137,6 @@ def render(geojson_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         sys.exit(__doc__)
-    render(sys.argv[1])
+    render(sys.argv[1], sys.argv[2])

@@ -11,6 +11,9 @@ var color: Color
 var start_city: String
 var coins: int
 var ships: Array[ScenarioDef.StartingShip] = []
+## First save version whose world has this entry (data "since_save", default 1). Saves from before
+## it get the entry added as a new game starts it; later saves must contain it (SaveGame).
+var since_save: int = 1
 
 
 func _init(

@@ -106,9 +106,9 @@ Automates the core loop once the player runs more ships than they want to sail b
 
 ## M11: More of the Baltic
 
-- [ ] New cities (Riga, Reval, Stralsund, Bergen, Novgorod) with sea lanes checked against the coastline
-- [ ] New goods (furs, wax, honey, pitch) with producers and consumers
-- [ ] Rebalance, and the map fits the larger area
+- [x] New cities (Riga, Reval, Stralsund, Bergen, Novgorod) with sea lanes checked against the coastline (river lanes to Novgorod, ADR 0012)
+- [x] New goods (furs, wax, honey, pitch) with producers and consumers
+- [x] Rebalance, and the map fits the larger area (two more rival houses, `import_factor` for Bergen and Novgorod, save version 7 grows older saves; the whole map fits at zoom 1)
 
 ## Progression (ADR 0009)
 
@@ -117,11 +117,11 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 
 ## M12: Market knowledge
 
-- [ ] Market book per trader: last seen prices and stocks per city with the day seen, saved
-- [ ] Live prices only with presence (the player in person, a docked ship, a kontor); last known prices and their age elsewhere
-- [ ] Ships update the book when they dock, plus harbour gossip from other houses' ships in port
-- [ ] Market panel, trade planner, route editor and tooltips show age and use the book, not the true market
-- [ ] Rivals plan from their own books; rebalance and record in an ADR
+- [x] Market book per trader: last seen prices and stocks per city with the day seen, saved
+- [x] Live prices only with presence (the player in person, a docked ship, a kontor); last known prices and their age elsewhere
+- [x] Ships update the book when they dock, plus harbour gossip from other houses' ships in port
+- [x] Market panel, trade planner, route editor and tooltips show age and use the book, not the true market
+- [x] Rivals plan from their own books; rebalance and record in an ADR
 
 ## M13: Captains
 
@@ -129,7 +129,7 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 - [x] Ships need a captain to sail; tavern pools per city (weekly, world RNG), hiring and daily wages
 - [x] Captain skills (seamanship: voyage time, trading: spread) that improve with voyages
 - [x] Only captained ships follow routes; rivals hire from the same taverns
-- [x] Saves migrate old games (a captain for every ship); rebalance (ADR 0013)
+- [x] Saves migrate old games (a captain for every ship); rebalance (ADR 0014)
 - [x] Bankruptcy: unpaid wages put a house in debt, a grace period, then bankruptcy; a warning in the UI; game over for the player (load or new game), a bankrupt rival leaves the game and its goods return to city markets (buyers follow in M15)
 
 ## M14: Reputation, ranks and factors
@@ -169,8 +169,8 @@ From a code review of `main` at c40d4c8 (2026-09-27):
   the next autosave; reserve the name case-insensitively (`SaveGame.check_slot_name`, #13)
 - [ ] `FleetPanel.batched_revenue` re-implements the sell price walk in the UI; move it into
   `CityEconomy` with a sim test (#20)
-- [ ] #20 says the cargo manifest doesn't reveal distant markets, but `CargoDestinationPlanner`
-  (#21) and `TradePlanner` value cargo at every port; settle the rule before M12
+- [x] #20 says the cargo manifest doesn't reveal distant markets, but `CargoDestinationPlanner`
+  (#21) and `TradePlanner` value cargo at every port; M12 limits both to the trader's market book
 - [ ] Stale conservation wording: `WorldState.goods_ledger` and `EconomyInvariants`
   (`_check_conservation` doc and message) still say only production and consumption, missing
   off-map trade and workshops (and M10's sinks)

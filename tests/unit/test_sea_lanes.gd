@@ -68,13 +68,16 @@ func test_lane_segments_cover_every_configured_lane() -> void:
 	assert_eq(segments[2], PackedVector2Array([Vector2(0, 0), Vector2(0, 300)]))
 
 
-## Every configured lane, not just the ones on shortest routes, sampled every km.
+## Every configured sea lane, not just the ones on shortest routes, sampled every km. River lanes
+## to inland cities are drawn into the map image but are narrower than its coastline is reliable,
+## so they are left to tools/map/check_lanes.py and the eye.
 func test_shipped_lanes_stay_on_water() -> void:
 	var data := GameDataLoader.new().load_dir(GameDataLoader.DEFAULT_DIR)
 	var image := (load(data.map.image) as Texture2D).get_image()
 	var pixels_per_km := image.get_width() / data.map.size_km().x
-	var segments := data.sea_chart.lane_segments()
-	assert_gt(segments.size(), 20)
+	var segments := data.sea_chart.sea_segments()
+	assert_gt(segments.size(), 50)
+	assert_gt(data.sea_chart.lane_segments().size(), segments.size(), "rivers to Novgorod")
 	for segment in segments:
 		var land_km := 0
 		for km in int(SeaChart.length_of(segment)) + 1:

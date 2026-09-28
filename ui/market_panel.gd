@@ -35,6 +35,7 @@ class Row:
 var _session: GameSession
 var _rows: Dictionary[String, Row] = {}
 var _note: Label = Label.new()
+var _seen: Label = Label.new()
 var _target_row: HBoxContainer = HBoxContainer.new()
 var _ship_target: Button = Button.new()
 var _kontor_target: Button = Button.new()
@@ -44,6 +45,9 @@ var _use_kontor: bool = false
 func setup(session: GameSession) -> void:
 	_session = session
 	add_child(UiStyle.label("Market", UiStyle.HEADER_LABEL))
+	_seen.name = "MarketSeen"
+	_seen.theme_type_variation = UiStyle.MUTED_LABEL
+	add_child(_seen)
 	add_child(_build_quantity_picker())
 	add_child(_build_target_picker())
 	var grid := GridContainer.new()
@@ -64,8 +68,18 @@ func setup(session: GameSession) -> void:
 
 
 func refresh() -> void:
-	var economy := _session.sim.data.economy
-	var city := _session.sim.world.get_city(_session.selected_city)
+	var record: MarketRecord = _session.player().market_book.get(_session.selected_city)
+	var live := MarketKnowledgeSystem.has_presence(
+		_session.sim.data, _session.player(), _session.selected_city
+	)
+	if record == null:
+		_seen.text = "Never visited · prices unknown"
+	elif live:
+		_seen.text = "Live market"
+	else:
+		_seen.text = (
+			"Last seen on day %d (%dd old)" % [record.day + 1, _session.sim.day() - record.day]
+		)
 	var hold := _target()
 	var kontor := _session.player().get_kontor(_session.selected_city)
 	_target_row.visible = kontor != null and _session.trading_ship() != null
@@ -73,20 +87,29 @@ func refresh() -> void:
 	_kontor_target.set_pressed_no_signal(hold != null and hold is KontorState)
 	for good in _session.sim.data.goods:
 		var row := _rows[good.id]
-		var stock: int = city.stock[good.id]
-		row.stock.text = str(stock)
-		if stock > 0:
-			var price := CityEconomy.buy_cost(economy, city, good, 1)
-			row.buy_price.text = str(price)
-			row.buy_price.modulate = _deal_color(price, good.base_price, true)
-		else:
-			row.buy_price.text = "-"
-			row.buy_price.modulate = Color.WHITE
-		var sell := CityEconomy.sell_revenue(economy, city, good, 1)
-		row.sell_price.text = str(sell)
-		row.sell_price.modulate = _deal_color(sell, good.base_price, false)
-		_refresh_trend(row, city, good)
-		row.name_label.tooltip_text = _explain_price(city, good)
+		var stock := record.stock[good.id] if record != null else 0
+		row.stock.text = str(stock) if record != null else "?"
+		row.buy_price.text = (
+			str(record.buy_price[good.id]) if record != null and stock > 0 else "-"
+		)
+		row.sell_price.text = str(record.sell_price[good.id]) if record != null else "-"
+		row.buy_price.modulate = (
+			_deal_color(record.buy_price[good.id], good.base_price, true)
+			if record != null and stock > 0
+			else Color.WHITE
+		)
+		row.sell_price.modulate = (
+			_deal_color(record.sell_price[good.id], good.base_price, false)
+			if record != null
+			else Color.WHITE
+		)
+		row.stock.modulate.a = 1.0 if live else 0.55
+		row.buy_price.modulate.a *= 1.0 if live else 0.55
+		row.sell_price.modulate.a *= 1.0 if live else 0.55
+		_refresh_trend(row, record, good)
+		row.name_label.tooltip_text = (
+			_explain_price(record, good, live) if record != null else "No market report yet"
+		)
 		var held := hold.cargo_of(good.id) if hold != null else 0
 		row.aboard.text = str(held) if hold != null else "-"
 		row.buy.disabled = hold == null or stock == 0
@@ -165,6 +188,9 @@ func _build_row(grid: GridContainer, good: GoodDef) -> Row:
 	# Labels ignore the mouse by default, which would hide the price explanation.
 	row.name_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	grid.add_child(row.name_label)
+	row.stock.name = "Stock_%s" % good.id
+	row.buy_price.name = "BuyPrice_%s" % good.id
+	row.sell_price.name = "SellPrice_%s" % good.id
 	for label: Label in [row.stock, row.buy_price, row.sell_price]:
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		grid.add_child(label)
@@ -221,8 +247,10 @@ func _sell(good_id: String) -> void:
 		_session.execute(SellCommand.new(player, (hold as ShipState).id, good_id, quantity))
 
 
-func _refresh_trend(row: Row, city: CityState, good: GoodDef) -> void:
-	var history: PackedInt64Array = city.price_history[good.id]
+func _refresh_trend(row: Row, record: MarketRecord, good: GoodDef) -> void:
+	var history := PackedInt64Array()
+	if record != null:
+		history = record.history.get(good.id, PackedInt64Array())
 	row.sparkline.set_values(history, PriceHistorySystem.scaled_price(good.base_price))
 	var arrow := trend_arrow(history)
 	row.trend.text = arrow
@@ -239,7 +267,14 @@ func _refresh_trend(row: Row, city: CityState, good: GoodDef) -> void:
 static func trend_arrow(history: PackedInt64Array) -> String:
 	if history.size() < 2:
 		return ""
-	var then := float(history[maxi(0, history.size() - 1 - TREND_DAYS)])
+	if history[-1] < 0:
+		return ""
+	var previous := maxi(0, history.size() - 1 - TREND_DAYS)
+	while previous < history.size() - 1 and history[previous] < 0:
+		previous += 1
+	if previous == history.size() - 1:
+		return ""
+	var then := float(history[previous])
 	var change := (float(history[-1]) - then) / then
 	if change > TREND_THRESHOLD:
 		return "▲"
@@ -249,12 +284,14 @@ static func trend_arrow(history: PackedInt64Array) -> String:
 
 
 ## Why the price is what it is: stock against target, demand, shortage and off-map trade.
-func _explain_price(city: CityState, good: GoodDef) -> String:
+func _explain_price(record: MarketRecord, good: GoodDef, live: bool) -> String:
 	var economy := _session.sim.data.economy
+	var city := record.as_city()
 	var target := CityEconomy.target_stock(economy, city, good)
-	var stock: int = city.stock[good.id]
-	var mid := CityEconomy.mid_price(economy, city, good)
+	var stock: int = record.stock[good.id]
+	var mid := float(record.mid_price[good.id]) / PriceHistorySystem.PRICE_SCALE
 	var lines: PackedStringArray = [
+		"Live report" if live else "Last seen on day %d" % (record.day + 1),
 		"%s: %d%% of base price" % [good.name, roundi(mid / good.base_price * 100.0)],
 		"Stock %d of a normal %d (%d%%)" % [stock, target, roundi(100.0 * stock / target)],
 		"Townsfolk use %.1f a day" % CityEconomy.daily_demand(city, good),
@@ -262,22 +299,24 @@ func _explain_price(city: CityState, good: GoodDef) -> String:
 	var produced := _session.sim.data.get_city(city.id).production_of(good.id)
 	if produced > 0.0:
 		lines.append("Local workshops make up to %.1f a day" % produced)
-	if city.shortage[good.id] > 0:
-		lines.append("Ran short by %d yesterday" % city.shortage[good.id])
-	var flow := OffMapTradeSystem.expected_flow(economy, city, good)
+	if record.shortage[good.id] > 0:
+		lines.append("Ran short by %d yesterday" % record.shortage[good.id])
+	var import_factor := _session.sim.data.get_city(city.id).import_factor
+	var flow := OffMapTradeSystem.expected_flow(economy, city, good, import_factor)
 	if flow >= 0.05:
 		lines.append("Overland traders bring about %.1f a day" % flow)
 	elif flow <= -0.05:
 		lines.append("Overland traders take about %.1f a day" % -flow)
 	var day := _session.sim.day()
-	for event in EventSystem.active_in(_session.sim.world, city.id, day):
-		if EventText.affects_price(_session.sim.data, event, good.id):
-			var parts := [
-				EventText.headline(_session.sim.data, event),
-				EventText.effect(_session.sim.data, event),
-				EventText.time_left(event, day),
-			]
-			lines.append("%s: %s (%s)" % parts)
+	if live:
+		for event in EventSystem.active_in(_session.sim.world, city.id, day):
+			if EventText.affects_price(_session.sim.data, event, good.id):
+				var parts := [
+					EventText.headline(_session.sim.data, event),
+					EventText.effect(_session.sim.data, event),
+					EventText.time_left(event, day),
+				]
+				lines.append("%s: %s (%s)" % parts)
 	if good.spoilage_per_day > 0.0:
 		var percent := good.spoilage_per_day * 100.0
 		lines.append("Spoils %.1f%% a day in ships and kontors" % percent)

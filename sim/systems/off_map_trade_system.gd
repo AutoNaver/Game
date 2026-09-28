@@ -16,6 +16,9 @@ static func run_day(data: GameData, world: WorldState) -> void:
 	var import_steps := CityEconomy.rate_steps(economy.import_rate)
 	var export_steps := CityEconomy.rate_steps(economy.export_rate)
 	for city in world.cities:
+		# A city's own links beyond the map (CityDef.import_factor), then any war (EventSystem).
+		var city_import_steps := CityEconomy.rate_steps(data.get_city(city.id).import_factor)
+		var event_steps := EventSystem.import_steps(data, world, city.id)
 		for good in data.goods:
 			var demand := CityEconomy.daily_demand_parts(city, good)
 			var target := CityEconomy.target_stock(economy, city, good)
@@ -26,11 +29,10 @@ static func run_day(data: GameData, world: WorldState) -> void:
 			var gap := absi(target - stock)
 			var steps := import_steps if stock < target else export_steps
 			if stock < target:
-				# A war (EventSystem) cuts the city off from part of its overland supply.
 				@warning_ignore("integer_division")
-				steps = (
-					steps * EventSystem.import_steps(data, world, city.id) / CityEconomy.RATE_STEPS
-				)
+				steps = steps * city_import_steps / CityEconomy.RATE_STEPS
+				@warning_ignore("integer_division")
+				steps = steps * event_steps / CityEconomy.RATE_STEPS
 			@warning_ignore("integer_division")
 			var parts := demand * steps / CityEconomy.RATE_STEPS * gap / target
 			var flow := parts + city.trade_carry[good.id]
@@ -46,8 +48,10 @@ static func run_day(data: GameData, world: WorldState) -> void:
 
 ## Expected units per day of off-map trade for `good` in `city` at today's stock: positive for
 ## imports, negative for exports. For display; run_day() moves whole units with a carry.
-static func expected_flow(economy: EconomyDef, city: CityState, good: GoodDef) -> float:
+static func expected_flow(
+	economy: EconomyDef, city: CityState, good: GoodDef, import_factor: float = 1.0
+) -> float:
 	var target := CityEconomy.target_stock(economy, city, good)
 	var stock: int = city.stock[good.id]
-	var rate := economy.import_rate if stock < target else economy.export_rate
+	var rate := economy.import_rate * import_factor if stock < target else economy.export_rate
 	return CityEconomy.daily_demand(city, good) * rate * (target - stock) / target

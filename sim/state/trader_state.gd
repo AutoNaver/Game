@@ -20,6 +20,8 @@ var bankrupt: bool = false
 var kontors: Dictionary[String, KontorState] = {}
 ## Trade routes, in creation order.
 var routes: Array[RouteState] = []
+## Last observed or reported market for each city. Read through this book when planning.
+var market_book: Dictionary[String, MarketRecord] = {}
 
 
 func _init(p_id: String, p_name: String, p_coins: int) -> void:

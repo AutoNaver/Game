@@ -168,11 +168,16 @@ func test_trend_arrow_compares_with_a_week_ago() -> void:
 func test_cargo_ideas_load_the_suggested_cargo() -> void:
 	assert_false(_main.find_child("Idea_0", true, false).visible, "balanced markets at the start")
 	_session.advance(Simulation.HOURS_PER_DAY * 20)
+	for city in _session.sim.world.cities:
+		_session.player().market_book[city.id] = MarketKnowledgeSystem.current_report(
+			_session.sim.data, city, _session.sim.day()
+		)
+	_session.changed.emit()
 	var ship := _ship()
 	var ship_type := _session.sim.data.get_ship(ship.type_id)
 	var options := TradePlanner.plan(
 		_session.sim.data,
-		_session.sim.world,
+		_session.player(),
 		ship_type,
 		"lubeck",
 		ship_type.capacity,
@@ -194,8 +199,11 @@ func test_cargo_destination_sails_to_a_better_market() -> void:
 	_press("Quantity_10")
 	_press("Buy_beer")
 	SmallWorld.set_stock(_session.sim, "danzig", "beer", 0)
+	_session.player().market_book["danzig"] = MarketKnowledgeSystem.current_report(
+		_session.sim.data, _session.sim.world.get_city("danzig"), _session.sim.day()
+	)
 	_session.changed.emit()
-	var options := CargoDestinationPlanner.plan(_session.sim.data, _session.sim.world, _ship())
+	var options := CargoDestinationPlanner.plan(_session.sim.data, _session.player(), _ship())
 	assert_gt(options.size(), 0)
 	var row := _main.find_child("Destination_0", true, false) as HBoxContainer
 	assert_true(row.visible)
