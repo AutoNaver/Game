@@ -46,6 +46,61 @@ until your trading house shapes the prices of the whole sea.
   (ADR 0005) tops up the other cities' wine only slowly, so they stay expensive.
 - **Time:** 1 tick = 1 in-game hour. Markets, consumption and production resolve daily.
 
+## Living city view (M16)
+
+From the Baltic map, a house can enter a port where the player is ashore, a ship is docked, or a
+kontor gives a local presence. Each port has a small isometric town scene with a harbour, streets,
+walls, and landmarks. It opens showing the whole town; like the sea map, the wheel zooms in on
+building detail and dragging pans. The market, tavern, shipyard, kontor, and town hall carry name
+plaques and lead to the controls and city information already available in the side panel.
+Workshops owned by the player and rivals appear in the town, and a few citizens walk the streets.
+The visible people are atmosphere, not individual economic agents; the existing population,
+workforce, and production systems remain authoritative.
+
+Workshop plots in M16 are stable visual positions derived from workshop ids and the city layout.
+They do not limit construction or enter saves. M17 will add free placement and construction on the
+isometric grid, migrating older workshops to saved plots. Housing and public works (M18), an elected
+mayor and wall expansion (M19), and town requests and celebrations (M20) give later city growth a
+direct link to trading and reputation.
+
+### City art direction
+
+The owner accepted M16's first visual draft on 2026-09-28 and supplied a Patrician city screenshot
+as the target for a later art pass. Aim for a busy, lived-in Hanseatic port, with original artwork
+and the following qualities:
+
+- A closer isometric camera that shows building detail, with pan and zoom for navigating the town.
+  Streets, waterfront, and city walls should form connected neighbourhoods.
+- Tall brick merchant houses, stepped gables, half-timbered workshops, red tiled roofs, and
+  distinctive civic landmarks. Vary footprints, heights, rooflines, and facades to make each
+  street recognisable; keep ownership and clickable landmarks easy to identify.
+- Textured cobbled streets and squares, grass at their edges, trees, gardens, and consistent
+  shadows that ground buildings. Use depth sorting so people and ships pass behind scenery
+  correctly, and keep important interactions readable when buildings overlap.
+- A harbour integrated into the town's shoreline, with stone quays, wooden piers, moored sailing
+  ships, cranes, barrels, crates, and market stalls. Cargo props should make the waterfront feel
+  active without claiming to represent individual simulated goods.
+- Small animated citizens moving through streets and gathering near markets and docks. Preserve
+  M16's visual-only role for these people.
+- A warm parchment, wood, and brass interface, with a compact contextual side panel and a Baltic
+  minimap. Preserve readable text, clear controls, notifications, and useful city space at 1280x720.
+
+A second Patrician reference from the owner (2026-09-28) shows the longer-term target from further
+out, with the whole town and its surroundings in view:
+
+- The town sits on land and wraps around a natural bay or river mouth. An irregular coastline
+  replaces a square town in open water, and ships sail in from the open sea past a harbour tower.
+- Countryside beyond the walls: fields, farms, forest, and roads leading out through gatehouses.
+  Round towers follow the wall's course, and some houses spill outside it.
+- Dense, irregular streets with small squares, many building sizes, and red roofs set among trees.
+  Zoomed out, the whole town reads at a glance; zoomed in, individual buildings do.
+- Important buildings are marked with rings and short callouts, which fits the landmark plaques and
+  later the town-hall requests (M20).
+
+Develop the look first in one harbour neighbourhood, review it with the owner, then extend the
+shared art set across all nine cities while retaining their distinct layouts. M17's placement
+previews and footprints should use the same scale and remain legible among the detailed buildings.
+
 ## Economy model (first version, refined in M1)
 
 - Each city has a population that **consumes** goods daily and **produces** goods according to its
@@ -149,12 +204,12 @@ weeks, to any house; then the rest is sold off and it leaves the game.
 
 ## After the MVP
 
-The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
-time, each with its own roadmap milestone: readable markets and quality of life (M6), trade routes
-(M7), AI competitor traders (M8), city needs and growth (M9), events and spoilage (M10) and more
-cities and goods (M11). The progression plan (M12 to M15) brings in market knowledge, captains,
-reputation and ranks, and acquisitions. Still parked: loans and banking, convoys and combat,
-politics.
+The core loop is proven (owner play-tests of M3 and M5). Readable markets, routes, rivals, city
+growth, events, and the larger Baltic (M6 to M11) are in play. The progression plan (M12 to M15)
+adds market knowledge, captains, reputation, ranks, and acquisitions. The town sequence (M16 to
+M20) begins with a visual city view, then adds construction, housing, public works, mayoral wall
+expansion, and civic requests. Loans and banking, convoys and combat, deeper council politics, and
+founding new cities remain parked.
 
 ## Open questions
 

@@ -14,16 +14,18 @@ var _title: Label = Label.new()
 var _details: Label = Label.new()
 var _needs: Label = Label.new()
 var _events: Label = Label.new()
+var _scroll: ScrollContainer
+var _sections: Dictionary[String, Control] = {}
 
 
 func setup(session: GameSession) -> void:
 	_session = session
 	# Scroll rather than grow: a tall panel must never stretch the window and push the map away.
-	var scroll := ScrollContainer.new()
-	scroll.name = "Scroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
-	var margin := UiStyle.add_padding(scroll, 12)
+	_scroll = ScrollContainer.new()
+	_scroll.name = "Scroll"
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(_scroll)
+	var margin := UiStyle.add_padding(_scroll, 12)
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -31,6 +33,7 @@ func setup(session: GameSession) -> void:
 	_title.name = "CityTitle"
 	_title.theme_type_variation = UiStyle.TITLE_LABEL
 	column.add_child(_title)
+	_sections["town_hall"] = _title
 	_details.name = "CityDetails"
 	_details.theme_type_variation = UiStyle.MUTED_LABEL
 	# Labels ignore the mouse by default, which would hide the explanation.
@@ -48,11 +51,13 @@ func setup(session: GameSession) -> void:
 	market.name = "Market"
 	column.add_child(market)
 	market.setup(_session)
+	_sections["market"] = market
 	column.add_child(HSeparator.new())
 	var fleet := FleetPanel.new()
 	fleet.name = "Fleet"
 	column.add_child(fleet)
 	fleet.setup(_session)
+	_sections["tavern"] = fleet
 	var planner := TradePlannerPanel.new()
 	planner.name = "Planner"
 	column.add_child(planner)
@@ -67,13 +72,22 @@ func setup(session: GameSession) -> void:
 	kontor.name = "Kontor"
 	column.add_child(kontor)
 	kontor.setup(_session)
+	_sections["kontor"] = kontor
 	column.add_child(HSeparator.new())
 	var shipyard := ShipyardPanel.new()
 	shipyard.name = "Shipyard"
 	column.add_child(shipyard)
 	shipyard.setup(_session)
+	_sections["shipyard"] = shipyard
 	_session.changed.connect(refresh)
 	refresh()
+
+
+## Brings the existing controls for a town landmark into view without changing game state.
+func focus_section(section: String) -> void:
+	var target: Control = _sections.get(section)
+	if target != null:
+		_scroll.call_deferred("ensure_control_visible", target)
 
 
 func refresh() -> void:
