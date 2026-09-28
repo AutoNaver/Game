@@ -110,6 +110,28 @@ func test_corrupt_captain_assignment_is_rejected_on_load() -> void:
 	assert_string_contains(" ".join(loader.errors), "unknown captain")
 
 
+func test_a_captain_shared_by_two_ships_is_rejected_on_load() -> void:
+	var sim := SmallWorld.simulation()
+	assert_eq(sim.execute(BuyShipCommand.new(WorldState.PLAYER_ID, "port", "boat")), "")
+	var save := SaveGame.to_dict(sim.world)
+	var ships: Array = save["traders"][0]["ships"]
+	ships[1]["captain"] = ships[0]["captain"]
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(sim.data, save))
+	assert_string_contains(" ".join(loader.errors), "of another ship")
+
+
+func test_tavern_candidates_with_bad_skills_are_rejected_on_load() -> void:
+	var sim := SmallWorld.simulation()
+	for field: String in ["seamanship", "trading", "voyages"]:
+		var save := SaveGame.to_dict(sim.world)
+		var value := -1 if field == "voyages" else sim.data.captains.max_skill + 1
+		save["taverns"][0]["captains"][0][field] = value
+		var loader := SaveGame.new()
+		assert_null(loader.from_dict(sim.data, save), field)
+		assert_string_contains(" ".join(loader.errors), "tavern", field)
+
+
 func test_bankrupt_rival_leaves_and_goods_return_to_the_market() -> void:
 	var sim := SmallWorld.rival_simulation()
 	var rival := sim.world.get_trader(SmallWorld.RIVAL_ID)

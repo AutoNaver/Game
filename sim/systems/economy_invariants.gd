@@ -64,18 +64,22 @@ static func _check_captains(data: GameData, trader: TraderState) -> PackedString
 	if trader.debt == 0 and trader.debt_days != 0:
 		violations.append("%s: debt days without debt" % trader.id)
 	for captain in trader.captains:
-		if captain.wage <= 0 or captain.voyages < 0:
-			violations.append("%s: invalid captain %s" % [trader.id, captain.id])
-		if captain.seamanship < 0 or captain.seamanship > data.captains.max_skill:
-			violations.append("%s: invalid seamanship for %s" % [trader.id, captain.id])
-		if captain.trading < 0 or captain.trading > data.captains.max_skill:
-			violations.append("%s: invalid trading for %s" % [trader.id, captain.id])
+		violations.append_array(_check_captain(data, trader.id, captain))
 		var ship := trader.get_ship(captain.ship_id)
 		if ship == null or ship.captain_id != captain.id or not captain.city_id.is_empty():
 			violations.append("%s: captain %s has no matching ship" % [trader.id, captain.id])
 	for ship in trader.ships:
-		if not ship.captain_id.is_empty() and trader.get_captain(ship.captain_id) == null:
-			violations.append("%s: ship %s has unknown captain" % [trader.id, ship.id])
+		if not ship.captain_id.is_empty():
+			var captain := trader.get_captain(ship.captain_id)
+			if captain == null:
+				violations.append("%s: ship %s has unknown captain" % [trader.id, ship.id])
+			elif captain.ship_id != ship.id:
+				violations.append(
+					(
+						"%s: ship %s names captain %s of another ship"
+						% [trader.id, ship.id, captain.id]
+					)
+				)
 		if not ship.is_docked() and ship.captain_id.is_empty():
 			violations.append("%s: ship %s is at sea without a captain" % [trader.id, ship.id])
 	if trader.id == WorldState.PLAYER_ID:
@@ -101,8 +105,21 @@ static func _check_taverns(data: GameData, world: WorldState) -> PackedStringArr
 				violations.append(
 					"%s tavern: captain %s is assigned elsewhere" % [city.id, candidate.id]
 				)
-			if candidate.wage <= 0:
-				violations.append("%s tavern: invalid wage" % city.id)
+			violations.append_array(_check_captain(data, "%s tavern" % city.id, candidate))
+	return violations
+
+
+## Wage, experience and skills of a hired captain or tavern candidate.
+static func _check_captain(
+	data: GameData, where: String, captain: CaptainState
+) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	if captain.wage <= 0 or captain.voyages < 0:
+		violations.append("%s: invalid captain %s" % [where, captain.id])
+	if captain.seamanship < 0 or captain.seamanship > data.captains.max_skill:
+		violations.append("%s: invalid seamanship for %s" % [where, captain.id])
+	if captain.trading < 0 or captain.trading > data.captains.max_skill:
+		violations.append("%s: invalid trading for %s" % [where, captain.id])
 	return violations
 
 

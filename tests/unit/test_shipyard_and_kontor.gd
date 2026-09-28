@@ -48,9 +48,15 @@ func test_invalid_ship_purchases_change_nothing() -> void:
 
 func test_selling_a_ship_refunds_the_resale_price() -> void:
 	_ok(MovePersonCommand.new())
+	var captain := _player().get_captain(_player().get_ship(SHIP).captain_id)
 	_ok(SellShipCommand.new(PLAYER, SHIP))
 	assert_eq(_player().coins, SmallWorld.START_COINS + 300, "60% of 500")
 	assert_null(_player().get_ship(SHIP))
+	# The captain returns to the local tavern with their experience.
+	assert_null(_player().get_captain(captain.id))
+	assert_eq([captain.city_id, captain.ship_id], ["port", ""])
+	assert_true(_sim.world.taverns["port"].has(captain))
+	_assert_healthy()
 
 
 func test_only_empty_docked_ships_can_be_sold() -> void:
