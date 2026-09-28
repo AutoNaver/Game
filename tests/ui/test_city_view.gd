@@ -120,3 +120,49 @@ func test_workshops_appear_and_disappear_without_saved_plot_state() -> void:
 		_session.execute(CloseWorkshopCommand.new(WorldState.PLAYER_ID, "lubeck", workshop.id))
 	)
 	assert_false(_city.workshop_plots().has(workshop.id))
+
+
+func test_camera_keeps_cursor_anchor_and_landmark_navigation() -> void:
+	_toggle.pressed.emit()
+	var before := SaveGame.to_dict(_session.sim.world)
+	var anchor := _city.landmark_center("market")
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	wheel.position = anchor
+	_city._gui_input(wheel)
+	assert_almost_eq(_city.landmark_center("market"), anchor, Vector2(0.01, 0.01))
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	_city._gui_input(right)
+	var motion := InputEventMouseMotion.new()
+	motion.button_mask = MOUSE_BUTTON_MASK_RIGHT
+	motion.relative = Vector2(53, 31)
+	_city._gui_input(motion)
+	assert_almost_eq(_city.landmark_center("market"), anchor + motion.relative, Vector2(0.01, 0.01))
+	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+		assert_eq(_city.landmark_at(_city.landmark_center(section)), section)
+	watch_signals(_city)
+	right.pressed = false
+	_city._gui_input(right)
+	assert_signal_not_emitted(_city, "landmark_selected", "panning does not activate a landmark")
+	var home := InputEventKey.new()
+	home.keycode = KEY_HOME
+	home.pressed = true
+	_city._gui_input(home)
+	assert_eq(_city.landmark_center("market"), anchor)
+	assert_eq(SaveGame.to_dict(_session.sim.world), before)
+
+
+func test_camera_limits_and_reentry_restore_a_reachable_city() -> void:
+	_toggle.pressed.emit()
+	var anchor := _city.landmark_center("market")
+	_city.zoom_at(anchor, 1000)
+	assert_eq(_city._zoom, 2.2)
+	_city.zoom_at(anchor, 0.0001)
+	assert_eq(_city._zoom, 0.7)
+	_toggle.pressed.emit()
+	_toggle.pressed.emit()
+	assert_eq(_city.landmark_center("market"), anchor)
+	assert_eq(_city._zoom, 1.0)

@@ -7,21 +7,27 @@ signal landmark_selected(section: String)
 
 const GRID_SIZE: int = 14
 const MAX_WALKERS: int = 24
-const GROUND: Color = Color("#56705c")
-const ROAD: Color = Color("#9c9279")
+const GROUND: Color = Color("#6b7850")
+const ROAD: Color = Color("#a7a18a")
 const WALL: Color = Color("#c0ae89")
 const WATER: Color = Color("#244354")
-const ROOF: Color = Color("#a4543e")
 const PLAYER: Color = Color("#d4ae5a")
 const LABEL_OUTLINE: Color = Color("#18232b")
 
 var _session: GameSession
 var _phase: float = 0.0
+var _zoom: float = 1.0
+var _pan := Vector2.ZERO
+var _dragging: bool = false
+var _art := CityArt.new()
+var _hovered: String = ""
 
 
 func setup(session: GameSession) -> void:
 	_session = session
+	_art.canvas = self
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	focus_mode = Control.FOCUS_ALL
 	clip_contents = true
 	_session.changed.connect(queue_redraw)
 	resized.connect(queue_redraw)
@@ -32,7 +38,10 @@ func set_city_visible(value: bool) -> void:
 	visible = value
 	set_process(value)
 	if value:
-		queue_redraw()
+		reset_camera()
+	else:
+		_dragging = false
+		_hovered = ""
 
 
 func _process(delta: float) -> void:
@@ -53,122 +62,223 @@ func _draw() -> void:
 	@warning_ignore("integer_division")
 	var road_row := 5 + variant / 3
 	_draw_ground(variant, road_col, road_row)
-	_draw_walls(variant)
-	_draw_decorative_houses(variant, road_col, road_row)
-	_draw_landmarks(road_col, road_row)
-	_draw_workshops()
-	_draw_ships(city_id)
-	_draw_walkers(city_id, road_col, road_row)
+	_draw_waterfront(road_col, road_row)
+	_draw_neighbourhood(city_id, variant, road_col, road_row)
 	_draw_title(city_def.name)
 
 
 func _draw_ground(variant: int, road_col: int, road_row: int) -> void:
+	# Low-contrast ripples give the harbour depth without competing with the town.
+	for i in 180:
+		var at := Vector2(
+			fposmod(float(i * 97) + _phase * 2, size.x), float(i * 47 % maxi(1, int(size.y)))
+		)
+		draw_line(at, at + Vector2(8 + i % 12, -2), Color(0.6, 0.75, 0.72, 0.09), 1)
 	for y in GRID_SIZE:
 		for x in GRID_SIZE:
 			var road := x == road_col or y == road_row or (y == road_row + 3 and x >= road_col)
-			var tint := float((x * 7 + y * 11 + variant * 3) % 5) * 0.015
-			var color := ROAD if road else GROUND.lightened(tint)
-			_draw_tile(x, y, color)
-	# A jetty leading into the harbour makes the shoreline legible in every layout.
-	var jetty := _tile_center(road_col + 3.0, road_row + 3.0)
-	var mooring := _tile_center(16.0, 8.0)
-	draw_line(jetty, mooring, Color("#806e55"), 12.0, true)
-	draw_line(jetty, mooring, Color("#b0966e"), 8.0, true)
+			var paved := (
+				road or x >= GRID_SIZE - 2 or (absi(x - road_col) <= 1 and absi(y - road_row) <= 1)
+			)
+			var tint := float((x * 7 + y * 11 + variant * 3) % 5) * 0.012
+			_draw_tile(x, y, (ROAD if paved else GROUND).lightened(tint))
+			for i in 12:
+				var u := float((i * 7 + x) % 11) / 12.0 - 0.45
+				var v := float((i * 5 + y) % 11) / 12.0 - 0.45
+				var at := _tile_center(float(x) + u, float(y) + v)
+				var length := _tile_width() * (0.06 if paved else 0.025)
+				draw_line(
+					at,
+					at + Vector2(length, length * 0.4),
+					Color(0.16, 0.23, 0.14, 0.2),
+					maxf(1, _zoom)
+				)
 
 
 func _draw_tile(x: int, y: int, color: Color) -> void:
 	var at := _tile_center(float(x), float(y))
 	var half_w := _tile_width() * 0.5
 	var half_h := _tile_width() * 0.25
-	var poly := PackedVector2Array(
-		[
-			at + Vector2(0, -half_h),
-			at + Vector2(half_w, 0),
-			at + Vector2(0, half_h),
-			at + Vector2(-half_w, 0)
-		]
+	draw_colored_polygon(
+		PackedVector2Array(
+			[
+				at + Vector2(0, -half_h),
+				at + Vector2(half_w, 0),
+				at + Vector2(0, half_h),
+				at + Vector2(-half_w, 0)
+			]
+		),
+		color
 	)
-	draw_colored_polygon(poly, color)
-	draw_polyline(
-		PackedVector2Array([poly[0], poly[1], poly[2], poly[3], poly[0]]), Color(0, 0, 0, 0.08), 1.0
-	)
 
 
-func _draw_walls(variant: int) -> void:
-	var corners := PackedVector2Array(
-		[
-			_tile_center(-0.7, -0.7),
-			_tile_center(GRID_SIZE - 0.3, -0.7),
-			_tile_center(GRID_SIZE - 0.3, GRID_SIZE - 0.3),
-			_tile_center(-0.7, GRID_SIZE - 0.3),
-			_tile_center(-0.7, -0.7),
-		]
-	)
-	draw_polyline(corners, Color("#514d45"), 10.0, true)
-	draw_polyline(corners, WALL.lightened(float(variant % 3) * 0.05), 6.0, true)
-	for i in 4:
-		var corner := corners[i]
-		draw_circle(corner, 7.0, Color("#5d5549"))
-		draw_circle(corner + Vector2(0, -3), 6.0, WALL)
+func _draw_waterfront(road_col: int, road_row: int) -> void:
+	var unit := _tile_width() / 64.0
+	# The eastern edge is a working stone quay; piers grow out from its road access.
+	var a := _tile_center(13.5, -0.5)
+	var b := _tile_center(13.5, 13.5)
+	draw_line(a + Vector2(0, 6 * unit), b + Vector2(0, 6 * unit), Color("#4d5248"), 13 * unit)
+	draw_line(a, b, Color("#b0a486"), 6 * unit)
+	for i in 28:
+		var p := a.lerp(b, float(i) / 28)
+		draw_line(p, p + Vector2(0, 10 * unit), Color("#676a58"), unit)
+	for row: int in [road_row, road_row + 3]:
+		var start := _tile_center(13.5, float(row))
+		var end := _tile_center(16.0, float(row))
+		draw_line(
+			start + Vector2(0, 5 * unit), end + Vector2(0, 5 * unit), Color("#4d3f2e"), 18 * unit
+		)
+		draw_line(start, end, Color("#a38a5f"), 17 * unit)
+		for i in 16:
+			var p := start.lerp(end, float(i) / 15)
+			draw_line(p + Vector2(-7, 4) * unit, p + Vector2(7, -4) * unit, Color("#68543c"), unit)
+			if i % 5 == 0:
+				draw_line(
+					p + Vector2(7, -4) * unit,
+					p + Vector2(7, -13) * unit,
+					Color("#65533b"),
+					3 * unit
+				)
+	# A paved approach links the shipyard road to the waterfront.
+	for x in range(road_col + 1, 14):
+		_draw_tile(x, road_row + 3, ROAD)
 
 
-func _draw_decorative_houses(variant: int, road_col: int, road_row: int) -> void:
+func _draw_neighbourhood(city_id: String, variant: int, road_col: int, road_row: int) -> void:
+	var items: Array[Dictionary] = []
 	var reserved := _landmark_tiles(road_col, road_row)
-	var workshops := workshop_plots().values()
-	for y in range(1, GRID_SIZE - 1):
-		for x in range(1, GRID_SIZE - 1):
+	var workshops := workshop_plots()
+	for y in range(0, GRID_SIZE):
+		for x in range(0, GRID_SIZE - 2):
 			if x == road_col or y == road_row or (y == road_row + 3 and x >= road_col):
 				continue
-			if reserved.has(Vector2i(x, y)) or workshops.has(Vector2i(x, y)):
+			var plot := Vector2i(x, y)
+			if reserved.has(plot) or workshops.values().has(plot):
 				continue
-			if (x * 13 + y * 17 + variant * 19) % 4 != 0:
+			var seed_value := x * 13 + y * 17 + variant * 19
+			if seed_value % 7 > 4:
 				continue
-			var at := _tile_center(float(x), float(y))
-			_draw_block(at, 11.0, Color("#d4c19b"), ROOF.darkened(float((x + y) % 3) * 0.12), 0.48)
-
-
-func _draw_landmarks(road_col: int, road_row: int) -> void:
+			var kind := "house" if seed_value % 7 < 3 else "tree"
+			items.append({"at": _tile_center(x, y), "kind": kind, "seed": seed_value})
 	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
 		var plot := _landmark_tile(section, road_col, road_row)
-		var at := _tile_center(float(plot.x), float(plot.y))
-		var color := Color("#cbb78e")
-		if section == "shipyard":
-			color = Color("#ad9a77")
-		elif section == "town_hall":
-			color = Color("#ddd0ae")
-		elif section == "kontor":
-			color = (
-				PLAYER
-				if _session.player().get_kontor(_session.selected_city) != null
-				else Color("#ada18c")
-			)
-		_draw_block(at, 23.0 if section == "town_hall" else 17.0, color, ROOF, 0.78)
-		_draw_label(at + Vector2(0, -30), _landmark_name(section), 13)
-
-
-func _draw_workshops() -> void:
-	var plots := workshop_plots()
+		items.append({"at": _tile_center(plot.x, plot.y), "kind": "landmark", "section": section})
 	for trader in _session.sim.world.traders:
-		var kontor := trader.get_kontor(_session.selected_city)
+		var kontor := trader.get_kontor(city_id)
 		if kontor == null:
 			continue
 		for workshop in kontor.workshops:
-			if not plots.has(workshop.id):
+			if not workshops.has(workshop.id):
 				continue
-			var plot: Vector2i = plots[workshop.id]
-			var at := _tile_center(float(plot.x), float(plot.y))
+			var plot: Vector2i = workshops[workshop.id]
 			var color := (
 				PLAYER
 				if trader.id == WorldState.PLAYER_ID
 				else MapView.house_color(_session.sim.data, trader.id)
 			)
-			_draw_block(at, 14.0, color, Color("#494b4a"), 0.6)
-			# A short chimney marks workshops separately from decorative housing.
-			draw_line(at + Vector2(7, -20), at + Vector2(7, -28), Color("#45423e"), 4.0)
-			if trader.id == WorldState.PLAYER_ID:
-				_draw_label(
-					at + Vector2(0, -29), _session.sim.data.get_workshop(workshop.type_id).name, 11
+			items.append(
+				{
+					"at": _tile_center(plot.x, plot.y),
+					"kind": "workshop",
+					"color": color,
+					"seed": plot.x + plot.y
+				}
+			)
+	for y in range(1, 14, 2):
+		items.append({"at": _tile_center(13, y), "kind": "cargo"})
+	var ship_index := 0
+	for trader in _session.sim.world.traders:
+		for ship in trader.ships:
+			if ship.docked_at != city_id:
+				continue
+			var color := (
+				PLAYER
+				if trader.id == WorldState.PLAYER_ID
+				else MapView.house_color(_session.sim.data, trader.id)
+			)
+			var at := _tile_center(
+				15.0 + float(ship_index / 4) * 1.6,
+				float(road_row) - 0.8 + float(ship_index % 4) * 1.8
+			)
+			items.append(
+				{
+					"at": at,
+					"kind": "ship",
+					"color": color,
+					"label": ship.name if trader.id == WorldState.PLAYER_ID else ""
+				}
+			)
+			ship_index += 1
+	var city := _session.sim.world.get_city(city_id)
+	var employed := CityEconomy.workers_employed(_session.sim.data, _session.sim.world, city_id)
+	var count := clampi(4 + city.population / 1000 + employed / 100, 4, MAX_WALKERS)
+	for i in count:
+		var travel := fposmod(
+			_phase * (0.45 + float(i % 3) * 0.08) + float(i) * 1.91, GRID_SIZE - 1.0
+		)
+		var at := (
+			_tile_center(travel, float(road_row) + 0.25)
+			if i % 2 == 0
+			else _tile_center(float(road_col) + 0.25, travel)
+		)
+		items.append({"at": at, "kind": "person", "seed": i})
+	# Wall sections participate in the same painter's order as buildings and people.
+	for i in GRID_SIZE:
+		items.append({"at": _tile_center(-0.5, i), "kind": "wall", "axis": Vector2(-1, 0.5)})
+		items.append({"at": _tile_center(i, 13.5), "kind": "wall", "axis": Vector2(1, 0.5)})
+	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.at.y < b.at.y)
+	for item in items:
+		_draw_item(item)
+	# Labels are drawn last so roofs cannot hide navigation targets.
+	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+		var at := landmark_center(section)
+		_draw_label(at + Vector2(0, 18 * _tile_width() / 64), _landmark_name(section), 12)
+
+
+func _draw_item(item: Dictionary) -> void:
+	var at: Vector2 = item.at
+	var unit := _tile_width() / 64.0
+	match item.kind:
+		"house":
+			_art.house(at, unit, item.seed, Color.TRANSPARENT, false)
+		"workshop":
+			_art.house(at, unit, item.seed, item.color, false)
+		"tree":
+			_art.tree(at, unit, item.seed)
+		"cargo":
+			_art.cargo(at, unit)
+		"ship":
+			_art.ship(at, unit, item.color)
+			if not item.label.is_empty():
+				_draw_label(at + Vector2(0, 30 * unit), item.label, 11)
+		"person":
+			_art.person(at, unit, item.seed, _phase)
+		"wall":
+			var axis: Vector2 = item.axis * _tile_width() * 0.25
+			draw_line(at - axis, at + axis, Color("#6a6958"), 15 * unit)
+			draw_line(
+				at - axis - Vector2(0, 8 * unit), at + axis - Vector2(0, 8 * unit), WALL, 5 * unit
+			)
+			for i in 4:
+				var p := (at - axis).lerp(at + axis, float(i) / 4)
+				draw_rect(Rect2(p - Vector2(2, 14) * unit, Vector2(4, 7) * unit), WALL)
+		"landmark":
+			var section: String = item.section
+			if section == _hovered:
+				draw_arc(at, 26 * unit, 0, TAU, 40, PLAYER, 2)
+			if section == "market":
+				_art.stall(at + Vector2(-12, -4) * unit, unit, Color("#95644c"))
+				_art.stall(at + Vector2(14, 8) * unit, unit, Color("#596d68"))
+			else:
+				var accent := (
+					PLAYER
+					if (
+						section == "kontor"
+						and _session.player().get_kontor(_session.selected_city) != null
+					)
+					else Color("#718994")
 				)
+				_art.house(at, unit, 2 if section == "town_hall" else 0, accent, true)
 
 
 ## Stable UI-only plots for the workshops in the selected city. M17 will save player-chosen plots.
@@ -209,103 +319,36 @@ func workshop_plots() -> Dictionary[String, Vector2i]:
 	return result
 
 
-func _draw_ships(city_id: String) -> void:
-	var index := 0
-	for trader in _session.sim.world.traders:
-		for ship in trader.ships:
-			if ship.docked_at != city_id:
-				continue
-			var at := _tile_center(16.0, 8.0) + Vector2(24 * index, 13 * index)
-			var color := (
-				PLAYER
-				if trader.id == WorldState.PLAYER_ID
-				else MapView.house_color(_session.sim.data, trader.id)
-			)
-			var hull := PackedVector2Array(
-				[at + Vector2(-13, 2), at + Vector2(13, 2), at + Vector2(8, 8), at + Vector2(-8, 8)]
-			)
-			draw_colored_polygon(hull, Color("#503b32"))
-			draw_line(at + Vector2(0, 1), at + Vector2(0, -17), color, 2.0)
-			draw_colored_polygon(
-				PackedVector2Array(
-					[at + Vector2(1, -15), at + Vector2(10, -2), at + Vector2(1, -2)]
-				),
-				color
-			)
-			if trader.id == WorldState.PLAYER_ID:
-				_draw_label(at + Vector2(0, 22), ship.name, 11)
-			index += 1
-
-
-func _draw_walkers(city_id: String, road_col: int, road_row: int) -> void:
-	var city := _session.sim.world.get_city(city_id)
-	var employed := CityEconomy.workers_employed(_session.sim.data, _session.sim.world, city_id)
-	var count := clampi(4 + city.population / 1000 + employed / 100, 4, MAX_WALKERS)
-	for i in count:
-		var shift := float(i) * 1.91
-		var travel := fposmod(_phase * (0.45 + float(i % 3) * 0.08) + shift, GRID_SIZE - 1.0)
-		var at := (
-			_tile_center(travel, float(road_row))
-			if i % 2 == 0
-			else _tile_center(float(road_col), travel)
-		)
-		var color := Color("#e7d6ae") if i % 3 == 0 else Color("#364d5a")
-		draw_circle(at + Vector2(0, -5), 2.5, color)
-		draw_line(at + Vector2(0, -2), at + Vector2(0, 2), color, 2.0)
-
-
 func _draw_title(city_name: String) -> void:
 	var font := get_theme_default_font()
-	var width := font.get_string_size(city_name, 0, -1, 24).x
+	var origin := Vector2(maxf(12, size.x - 330), 12)
+	draw_style_box(_title_style(), Rect2(origin, Vector2(318, 57)))
 	draw_string(
 		font,
-		Vector2(size.x - width - 20, 35),
-		city_name,
+		origin + Vector2(12, 24),
+		"%s · Harbour quarter" % city_name,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
-		24,
-		UiStyle.GOLD
+		18,
+		Color("#ead4a8")
 	)
-	var hint := "Town view · click a landmark"
-	width = font.get_string_size(hint, 0, -1, 13).x
 	draw_string(
-		font, Vector2(size.x - width - 20, 56), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UiStyle.INK
+		font,
+		origin + Vector2(12, 44),
+		"Wheel: zoom · Right-drag: pan · Home: reset",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		12,
+		Color("#c9bda4")
 	)
 
 
-func _draw_block(
-	at: Vector2, height: float, wall_color: Color, roof_color: Color, scale_factor: float
-) -> void:
-	var half_w := _tile_width() * 0.5 * scale_factor
-	var half_h := _tile_width() * 0.25 * scale_factor
-	var top := at + Vector2(0, -height)
-	var front := PackedVector2Array(
-		[
-			top + Vector2(-half_w, 0),
-			top + Vector2(0, half_h),
-			at + Vector2(0, half_h),
-			at + Vector2(-half_w, 0)
-		]
-	)
-	var side := PackedVector2Array(
-		[
-			top + Vector2(0, half_h),
-			top + Vector2(half_w, 0),
-			at + Vector2(half_w, 0),
-			at + Vector2(0, half_h)
-		]
-	)
-	var roof := PackedVector2Array(
-		[
-			top + Vector2(0, -half_h),
-			top + Vector2(half_w, 0),
-			top + Vector2(0, half_h),
-			top + Vector2(-half_w, 0)
-		]
-	)
-	draw_colored_polygon(front, wall_color.darkened(0.18))
-	draw_colored_polygon(side, wall_color.darkened(0.32))
-	draw_colored_polygon(roof, roof_color)
+func _title_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#343c32e8")
+	style.border_color = Color("#a78a51")
+	style.set_border_width_all(1)
+	return style
 
 
 func _draw_label(at: Vector2, value: String, font_size: int) -> void:
@@ -319,12 +362,14 @@ func _draw_label(at: Vector2, value: String, font_size: int) -> void:
 
 
 func _tile_width() -> float:
-	return minf(50.0, minf(size.x / 16.0, size.y / 10.0))
+	return minf(64.0, minf(size.x / 13.0, size.y / 8.0)) * _zoom
 
 
 func _tile_center(x: float, y: float) -> Vector2:
 	var unit := _tile_width()
-	return Vector2(size.x * 0.5 + (x - y) * unit * 0.5, size.y * 0.20 + (x + y) * unit * 0.25)
+	return (
+		Vector2(size.x * 0.5 + (x - y) * unit * 0.5, size.y * 0.04 + (x + y) * unit * 0.25) + _pan
+	)
 
 
 func _city_variant(city_id: String) -> int:
@@ -383,7 +428,8 @@ func landmark_at(point: Vector2) -> String:
 	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
 		var at := landmark_center(section)
 		var reach := _tile_width() * 0.55
-		var rect := Rect2(at + Vector2(-reach, -36), Vector2(reach * 2.0, 48))
+		var unit := _tile_width() / 64.0
+		var rect := Rect2(at + Vector2(-reach, -76 * unit), Vector2(reach * 2.0, 98 * unit))
 		if rect.has_point(point):
 			var current := rect.get_center().distance_to(point)
 			if current < distance:
@@ -393,7 +439,25 @@ func landmark_at(point: Vector2) -> String:
 
 
 func _gui_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key != null and key.pressed and key.keycode == KEY_HOME:
+		reset_camera()
+		accept_event()
 	var button := event as InputEventMouseButton
+	if button != null:
+		grab_focus()
+		if button.button_index == MOUSE_BUTTON_RIGHT:
+			_dragging = button.pressed
+			accept_event()
+		if (
+			button.pressed
+			and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
+		):
+			zoom_at(
+				button.position,
+				1.15 if button.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15
+			)
+			accept_event()
 	if button != null and button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
 		var section := landmark_at(button.position)
 		if not section.is_empty():
@@ -401,5 +465,31 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 	var motion := event as InputEventMouseMotion
 	if motion != null:
+		if _dragging and (motion.button_mask & MOUSE_BUTTON_MASK_RIGHT) != 0:
+			_pan += motion.relative
+			_clamp_pan()
+			queue_redraw()
 		var section := landmark_at(motion.position)
 		tooltip_text = _landmark_name(section) if not section.is_empty() else ""
+		_hovered = section
+
+
+## Zoom around the cursor so the inspected building stays under the pointer.
+func zoom_at(point: Vector2, factor: float) -> void:
+	var old := _zoom
+	_zoom = clampf(_zoom * factor, 0.7, 2.2)
+	var origin := Vector2(size.x * 0.5, size.y * 0.04)
+	_pan = point - origin - (point - origin - _pan) * (_zoom / old)
+	_clamp_pan()
+	queue_redraw()
+
+
+func reset_camera() -> void:
+	_zoom = 1.0
+	_pan = Vector2.ZERO
+	_dragging = false
+	queue_redraw()
+
+
+func _clamp_pan() -> void:
+	_pan = _pan.clamp(-size * _zoom, size * _zoom)
