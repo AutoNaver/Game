@@ -1,0 +1,25 @@
+{
+  "reputation": {
+    "max": 100,
+    "standing": 200,
+    "kontor_abroad": 10,
+    "per_shortage_unit": 1,
+    "per_kontor_day": 1,
+    "per_workshop_day": -1,
+    "per_idle_workshop_day": 2
+  },
+  "ranks": [
+    {
+      "id": "skipper", "name": "Skipper", "net_worth": 10, "standing_cities": 0,
+      "richest": false, "max_ships": 1, "max_kontors": 1, "unlocks": ["routes"]
+    },
+    {
+      "id": "merchant", "name": "Merchant", "net_worth": 5, "standing_cities": 0,
+      "richest": "yes", "max_ships": 0, "max_kontors": 2, "unlocks": ["routes", "flying"]
+    },
+    {
+      "id": "skipper", "name": "Again", "net_worth": 50, "standing_cities": 0,
+      "richest": false, "max_ships": 0, "max_kontors": 0, "unlocks": []
+    }
+  ]
+}

@@ -119,8 +119,8 @@ by net worth, and the log reports the rivals' new ships and workshops. Details a
 
 ## Progression: from skipper to trading house (M12 to M15)
 
-Market knowledge is in play. The remaining progression in
-[ADR 0009](adr/0009-progression.md) adds further capabilities:
+Market knowledge, captains, reputation and ranks are in play; acquisitions come last. The
+progression in [ADR 0009](adr/0009-progression.md) adds these capabilities:
 
 1. **What you know (M12).** You see live prices only where you have presence: you in person, a
    docked ship or a kontor. Elsewhere you see your last known prices and their age. Ships bring
@@ -132,8 +132,12 @@ Market knowledge is in play. The remaining progression in
    improve with voyages); your starting ships come with one. Only captained ships follow trade
    routes, and wages you can't pay become debt that ends in bankruptcy (ADR 0014).
 3. **Where you are established (M14).** Kontors also give presence and a factor with standing
-   orders. Reputation per city and ranks (Skipper, Merchant, Trading house, Councillor, Alderman)
-   gate kontors abroad, larger ships and later actions.
+   orders ("buy grain up to 40 at most 30 a unit"). Reputation per city grows by supplying its
+   shortages, holding a kontor and running workshops there, and falls while workshops stand idle.
+   A kontor abroad needs some reputation there. Ranks (Skipper, Merchant, Trading house,
+   Councillor, Alderman) need net worth and standing in several cities, are never lost, and gate
+   more ships and kontors, trade routes, hulks and factors. Details are in
+   [ADR 0015](adr/0015-reputation-ranks-and-factors.md).
 4. **Who you have beaten (M15).** Buy a struggling rival's ships or kontors, and eventually buy
    out a whole house. Rivals can do the same to each other.
 

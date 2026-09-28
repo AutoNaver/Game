@@ -17,8 +17,6 @@ func setup(session: GameSession) -> void:
 		var button := Button.new()
 		button.name = "BuyShip_%s" % ship_type.id
 		button.text = "%s (%d)" % [ship_type.name, ship_type.price]
-		var stats := [ship_type.capacity, ship_type.speed]
-		button.tooltip_text = "Holds %d units, sails %.1f km/h" % stats
 		button.pressed.connect(_buy.bind(ship_type.id))
 		buy_row.add_child(button)
 		_buy_buttons[ship_type.id] = button
@@ -32,7 +30,13 @@ func setup(session: GameSession) -> void:
 
 func refresh() -> void:
 	for ship_type in _session.sim.data.ships:
-		_buy_buttons[ship_type.id].disabled = _session.player().coins < ship_type.price
+		var button := _buy_buttons[ship_type.id]
+		var locked := RankSystem.ship_error(_session.sim.data, _session.player(), ship_type)
+		button.disabled = not locked.is_empty() or _session.player().coins < ship_type.price
+		var stats := [ship_type.capacity, ship_type.speed]
+		button.tooltip_text = "Holds %d units, sails %.1f km/h" % stats
+		if not locked.is_empty():
+			button.tooltip_text += "\nLocked: %s" % locked
 	var ship := _session.player().get_ship(_session.selected_ship)
 	_sell_button.visible = ship != null and ship.docked_at == _session.selected_city
 	if _sell_button.visible:

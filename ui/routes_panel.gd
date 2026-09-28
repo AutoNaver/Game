@@ -6,6 +6,8 @@ extends VBoxContainer
 var _session: GameSession
 var _list: VBoxContainer = VBoxContainer.new()
 var _route_ids: PackedStringArray = []
+var _new_route: Button = Button.new()
+var _locked: Label = Label.new()
 
 
 func setup(session: GameSession) -> void:
@@ -13,16 +15,26 @@ func setup(session: GameSession) -> void:
 	add_child(UiStyle.label("Trade routes", UiStyle.HEADER_LABEL))
 	_list.name = "RouteList"
 	add_child(_list)
-	var new_route := Button.new()
-	new_route.name = "NewRoute"
-	new_route.text = "New route"
-	new_route.pressed.connect(_session.route_editor_requested.emit.bind(""))
-	add_child(new_route)
+	_new_route.name = "NewRoute"
+	_new_route.text = "New route"
+	_new_route.pressed.connect(_session.route_editor_requested.emit.bind(""))
+	add_child(_new_route)
+	_locked.name = "RoutesLocked"
+	_locked.theme_type_variation = UiStyle.MUTED_LABEL
+	_locked.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_locked)
 	_session.changed.connect(refresh)
 	refresh()
 
 
 func refresh() -> void:
+	var locked := RankSystem.unlock_error(
+		_session.sim.data, _session.player(), RankDef.ROUTES, "Trade routes"
+	)
+	_new_route.disabled = not locked.is_empty()
+	_new_route.tooltip_text = locked
+	_locked.text = "Locked: %s" % locked
+	_locked.visible = not locked.is_empty()
 	var routes := _session.player().routes
 	var ids := PackedStringArray()
 	for route in routes:

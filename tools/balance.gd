@@ -115,13 +115,14 @@ func _print_rivals(sim: Simulation) -> void:
 		var workshops := 0
 		for kontor in trader.kontors_in_order(sim.data.cities):
 			workshops += kontor.workshops.size()
-		var line := "         %-14s %6d coins, %d ships, %d kontors, %d workshops, worth %d"
+		var line := "         %-14s %-13s %6d coins, %d ships, %d kontors, %d workshops, worth %d"
 		var worth := HouseValue.net_worth(sim.data, trader)
 		print(
 			(
 				line
 				% [
 					trader.name,
+					RankSystem.rank(sim.data, trader).name,
 					trader.coins,
 					trader.ships.size(),
 					trader.kontors.size(),

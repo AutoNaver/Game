@@ -11,6 +11,8 @@ const CHECK_EVERY_DAYS: int = 30
 func _routed_simulation(seed_value: int) -> Simulation:
 	var data := GameDataLoader.new().load_dir(GameDataLoader.DEFAULT_DIR)
 	var sim := Simulation.new_game(data, seed_value)
+	# Trade routes need the rank Merchant.
+	sim.world.player().rank_id = "merchant"
 	var salt := data.get_good("salt").base_price
 	var grain := data.get_good("grain").base_price
 	var lubeck: Array[RouteOrder] = [

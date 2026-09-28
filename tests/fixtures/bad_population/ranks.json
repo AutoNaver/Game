@@ -1,0 +1,33 @@
+{
+  "reputation": {
+    "max": 1000,
+    "standing": 100,
+    "kontor_abroad": 50,
+    "per_shortage_unit": 1,
+    "per_kontor_day": 1,
+    "per_workshop_day": 1,
+    "per_idle_workshop_day": 2
+  },
+  "ranks": [
+    {
+      "id": "skipper", "name": "Skipper", "net_worth": 0, "standing_cities": 0,
+      "richest": false, "max_ships": 1, "max_kontors": 1, "unlocks": []
+    },
+    {
+      "id": "merchant", "name": "Merchant", "net_worth": 25000, "standing_cities": 0,
+      "richest": false, "max_ships": 0, "max_kontors": 2, "unlocks": ["routes"]
+    },
+    {
+      "id": "trading_house", "name": "Trading house", "net_worth": 100000, "standing_cities": 2,
+      "richest": false, "max_ships": 0, "max_kontors": 4, "unlocks": ["factors"]
+    },
+    {
+      "id": "councillor", "name": "Councillor", "net_worth": 250000, "standing_cities": 3,
+      "richest": false, "max_ships": 0, "max_kontors": 0, "unlocks": ["buy_assets"]
+    },
+    {
+      "id": "alderman", "name": "Alderman", "net_worth": 500000, "standing_cities": 3,
+      "richest": true, "max_ships": 0, "max_kontors": 0, "unlocks": ["buy_out_houses"]
+    }
+  ]
+}

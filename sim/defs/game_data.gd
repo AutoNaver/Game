@@ -23,6 +23,9 @@ var rivals: Array[RivalDef] = []
 var rival_ai: RivalAiDef
 ## World event types (data/events.json), in file order. Empty means a world without events.
 var events: Array[EventDef] = []
+## Ranks of a trading house in ascending order, and how reputation works (data/ranks.json).
+var ranks: Array[RankDef] = []
+var reputation: ReputationDef
 
 var _goods_by_id: Dictionary[String, GoodDef] = {}
 var _cities_by_id: Dictionary[String, CityDef] = {}
@@ -120,3 +123,11 @@ func has_event(id: String) -> bool:
 ## Returns null for unknown ids.
 func get_event(id: String) -> EventDef:
 	return _events_by_id.get(id)
+
+
+## Position of a rank in ascending order, or -1 for unknown ids.
+func rank_index(id: String) -> int:
+	for i in ranks.size():
+		if ranks[i].id == id:
+			return i
+	return -1

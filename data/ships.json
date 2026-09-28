@@ -1,5 +1,5 @@
 [
   { "id": "snaikka", "name": "Snaikka", "capacity": 30, "speed": 10, "price": 3000 },
   { "id": "cog", "name": "Cog", "capacity": 50, "speed": 8, "price": 5000 },
-  { "id": "hulk", "name": "Hulk", "capacity": 120, "speed": 6.5, "price": 12000 }
+  { "id": "hulk", "name": "Hulk", "capacity": 120, "speed": 6.5, "price": 12000, "rank": "trading_house" }
 ]

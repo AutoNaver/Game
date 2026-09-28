@@ -107,6 +107,26 @@ static func affordable_quantity(
 	return quantity
 
 
+## Units of `good` a trader can sell here: up to `most`, while each unit fetches at least
+## `unit_limit` after the spread (0 means any price). Units are priced as Pricing prices them, each
+## one sold raising the stock.
+static func sellable_quantity(
+	economy: EconomyDef, city: CityState, good: GoodDef, most: int, unit_limit: float
+) -> int:
+	if unit_limit <= 0.0:
+		return most
+	var target := target_stock(economy, city, good)
+	var factor := 1.0 - economy.spread / 2.0
+	var stock: int = city.stock[good.id]
+	var quantity := 0
+	while quantity < most:
+		var mid := Pricing.mid_price(economy, good.base_price, target, stock + quantity)
+		if mid * factor < unit_limit:
+			break
+		quantity += 1
+	return quantity
+
+
 ## People in the city available to work in traders' workshops.
 static func workforce(economy: EconomyDef, city: CityState) -> int:
 	@warning_ignore("integer_division")

@@ -1,10 +1,21 @@
 class_name KontorPanel
 extends VBoxContainer
-## The player's kontor in the selected city: buy one, see its storage, move goods between it and a
-## docked ship, and build, watch and close workshops. Uses the market panel's trade quantity.
+## The player's kontor in the selected city: the player's reputation there, buy one (locked with
+## the reason when rank or reputation don't allow it), see its storage, move goods between it and
+## a docked ship, build, watch and close workshops, and give its factor standing orders
+## (ADR 0015). Uses the market panel's trade quantity.
+
+const FACTOR_MODES: PackedStringArray = ["Off", "Buy up to", "Sell down to"]
 
 var _session: GameSession
+var _reputation: Label = Label.new()
 var _buy_button: Button = Button.new()
+var _buy_locked: Label = Label.new()
+var _factor_locked: Label = Label.new()
+var _factor_grid: GridContainer = GridContainer.new()
+var _factor_save: Button = Button.new()
+## The kontor and orders the factor grid was last filled from, so edits survive refreshes.
+var _factor_key: String = ""
 var _details: VBoxContainer = VBoxContainer.new()
 var _storage: Label = Label.new()
 var _transfers: GridContainer = GridContainer.new()
@@ -21,9 +32,17 @@ var _build_buttons: Dictionary[String, Button] = {}
 func setup(session: GameSession) -> void:
 	_session = session
 	add_child(UiStyle.label("Kontor", UiStyle.HEADER_LABEL))
+	_reputation.name = "Reputation"
+	_reputation.theme_type_variation = UiStyle.MUTED_LABEL
+	_reputation.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_reputation)
 	_buy_button.name = "BuyKontor"
 	_buy_button.pressed.connect(_buy_kontor)
 	add_child(_buy_button)
+	_buy_locked.name = "KontorLocked"
+	_buy_locked.theme_type_variation = UiStyle.MUTED_LABEL
+	_buy_locked.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_buy_locked)
 	add_child(_details)
 	_storage.name = "KontorStorage"
 	_storage.theme_type_variation = UiStyle.MUTED_LABEL
@@ -46,19 +65,31 @@ func setup(session: GameSession) -> void:
 		build_row.add_child(button)
 		_build_buttons[workshop_type.id] = button
 	_details.add_child(build_row)
+	_build_factor()
 	_session.changed.connect(refresh)
 	refresh()
 
 
 func refresh() -> void:
 	var data := _session.sim.data
-	var kontor := _session.player().get_kontor(_session.selected_city)
+	var player := _session.player()
+	var kontor := player.get_kontor(_session.selected_city)
+	var points := ReputationSystem.of(player, _session.selected_city)
+	_reputation.text = (
+		"Your reputation here: %d (standing from %d)" % [points, data.reputation.standing]
+	)
 	_buy_button.visible = kontor == null
 	_details.visible = kontor != null
+	var locked := (
+		"" if kontor != null else RankSystem.kontor_error(data, player, _session.selected_city)
+	)
+	_buy_locked.visible = not locked.is_empty()
+	_buy_locked.text = "Locked: %s" % locked
 	if kontor == null:
 		var terms := [data.kontor.price, data.kontor.capacity]
 		_buy_button.text = "Buy a kontor here (%d coins, holds %d)" % terms
-		_buy_button.disabled = _session.player().coins < data.kontor.price
+		_buy_button.disabled = not locked.is_empty() or player.coins < data.kontor.price
+		_buy_button.tooltip_text = locked
 		return
 	_storage.text = "Storage %d/%d" % [kontor.cargo_total(), data.kontor.capacity]
 	_refresh_transfers(kontor)
@@ -80,6 +111,87 @@ func refresh() -> void:
 		_build_buttons[workshop_type.id].disabled = (
 			_session.player().coins < workshop_type.build_cost or free < workshop_type.workers
 		)
+	_refresh_factor(kontor)
+
+
+func _build_factor() -> void:
+	_details.add_child(UiStyle.label("Factor", UiStyle.HEADER_LABEL))
+	_factor_locked.name = "FactorLocked"
+	_factor_locked.theme_type_variation = UiStyle.MUTED_LABEL
+	_factor_locked.autowrap_mode = TextServer.AUTOWRAP_WORD
+	_details.add_child(_factor_locked)
+	_factor_grid.name = "FactorOrders"
+	_factor_grid.columns = 4
+	_factor_grid.add_theme_constant_override("h_separation", 6)
+	for heading: String in ["Good", "Order", "Units", "Price limit"]:
+		_factor_grid.add_child(UiStyle.label(heading, UiStyle.MUTED_LABEL))
+	for good in _session.sim.data.goods:
+		_factor_grid.add_child(UiStyle.label(good.name))
+		var mode := OptionButton.new()
+		mode.name = "FactorMode_%s" % good.id
+		for text in FACTOR_MODES:
+			mode.add_item(text)
+		_factor_grid.add_child(mode)
+		var amount := SpinBox.new()
+		amount.name = "FactorAmount_%s" % good.id
+		amount.max_value = _session.sim.data.kontor.capacity
+		amount.tooltip_text = "Buy until the kontor holds this many, or sell down to this many"
+		_factor_grid.add_child(amount)
+		var limit := SpinBox.new()
+		limit.name = "FactorLimit_%s" % good.id
+		limit.max_value = 100_000
+		limit.tooltip_text = "Most paid or least taken per unit; 0 means any price"
+		_factor_grid.add_child(limit)
+	_details.add_child(_factor_grid)
+	_factor_save.name = "SaveFactor"
+	_factor_save.text = "Give the factor these orders"
+	_factor_save.tooltip_text = "The factor trades once a day at the kontor's market"
+	_factor_save.pressed.connect(_save_factor)
+	_details.add_child(_factor_save)
+
+
+func _refresh_factor(kontor: KontorState) -> void:
+	var locked := RankSystem.unlock_error(
+		_session.sim.data, _session.player(), RankDef.FACTORS, "Factors"
+	)
+	_factor_locked.visible = not locked.is_empty()
+	_factor_locked.text = "Locked: %s" % locked
+	_factor_grid.visible = locked.is_empty()
+	_factor_save.visible = locked.is_empty()
+	var parts := PackedStringArray([kontor.city_id])
+	for order in kontor.factor_orders:
+		parts.append("%d:%s:%d:%d" % [order.action, order.good_id, order.amount, order.price_limit])
+	var key := ",".join(parts)
+	if key == _factor_key:
+		return
+	_factor_key = key
+	for good in _session.sim.data.goods:
+		var mode := _factor_grid.get_node("FactorMode_%s" % good.id) as OptionButton
+		mode.select(0)
+		(_factor_grid.get_node("FactorAmount_%s" % good.id) as SpinBox).value = 0
+		(_factor_grid.get_node("FactorLimit_%s" % good.id) as SpinBox).value = 0
+	for order in kontor.factor_orders:
+		var mode := _factor_grid.get_node("FactorMode_%s" % order.good_id) as OptionButton
+		mode.select(1 if order.action == FactorOrder.Action.BUY else 2)
+		(_factor_grid.get_node("FactorAmount_%s" % order.good_id) as SpinBox).value = order.amount
+		(_factor_grid.get_node("FactorLimit_%s" % order.good_id) as SpinBox).value = (
+			order.price_limit
+		)
+
+
+func _save_factor() -> void:
+	var orders: Array[FactorOrder] = []
+	for good in _session.sim.data.goods:
+		var mode := (_factor_grid.get_node("FactorMode_%s" % good.id) as OptionButton).selected
+		if mode <= 0:
+			continue
+		var action := FactorOrder.Action.BUY if mode == 1 else FactorOrder.Action.SELL
+		var amount := int((_factor_grid.get_node("FactorAmount_%s" % good.id) as SpinBox).value)
+		var limit := int((_factor_grid.get_node("FactorLimit_%s" % good.id) as SpinBox).value)
+		orders.append(FactorOrder.new(action, good.id, amount, limit))
+	_session.execute(
+		SetFactorOrdersCommand.new(WorldState.PLAYER_ID, _session.selected_city, orders)
+	)
 
 
 func _build_transfer_grid() -> void:

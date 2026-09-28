@@ -69,7 +69,9 @@ static func _carry_out_order(
 			var held := mini(order.quantity, ship.cargo_of(good.id))
 			if held <= 0:
 				return ""
-			quantity = _sell_quantity(sim, city, good, held, order)
+			quantity = CityEconomy.sellable_quantity(
+				sim.data.economy, city, good, held, order.price_limit
+			)
 			if quantity <= 0:
 				return "%s cheaper than %d" % [good.name, order.price_limit]
 			command = SellCommand.new(trader.id, ship.id, good.id, quantity)
@@ -98,21 +100,6 @@ static func _carry_out_order(
 
 static func _is_load(order: RouteOrder) -> bool:
 	return order.action == RouteOrder.Action.LOAD
-
-
-## Units to sell: up to `most`, while each unit fetches at least the price limit.
-static func _sell_quantity(
-	sim: Simulation, city: CityState, good: GoodDef, most: int, order: RouteOrder
-) -> int:
-	if order.price_limit <= 0:
-		return most
-	var factor := 1.0 - sim.data.economy.spread / 2.0
-	var quantity := 0
-	while quantity < most:
-		if _mid(sim, city, good, city.stock[good.id] + quantity) * factor < order.price_limit:
-			break
-		quantity += 1
-	return quantity
 
 
 ## What the next unit bought here costs, before rounding.

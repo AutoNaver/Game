@@ -14,6 +14,8 @@ extends RefCounted
 ## Populations stay put (growth_rate 0) unless a test sets PopulationDef.growth_rate: satisfaction
 ## remembers a tenth of each day, neutral at 0.5, sensitivity 1, bounds 0.5x to 2x of home.
 ## with_rival() adds rival house "hanse" (1000 coins, one boat "Rival") and the rival AI rules.
+## Every house holds the one rank "open", which limits nothing and unlocks everything, and
+## reputation (max 100) never gates a kontor. with_ranks() swaps in a real ladder for rank tests.
 
 const DAYS_OF_COVER: int = 10
 const STOCK_CAP_FACTOR: float = 2.0
@@ -52,6 +54,26 @@ static func data() -> GameData:
 	game_data.kontor = KontorDef.new(KONTOR_PRICE, KONTOR_CAPACITY)
 	var inputs: Dictionary[String, int] = {"grain": 4}
 	game_data.add_workshop(WorkshopDef.new("vintner", "Vintner", "wine", 2, inputs, 30, 200, 10))
+	game_data.reputation = ReputationDef.new(100, 20, 0, 1, 1, 1, 2)
+	game_data.ranks.append(RankDef.new("open", "Open", 0, 0, false, 0, 0, RankDef.UNLOCKS))
+	return game_data
+
+
+## Replaces the ranks with a small ladder: "skipper" (1 ship, 1 kontor), "merchant" (worth 2000:
+## routes, 2 kontors, and the "barge" ship type) and "house" (worth 5000 and standing 20 in both
+## cities: factors, no limits). A kontor abroad needs reputation 10; a barge is a boat that needs
+## the rank merchant.
+static func with_ranks(game_data: GameData) -> GameData:
+	game_data.reputation = ReputationDef.new(100, 20, 10, 1, 1, 1, 2)
+	game_data.ranks.clear()
+	game_data.ranks.append(RankDef.new("skipper", "Skipper", 0, 0, false, 1, 1, []))
+	var merchant := RankDef.new("merchant", "Merchant", 2000, 0, false, 0, 2, [RankDef.ROUTES])
+	game_data.ranks.append(merchant)
+	var house := RankDef.new("house", "House", 5000, 2, false, 0, 0, [RankDef.FACTORS])
+	game_data.ranks.append(house)
+	var barge := ShipDef.new("barge", "Barge", 10, 10.0, 500)
+	barge.rank_id = "merchant"
+	game_data.add_ship(barge)
 	return game_data
 
 

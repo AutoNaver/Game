@@ -36,6 +36,7 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 				"hour %d, %s: negative coins %d" % [world.hour, trader.id, trader.coins]
 			)
 		violations.append_array(_check_captains(data, trader))
+		violations.append_array(_check_standing(data, trader))
 		for ship in trader.ships:
 			violations.append_array(_check_ship(data, world.hour, ship))
 		for kontor in trader.kontors_in_order(data.cities):
@@ -90,6 +91,18 @@ static func _check_captains(data: GameData, trader: TraderState) -> PackedString
 			violations.append("player: invalid ship location '%s'" % trader.person_ship_id)
 	elif not trader.person_city_id.is_empty() or not trader.person_ship_id.is_empty():
 		violations.append("%s: rivals cannot have a player location" % trader.id)
+	return violations
+
+
+## A known rank, and reputation only for known cities within 1 and the maximum.
+static func _check_standing(data: GameData, trader: TraderState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	if data.rank_index(trader.rank_id) < 0:
+		violations.append("%s: unknown rank '%s'" % [trader.id, trader.rank_id])
+	for city_id: String in trader.reputation:
+		var points: int = trader.reputation[city_id]
+		if not data.has_city(city_id) or points <= 0 or points > data.reputation.max:
+			violations.append("%s: invalid reputation %d in '%s'" % [trader.id, points, city_id])
 	return violations
 
 

@@ -134,10 +134,10 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 
 ## M14: Reputation, ranks and factors
 
-- [ ] Reputation per city from supplying shortages, employing workers and holding a kontor
-- [ ] Ranks from net worth and reputation (`data/ranks.json`) as hard gates: commands refuse locked actions with the rank needed, and the UI shows them locked; shown in the houses panel
-- [ ] Kontor factor: standing buy/sell orders at a kontor, run through the trade commands
-- [ ] Rivals rise through the same ranks
+- [x] Reputation per city from supplying shortages, employing workers and holding a kontor (ADR 0015)
+- [x] Ranks from net worth and reputation (`data/ranks.json`) as hard gates: commands refuse locked actions with the rank needed, and the UI shows them locked; shown in the houses panel
+- [x] Kontor factor: standing buy/sell orders at a kontor, run through the trade commands
+- [x] Rivals rise through the same ranks
 
 ## M15: Acquisitions
 
@@ -150,6 +150,11 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 ## Backlog (deferred review findings and small follow-ups)
 
 Deferred P2 review findings go here, with the PR they came from.
+
+Follow-ups from M14 (ADR 0015):
+
+- [ ] Reputation discount on building and hiring in a city (ADR 0009 proposed it; ADR 0015 left it out)
+- [ ] Rivals could give their kontors factor orders instead of `RivalSystem._run_kontors`
 
 From a code review of `main` at c40d4c8 (2026-09-27):
 
