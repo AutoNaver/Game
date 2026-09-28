@@ -20,6 +20,9 @@ func before_each() -> void:
 	TestSaves.use(_session)
 	_main.get_node("StartScreen").visible = false
 	_session.set_speed(0)
+	# Trade routes need the rank Merchant.
+	_session.sim.world.player().rank_id = "merchant"
+	_session.changed.emit()
 	await wait_process_frames(1)
 
 

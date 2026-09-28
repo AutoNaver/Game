@@ -25,6 +25,9 @@ func validate(sim: Simulation) -> String:
 		return "unknown trader '%s'" % trader_id
 	if not route_id.is_empty() and trader.get_route(route_id) == null:
 		return "unknown route '%s'" % route_id
+	var locked := RankSystem.unlock_error(sim.data, trader, RankDef.ROUTES, "Trade routes")
+	if not locked.is_empty():
+		return locked
 	return RouteState.check(sim.data, route_name, stops)
 
 

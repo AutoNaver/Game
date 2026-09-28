@@ -6,6 +6,8 @@ extends Hold
 var city_id: String
 ## In build order.
 var workshops: Array[WorkshopState] = []
+## The factor's standing orders, run daily in this order (FactorSystem). At most one per good.
+var factor_orders: Array[FactorOrder] = []
 
 
 func _init(p_city_id: String) -> void:

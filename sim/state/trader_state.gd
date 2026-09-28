@@ -22,6 +22,12 @@ var kontors: Dictionary[String, KontorState] = {}
 var routes: Array[RouteState] = []
 ## Last observed or reported market for each city. Read through this book when planning.
 var market_book: Dictionary[String, MarketRecord] = {}
+## The house's rank (a RankDef id), never lowered once reached (RankSystem). "" until the world
+## first ranks it.
+var rank_id: String = ""
+## Reputation points by city id, 0 to ReputationDef.max; a missing city has 0. Iterate in
+## GameData city order (ReputationSystem).
+var reputation: Dictionary[String, int] = {}
 
 
 func _init(p_id: String, p_name: String, p_coins: int) -> void:

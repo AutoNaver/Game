@@ -48,7 +48,7 @@ func test_the_ranking_lists_every_house_by_worth() -> void:
 	var cells: Array[String] = []
 	for i in range(1, first.get_child_count()):
 		cells.append((first.get_child(i) as Label).text)
-	assert_eq(cells, [str(worth), "90000", "1", "0", "0"])
+	assert_eq(cells, ["Skipper", str(worth), "90000", "1", "0", "0"])
 	var player_row := rows.get_node("House_player")
 	assert_eq((player_row.find_child("Name", true, false) as Label).text, "You")
 

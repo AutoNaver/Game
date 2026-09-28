@@ -29,7 +29,9 @@ extends RefCounted
 ## begin with current reports for every city, then learn only where each trader has presence.
 ## Version 9 added captains, taverns, the player's location and house debt (ADR 0014). Older
 ## saves give every ship a captain and put the player aboard their first ship.
-const SAVE_VERSION: int = 9
+## Version 10 added each house's rank and reputation per city, and kontors' factor orders
+## (ADR 0015). Older saves start without reputation or orders and at the rank their worth earns.
+const SAVE_VERSION: int = 10
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -66,7 +68,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 		)
 	var traders: Array = []
 	for trader in world.traders:
-		traders.append(_trader_to_dict(trader, world.cities))
+		traders.append(SaveWriter.trader_to_dict(trader, world.cities))
 	var events: Array = []
 	for event in world.events:
 		(
@@ -86,7 +88,7 @@ static func to_dict(world: WorldState) -> Dictionary:
 		var pool: Array = world.taverns.get(city.id, [])
 		var candidates: Array = []
 		for captain: CaptainState in pool:
-			candidates.append(_captain_to_dict(captain))
+			candidates.append(SaveWriter.captain_to_dict(captain))
 		taverns.append({"city": city.id, "captains": candidates})
 	return {
 		"save_version": SAVE_VERSION,
@@ -233,6 +235,8 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 		CaptainSystem.crew_starting_ships(data, world)
 	if version < 8 and errors.is_empty():
 		_migrate_market_books(data, world)
+	if version < 10 and errors.is_empty():
+		RankSystem.run_day(data, world)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
 		_check_trader_order(data, world)
@@ -311,131 +315,6 @@ func _see_id(seen: Dictionary[String, String], id: String, kind: String) -> void
 	if seen.has(id):
 		errors.append("duplicate %s id '%s'" % [kind, id])
 	seen[id] = kind
-
-
-static func _trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Dictionary:
-	var ships: Array = []
-	for ship in trader.ships:
-		(
-			ships
-			. append(
-				{
-					"id": ship.id,
-					"type": ship.type_id,
-					"name": ship.name,
-					"captain": ship.captain_id,
-					"cargo": ship.cargo.duplicate(),
-					"docked_at": ship.docked_at,
-					"origin": ship.origin,
-					"destination": ship.destination,
-					"voyage_hours": ship.voyage_hours,
-					"hours_sailed": ship.hours_sailed,
-					"route": ship.route_id,
-					"route_stop": ship.route_stop,
-					"route_note": ship.route_note,
-					"spoil_carry": ship.spoil_carry.duplicate(),
-					"news": _market_to_dict(ship.news) if ship.news != null else null,
-				}
-			)
-		)
-	var kontors: Array = []
-	for city_id: String in trader.kontors.keys():
-		var kontor: KontorState = trader.kontors[city_id]
-		var workshops: Array = []
-		for workshop in kontor.workshops:
-			(
-				workshops
-				. append(
-					{
-						"id": workshop.id,
-						"type": workshop.type_id,
-						"status": WorkshopState.Status.keys()[workshop.status],
-						"missing_good": workshop.missing_good,
-						"progress": workshop.progress,
-					}
-				)
-			)
-		(
-			kontors
-			. append(
-				{
-					"city": kontor.city_id,
-					"cargo": kontor.cargo.duplicate(),
-					"spoil_carry": kontor.spoil_carry.duplicate(),
-					"workshops": workshops,
-				}
-			)
-		)
-	kontors.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["city"] < b["city"])
-	var routes: Array = []
-	var captains: Array = []
-	for captain in trader.captains:
-		captains.append(_captain_to_dict(captain))
-	for route in trader.routes:
-		var stops: Array = []
-		for stop in route.stops:
-			var orders: Array = []
-			for order in stop.orders:
-				(
-					orders
-					. append(
-						{
-							"action": RouteOrder.Action.keys()[order.action],
-							"good": order.good_id,
-							"quantity": order.quantity,
-							"price_limit": order.price_limit,
-						}
-					)
-				)
-			stops.append({"city": stop.city_id, "orders": orders})
-		routes.append({"id": route.id, "name": route.name, "stops": stops})
-	var market_book: Array = []
-	for city in cities:
-		if trader.market_book.has(city.id):
-			market_book.append(_market_to_dict(trader.market_book[city.id]))
-	return {
-		"id": trader.id,
-		"name": trader.name,
-		"coins": trader.coins,
-		"debt": trader.debt,
-		"debt_days": trader.debt_days,
-		"bankrupt": trader.bankrupt,
-		"person_ship": trader.person_ship_id,
-		"person_city": trader.person_city_id,
-		"captains": captains,
-		"ships": ships,
-		"kontors": kontors,
-		"routes": routes,
-		"market_book": market_book,
-	}
-
-
-static func _captain_to_dict(captain: CaptainState) -> Dictionary:
-	return {
-		"id": captain.id,
-		"name": captain.name,
-		"wage": captain.wage,
-		"seamanship": captain.seamanship,
-		"trading": captain.trading,
-		"voyages": captain.voyages,
-		"city": captain.city_id,
-		"ship": captain.ship_id,
-	}
-
-
-static func _market_to_dict(record: MarketRecord) -> Dictionary:
-	var history: Dictionary = {}
-	for good_id: String in record.history:
-		history[good_id] = Array(record.history[good_id])
-	return {
-		"city": record.city_id,
-		"day": record.day,
-		"population": record.population,
-		"satisfaction": record.satisfaction,
-		"stock": record.stock.duplicate(),
-		"shortage": record.shortage.duplicate(),
-		"history": history,
-	}
 
 
 ## Adds what is newer than the save: goods to every city it has, then the cities after its last
@@ -564,6 +443,21 @@ func _read_trader(
 			var captain := _read_captain(raw_captains[i], "%s captains[%d]" % [ctx, i])
 			if captain != null:
 				trader.captains.append(captain)
+	if version >= 10:
+		trader.rank_id = _string(raw, "rank", ctx)
+		if data.rank_index(trader.rank_id) < 0:
+			errors.append("%s: unknown rank '%s'" % [ctx, trader.rank_id])
+		var reputation := _dict(raw, "reputation", ctx)
+		for key: Variant in reputation.keys():
+			var city_id := str(key)
+			var points := _int(reputation, city_id, "%s reputation" % ctx)
+			if not data.has_city(city_id):
+				errors.append("%s reputation: unknown city '%s'" % [ctx, city_id])
+			elif points <= 0 or points > data.reputation.max:
+				var bounds := [ctx, city_id, points, data.reputation.max]
+				errors.append("%s reputation: %s %d outside 1 to %d" % bounds)
+			else:
+				trader.reputation[city_id] = points
 	if version >= 3:
 		var routes := _array(raw, "routes", ctx)
 		for i in routes.size():
@@ -890,7 +784,40 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int)
 				var bounds := [workshop_ctx, workshop.progress, CityEconomy.PARTS_PER_UNIT]
 				errors.append("%s: progress %d outside 0 to %d" % bounds)
 		kontor.workshops.append(workshop)
+	if version >= 10:
+		_read_factor(data, kontor, _array(raw, "factor", ctx), ctx)
 	return kontor
+
+
+func _read_factor(data: GameData, kontor: KontorState, entries: Array, ctx: String) -> void:
+	for i in entries.size():
+		var order_ctx := "%s factor[%d]" % [ctx, i]
+		if not entries[i] is Dictionary:
+			errors.append("%s: must be an object" % order_ctx)
+			continue
+		var raw: Dictionary = entries[i]
+		var action := _string(raw, "action", order_ctx)
+		if not FactorOrder.Action.has(action):
+			errors.append("%s: unknown action '%s'" % [order_ctx, action])
+			continue
+		(
+			kontor
+			. factor_orders
+			. append(
+				(
+					FactorOrder
+					. new(
+						FactorOrder.Action[action] as FactorOrder.Action,
+						_string(raw, "good", order_ctx),
+						_int(raw, "amount", order_ctx),
+						_int(raw, "price_limit", order_ctx),
+					)
+				)
+			)
+		)
+	var problem := FactorOrder.check(data, kontor.factor_orders)
+	if not problem.is_empty():
+		errors.append("%s factor: %s" % [ctx, problem])
 
 
 ## A per-good table of whole numbers. With `complete`, every good the save covers must be present

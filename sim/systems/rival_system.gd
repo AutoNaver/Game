@@ -66,6 +66,8 @@ static func best_venture(sim: Simulation, trader: TraderState, budget: int) -> V
 		if kontor == null:
 			if trader.kontors.size() >= ai.max_kontors:
 				continue
+			if not RankSystem.kontor_error(sim.data, trader, city_def.id).is_empty():
+				continue
 			cost = sim.data.kontor.price
 		elif not kontor.workshops.is_empty():
 			continue
@@ -255,12 +257,15 @@ static func _expand(sim: Simulation, trader: TraderState) -> void:
 		sim.execute(BuyShipCommand.new(trader.id, home, ship_type.id))
 
 
-## The biggest ship type the trader can buy with `budget`, or null if none, or the fleet is full.
+## The biggest ship type the trader can buy with `budget` and its rank, or null if none, or the
+## fleet is full.
 static func ship_to_buy(sim: Simulation, trader: TraderState, budget: int) -> ShipDef:
 	if trader.ships.size() >= sim.data.rival_ai.max_ships:
 		return null
 	var best: ShipDef = null
 	for type in sim.data.ships:
-		if type.price <= budget and (best == null or type.capacity > best.capacity):
+		if type.price > budget or not RankSystem.ship_error(sim.data, trader, type).is_empty():
+			continue
+		if best == null or type.capacity > best.capacity:
 			best = type
 	return best

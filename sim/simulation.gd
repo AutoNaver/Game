@@ -4,8 +4,10 @@ extends RefCounted
 ## on trade routes act at their stops (RouteSystem), then the rival houses' docked ships trade and
 ## sail (RivalSystem); both act through commands. The daily systems run whenever a tick completes
 ## a day, in a fixed order: world events (EventSystem), spoilage of stored goods, city
-## production, traders' workshops, consumption, city satisfaction and population, off-map trade,
-## price history, then the rivals' kontors and expansion. Actions enter only through execute().
+## production, traders' workshops and the reputation they earn, wages, consumption, city
+## satisfaction and population, off-map trade, price history, the rivals' kontors and expansion,
+## the kontor factors' standing orders, then the houses' ranks. Actions enter only through
+## execute().
 ##
 ## Current prices are not stored: they are derived from stock on demand (see Pricing,
 ## CityEconomy). Only the daily closing prices are kept, for the UI (PriceHistorySystem).
@@ -42,6 +44,7 @@ static func new_game(p_data: GameData, seed_value: int) -> Simulation:
 	player.person_city_id = scenario.start_city if player.ships.is_empty() else ""
 	CaptainSystem.crew_starting_ships(p_data, world)
 	MarketKnowledgeSystem.initialize(p_data, world)
+	RankSystem.run_day(p_data, world)
 	return Simulation.new(p_data, world)
 
 
@@ -106,12 +109,15 @@ func tick() -> void:
 		SpoilageSystem.run_day(data, world)
 		ProductionSystem.run_day(data, world)
 		WorkshopSystem.run_day(data, world)
+		ReputationSystem.run_day(data, world)
 		CaptainSystem.run_day(data, world, day())
 		ConsumptionSystem.run_day(data, world)
 		PopulationSystem.run_day(data, world)
 		OffMapTradeSystem.run_day(data, world)
 		PriceHistorySystem.run_day(data, world)
 		RivalSystem.run_day(self)
+		FactorSystem.run_day(self)
+		RankSystem.run_day(data, world)
 		MarketKnowledgeSystem.record_day(data, world)
 
 

@@ -21,7 +21,9 @@ func validate(sim: Simulation) -> String:
 		error = "unknown city '%s'" % city_id
 	elif trader.get_kontor(city_id) != null:
 		error = "You already have a kontor in %s" % Command.city_name(sim, city_id)
-	elif price > trader.coins:
+	else:
+		error = RankSystem.kontor_error(sim.data, trader, city_id)
+	if error.is_empty() and price > trader.coins:
 		error = "A kontor costs %d coins, you have %d" % [price, trader.coins]
 	return error
 

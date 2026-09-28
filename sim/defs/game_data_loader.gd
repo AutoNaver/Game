@@ -22,6 +22,8 @@ const SCENARIO_FILE: String = "scenario.json"
 const RIVALS_FILE: String = "rivals.json"
 const EVENTS_FILE: String = "events.json"
 const CAPTAINS_FILE: String = "captains.json"
+const RANKS_FILE: String = "ranks.json"
+const RANKS_FIELDS: PackedStringArray = ["reputation", "ranks"]
 const CAPTAIN_FIELDS: PackedStringArray = [
 	"daily_wage",
 	"tavern_pool_size",
@@ -72,6 +74,8 @@ const CITY_OPTIONAL_FIELDS: PackedStringArray = ["import_factor", "since_save"]
 ## Highest import_factor a city may have.
 const MAX_IMPORT_FACTOR: float = 10.0
 const SHIP_FIELDS: PackedStringArray = ["id", "name", "capacity", "speed", "price"]
+## Optional: a ship type without it needs no rank.
+const SHIP_OPTIONAL_FIELDS: PackedStringArray = ["rank"]
 const SCENARIO_FIELDS: PackedStringArray = ["start_city", "coins", "ships"]
 const SEA_LANES_FIELDS: PackedStringArray = ["waypoints", "lanes"]
 ## Optional: lanes up rivers to inland cities, exempt from the coastline check.
@@ -170,10 +174,14 @@ func load_dir(dir: String) -> GameData:
 	if sea_lanes != null:
 		data.sea_chart = _parse_sea_lanes(sea_lanes as Dictionary, SEA_LANES_FILE, data)
 
+	var ranks: Variant = _read_json(dir.path_join(RANKS_FILE), TYPE_DICTIONARY)
+	if ranks != null:
+		_parse_ranks(ranks as Dictionary, RANKS_FILE, data)
+
 	var ships := _read_array(dir.path_join(SHIPS_FILE))
 	for i in ships.size():
 		var ctx := "%s[%d]" % [SHIPS_FILE, i]
-		var ship := _parse_ship(ships[i], ctx)
+		var ship := _parse_ship(ships[i], ctx, data)
 		if ship == null:
 			continue
 		if data.has_ship(ship.id):
@@ -236,6 +244,91 @@ func _parse_captains(entry: Dictionary, ctx: String) -> CaptainDef:
 	if errors.size() > before:
 		return null
 	return CaptainDef.new(wage, pool, fee, hours, voyages, skill, grace)
+
+
+## Reputation rules and the ranks in ascending order: the first needs nothing, and each later one
+## needs at least the worth and standing of the one before.
+func _parse_ranks(entry: Dictionary, ctx: String, data: GameData) -> void:
+	_check_fields(entry, RANKS_FIELDS, ctx)
+	var reputation: Variant = entry.get("reputation")
+	if reputation is Dictionary:
+		data.reputation = _parse_reputation(reputation as Dictionary, ctx + " reputation")
+	elif entry.has("reputation"):
+		_error(ctx, "'reputation' must be an object")
+	var ranks := _get_array(entry, "ranks", ctx)
+	if entry.has("ranks") and ranks.is_empty():
+		_error(ctx, "'ranks' must list at least one rank")
+	var unlocked: Dictionary[String, bool] = {}
+	for i in ranks.size():
+		var rank_ctx := "%s ranks[%d]" % [ctx, i]
+		var rank := _parse_rank(ranks[i], rank_ctx)
+		if rank == null:
+			continue
+		if data.rank_index(rank.id) >= 0:
+			_error(rank_ctx, "duplicate id '%s'" % rank.id)
+			continue
+		for unlock in rank.unlocks:
+			if unlocked.has(unlock):
+				_error(rank_ctx, "'%s' is already unlocked by a lower rank" % unlock)
+			unlocked[unlock] = true
+		if data.ranks.is_empty():
+			if rank.net_worth != 0 or rank.standing_cities != 0 or rank.richest:
+				_error(rank_ctx, "the first rank must need nothing")
+		else:
+			var lower := data.ranks[-1]
+			if rank.net_worth < lower.net_worth or rank.standing_cities < lower.standing_cities:
+				_error(rank_ctx, "must need at least what the rank before it needs")
+		data.ranks.append(rank)
+
+
+func _parse_reputation(entry: Dictionary, ctx: String) -> ReputationDef:
+	var before := errors.size()
+	_check_fields(entry, ReputationDef.FIELDS, ctx)
+	var maximum := _get_positive_int(entry, "max", ctx)
+	var standing := _get_positive_int(entry, "standing", ctx)
+	var abroad := _get_non_negative_int(entry, "kontor_abroad", ctx)
+	var shortage := _get_non_negative_int(entry, "per_shortage_unit", ctx)
+	var kontor_day := _get_non_negative_int(entry, "per_kontor_day", ctx)
+	var workshop_day := _get_non_negative_int(entry, "per_workshop_day", ctx)
+	var idle_day := _get_non_negative_int(entry, "per_idle_workshop_day", ctx)
+	if errors.size() == before and (standing > maximum or abroad > maximum):
+		_error(ctx, "'standing' and 'kontor_abroad' must be at most 'max'")
+	if errors.size() > before:
+		return null
+	return ReputationDef.new(
+		maximum, standing, abroad, shortage, kontor_day, workshop_day, idle_day
+	)
+
+
+func _parse_rank(raw: Variant, ctx: String) -> RankDef:
+	if not raw is Dictionary:
+		_error(ctx, "entry must be an object")
+		return null
+	var entry: Dictionary = raw
+	var before := errors.size()
+	_check_fields(entry, RankDef.FIELDS, ctx)
+	var id := _get_id(entry, ctx)
+	var rank_name := _get_string(entry, "name", ctx)
+	var worth := _get_non_negative_int(entry, "net_worth", ctx)
+	var standing := _get_non_negative_int(entry, "standing_cities", ctx)
+	var max_ships := _get_non_negative_int(entry, "max_ships", ctx)
+	var max_kontors := _get_non_negative_int(entry, "max_kontors", ctx)
+	var richest: Variant = entry.get("richest", false)
+	if not richest is bool:
+		_error(ctx, "'richest' must be true or false")
+	var unlocks := PackedStringArray()
+	for value: Variant in _get_array(entry, "unlocks", ctx):
+		if not value is String or not RankDef.UNLOCKS.has(value as String):
+			_error(ctx, "unknown unlock '%s' (known: %s)" % [value, ", ".join(RankDef.UNLOCKS)])
+		elif unlocks.has(value as String):
+			_error(ctx, "duplicate unlock '%s'" % value)
+		else:
+			unlocks.append(value as String)
+	if errors.size() > before:
+		return null
+	return RankDef.new(
+		id, rank_name, worth, standing, richest == true, max_ships, max_kontors, unlocks
+	)
 
 
 ## Returns the parsed top-level value, or null after reporting why it is unusable.
@@ -635,21 +728,27 @@ func _parse_workshop(raw: Variant, ctx: String, data: GameData) -> WorkshopDef:
 	)
 
 
-func _parse_ship(raw: Variant, ctx: String) -> ShipDef:
+## Ranks must already be loaded into `data`.
+func _parse_ship(raw: Variant, ctx: String, data: GameData) -> ShipDef:
 	if not raw is Dictionary:
 		_error(ctx, "entry must be an object")
 		return null
 	var entry: Dictionary = raw
 	var error_count := errors.size()
-	_check_fields(entry, SHIP_FIELDS, ctx)
+	_check_fields(entry, SHIP_FIELDS, ctx, SHIP_OPTIONAL_FIELDS)
 	var id := _get_id(entry, ctx)
 	var ship_name := _get_string(entry, "name", ctx)
 	var capacity := _get_positive_int(entry, "capacity", ctx)
 	var speed := _get_float_between(entry, "speed", MIN_SHIP_SPEED, MAX_SHIP_SPEED, ctx, true)
 	var price := _get_positive_int(entry, "price", ctx)
+	var rank_id := _get_string(entry, "rank", ctx)
+	if not rank_id.is_empty() and data.rank_index(rank_id) < 0:
+		_error(ctx, "unknown rank '%s'" % rank_id)
 	if errors.size() > error_count:
 		return null
-	return ShipDef.new(id, ship_name, capacity, speed, price)
+	var ship := ShipDef.new(id, ship_name, capacity, speed, price)
+	ship.rank_id = rank_id
+	return ship
 
 
 ## Cities and ships must already be loaded into `data`.

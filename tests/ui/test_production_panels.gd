@@ -18,6 +18,8 @@ func before_each() -> void:
 	TestSaves.use(_session)
 	_session.set_speed(0)
 	_session.sim.world.player().coins = 50_000
+	# A Merchant may own more ships than a Skipper's one.
+	_session.sim.world.player().rank_id = "merchant"
 	_session.changed.emit()
 	await wait_process_frames(1)
 

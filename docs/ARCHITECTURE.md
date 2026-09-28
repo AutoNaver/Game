@@ -52,10 +52,12 @@ on trade routes act at their stops (`RouteSystem`, ADR 0007), and the rival hous
 trade and sail (`RivalSystem`, ADR 0008). Both issue ordinary commands through
 `Simulation.execute` like any player action. Every 24 ticks it runs the daily systems in a fixed
 order: world events (`EventSystem`, ADR 0011), spoilage of goods in ships and kontors
-(`SpoilageSystem`), city production, the traders' workshops (`WorkshopSystem`), consumption, city
+(`SpoilageSystem`), city production, the traders' workshops (`WorkshopSystem`) and the
+reputation they earn (`ReputationSystem`), wages (`CaptainSystem`), consumption, city
 satisfaction and population (`PopulationSystem`, ADR 0010), off-map trade (`OffMapTradeSystem`),
-`PriceHistorySystem`, which records each market's closing price for save compatibility, and finally
-the rivals' daily step (kontor supplies, closing and expansion). `MarketKnowledgeSystem` then
+`PriceHistorySystem`, which records each market's closing price for save compatibility, the
+rivals' daily step (kontor supplies, closing and expansion), the kontor factors' standing orders
+(`FactorSystem`) and the houses' ranks (`RankSystem`, ADR 0015). `MarketKnowledgeSystem` then
 refreshes reports where each trader has presence and appends observed prices or gaps to that
 trader's chart. Current market prices are derived from stock by `Pricing`; a `MarketRecord` stores
 the price and stock a trader last observed. Ships carry a snapshot from their departure port and
@@ -71,6 +73,11 @@ the UI's `GameSession`, which compares state before and after each step.
 The market panel, destination planner and route editor use the player's market book. Unknown cities
 have no quoted prices; remote reports show their observation day. Rivals use their own books for
 voyage choices. The player in person counts as presence while ashore (ADR 0014).
+
+Ranks are hard gates (ADR 0015): `RankSystem` answers what a house's rank allows, and the
+commands that buy ships and kontors, save or assign routes and set factor orders refuse with the
+rank or reputation they need. The UI asks the same functions to show those actions locked with
+the reason, and the rivals ask them before planning a purchase.
 
 ## Determinism
 

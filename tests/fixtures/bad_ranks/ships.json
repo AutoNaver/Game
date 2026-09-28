@@ -1,0 +1,4 @@
+[
+  { "id": "cog", "name": "Cog", "capacity": 50, "speed": 10, "price": 5000 },
+  { "id": "hulk", "name": "Hulk", "capacity": 120, "speed": 6.5, "price": 12000, "rank": "admiral" }
+]

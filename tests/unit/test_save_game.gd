@@ -184,7 +184,7 @@ func test_kontors_in_unknown_cities_are_rejected() -> void:
 	var sim := _played_simulation()
 	var save := _through_json(SaveGame.to_dict(sim.world))
 	save["traders"][0]["kontors"].append(
-		{"city": "riga", "cargo": {}, "spoil_carry": {}, "workshops": []}
+		{"city": "riga", "cargo": {}, "spoil_carry": {}, "workshops": [], "factor": []}
 	)
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(sim.data, save))

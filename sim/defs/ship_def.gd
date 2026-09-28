@@ -10,6 +10,8 @@ var capacity: int
 var speed: float
 ## Purchase price in coins.
 var price: int
+## The rank (RankDef id) a house needs to buy this type; "" means any rank.
+var rank_id: String = ""
 
 
 func _init(p_id: String, p_name: String, p_capacity: int, p_speed: float, p_price: int) -> void:

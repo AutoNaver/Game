@@ -24,7 +24,11 @@ func validate(sim: Simulation) -> String:
 		return "unknown ship '%s'" % ship_id
 	if route_id.is_empty():
 		return "" if not ship.route_id.is_empty() else "%s follows no route" % ship.name
-	var route := sim.world.get_trader(trader_id).get_route(route_id)
+	var trader := sim.world.get_trader(trader_id)
+	var locked := RankSystem.unlock_error(sim.data, trader, RankDef.ROUTES, "Trade routes")
+	if not locked.is_empty():
+		return locked
+	var route := trader.get_route(route_id)
 	if route == null:
 		return "unknown route '%s'" % route_id
 	if start_stop < 0 or start_stop >= route.stops.size():

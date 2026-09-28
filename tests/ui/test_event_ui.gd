@@ -47,6 +47,8 @@ func test_events_are_announced_shown_in_the_city_and_their_end_logged() -> void:
 	_session.select_city(event.city_id)
 	if not MarketKnowledgeSystem.has_presence(_session.sim.data, _session.player(), event.city_id):
 		assert_false(_label("CityEvents").visible, "remote events are not live market knowledge")
+		var abroad := _session.sim.data.reputation.kontor_abroad
+		_session.player().reputation[event.city_id] = abroad
 		assert_eq(
 			_session.sim.execute(BuyKontorCommand.new(WorldState.PLAYER_ID, event.city_id)), ""
 		)

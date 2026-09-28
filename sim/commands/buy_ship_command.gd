@@ -23,7 +23,9 @@ func validate(sim: Simulation) -> String:
 		error = "unknown city '%s'" % city_id
 	elif ship_type == null:
 		error = "unknown ship type '%s'" % ship_type_id
-	elif ship_type.price > trader.coins:
+	else:
+		error = RankSystem.ship_error(sim.data, trader, ship_type)
+	if error.is_empty() and ship_type.price > trader.coins:
 		error = "A %s costs %d coins, you have %d" % [ship_type.name, ship_type.price, trader.coins]
 	return error
 
