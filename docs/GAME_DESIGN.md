@@ -46,6 +46,22 @@ until your trading house shapes the prices of the whole sea.
   (ADR 0005) tops up the other cities' wine only slowly, so they stay expensive.
 - **Time:** 1 tick = 1 in-game hour. Markets, consumption and production resolve daily.
 
+## Living city view (M16)
+
+From the Baltic map, a house can enter a port where the player is ashore, a ship is docked, or a
+kontor gives a local presence. Each port has a small isometric town scene with a harbour, streets,
+walls, and landmarks. The market, tavern, shipyard, kontor, and town hall lead to the controls and
+city information already available in the side panel. Workshops owned by the player and rivals
+appear in the town, and a few citizens walk the streets. The visible people are atmosphere, not
+individual economic agents; the existing population, workforce, and production systems remain
+authoritative.
+
+Workshop plots in M16 are stable visual positions derived from workshop ids and the city layout.
+They do not limit construction or enter saves. M17 will add free placement and construction on the
+isometric grid, migrating older workshops to saved plots. Housing and public works (M18), an elected
+mayor and wall expansion (M19), and town requests and celebrations (M20) give later city growth a
+direct link to trading and reputation.
+
 ## Economy model (first version, refined in M1)
 
 - Each city has a population that **consumes** goods daily and **produces** goods according to its
@@ -149,12 +165,12 @@ weeks, to any house; then the rest is sold off and it leaves the game.
 
 ## After the MVP
 
-The core loop is proven (owner play-tests of M3 and M5), so the parked systems now come in one at a
-time, each with its own roadmap milestone: readable markets and quality of life (M6), trade routes
-(M7), AI competitor traders (M8), city needs and growth (M9), events and spoilage (M10) and more
-cities and goods (M11). The progression plan (M12 to M15) brings in market knowledge, captains,
-reputation and ranks, and acquisitions. Still parked: loans and banking, convoys and combat,
-politics.
+The core loop is proven (owner play-tests of M3 and M5). Readable markets, routes, rivals, city
+growth, events, and the larger Baltic (M6 to M11) are in play. The progression plan (M12 to M15)
+adds market knowledge, captains, reputation, ranks, and acquisitions. The town sequence (M16 to
+M20) begins with a visual city view, then adds construction, housing, public works, mayoral wall
+expansion, and civic requests. Loans and banking, convoys and combat, deeper council politics, and
+founding new cities remain parked.
 
 ## Open questions
 

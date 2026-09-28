@@ -147,6 +147,50 @@ decisions (2026-09-27): these come after M11, bankruptcy is included, and ranks 
 - [x] Acquisitions move only coins and ownership; invariants and saves cover removed houses
 - [x] A bankrupt rival's ships and kontors go up for sale at a discount before being sold off
 
+## M16: Living city view
+
+Make each port a place the player can visit and read at a glance. The city view draws from the
+existing simulation; building placement begins in M17.
+
+- [x] Enter a city with presence (the player ashore, a docked ship, or a kontor), and switch back to the Baltic map without changing the game clock
+- [x] Distinct 2D isometric layouts for all nine cities, with streets, harbour, walls, landmarks, docked ships, and owned and rival workshops on stable visual plots
+- [x] Walking citizens on the streets, scaled to the city's population and jobs but visual only
+- [x] Click the market, tavern, shipyard, kontor, or town hall to reach the corresponding existing controls and city information; keep the HUD, side panel, and notifications available in both views
+- [x] Returning to the sea map when city presence ends; UI tests for access, switching, landmarks, workshop changes, and saves
+- [ ] **Owner play-test** of the Windows build, with feedback turned into roadmap items
+
+## M17: Building placement and construction
+
+- [ ] Free placement of workshops on an isometric grid, with footprints, occupied plots, and connected-road access
+- [ ] Build-site preview and construction queue shared by all houses in a city, with limited crews and completion times
+- [ ] Construction materials from the builder's kontor first, then the local market at normal trade prices; show costs and shortages before confirming
+- [ ] Rivals use the same placement and construction rules; migrate existing workshops to valid plots and save the positions
+- [ ] Book construction materials in the goods ledger; test placement, crew order, costs, migrations, and economy invariants
+- [ ] **Owner play-test** of building a workshop in the city view
+
+## M18: Housing and public works
+
+- [ ] Placeable houses provide capacity for city population; housing shortages limit growth and therefore demand and available workers
+- [ ] Existing cities and saves start with enough housing for their current population
+- [ ] Wells lower fire risk, and schools speed population growth; show each effect and the city's housing capacity in the city view
+- [ ] Test growth limits, public-work effects, saves, and long-run city balance
+- [ ] **Owner play-test** of growing and improving a city
+
+## M19: Mayor and wall expansion
+
+- [ ] Elected, time-limited mayoral office separate from permanent rank; Councillors with enough local standing can stand in eligible Hanseatic home cities, and rivals can win
+- [ ] City treasury with visible revenue, project costs, and donations
+- [ ] Mayor can fund staged wall expansion; finished walls open more indoor building space
+- [ ] Test elections, changes of office, treasury conservation, wall completion, and saves
+- [ ] **Owner play-test** of becoming mayor and expanding a city
+
+## M20: Town requests and celebrations
+
+- [ ] Dated town-hall requests to deliver scarce goods or fund public works, rewarding coins and local reputation
+- [ ] Kontor-funded celebrations consume goods and briefly raise satisfaction and reputation; show the celebration in the streets
+- [ ] Test deadlines, rewards, goods ledger, balance, and saves
+- [ ] **Owner play-test** of using trade to help a city
+
 ## Backlog (deferred review findings and small follow-ups)
 
 Deferred P2 review findings go here, with the PR they came from.
@@ -191,4 +235,5 @@ From a code review of `main` at c40d4c8 (2026-09-27):
 
 ## Later (parked, see GAME_DESIGN "After the MVP")
 
-Loans and banking, convoys with pirates and combat, politics.
+Loans and banking; convoys, pirates and combat; council votes, taxes and factional politics; founding
+new cities.
