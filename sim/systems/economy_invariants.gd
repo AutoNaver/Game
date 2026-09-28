@@ -35,10 +35,12 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			violations.append(
 				"hour %d, %s: negative coins %d" % [world.hour, trader.id, trader.coins]
 			)
+		violations.append_array(_check_captains(data, trader))
 		for ship in trader.ships:
 			violations.append_array(_check_ship(data, world.hour, ship))
 		for kontor in trader.kontors_in_order(data.cities):
 			violations.append_array(_check_kontor(data, world.hour, trader, kontor))
+	violations.append_array(_check_taverns(data, world))
 	for city in world.cities:
 		violations.append_array(_check_population(data, world.hour, city))
 	@warning_ignore("integer_division")
@@ -52,6 +54,72 @@ static func check(data: GameData, world: WorldState) -> PackedStringArray:
 			var span := [world.hour, event.id, event.start_day, event.end_day, day]
 			violations.append("hour %d, %s: days %d to %d don't include day %d" % span)
 	violations.append_array(_check_conservation(data, world))
+	return violations
+
+
+static func _check_captains(data: GameData, trader: TraderState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	if trader.debt < 0 or trader.debt_days < 0:
+		violations.append("%s: invalid debt or debt days" % trader.id)
+	if trader.debt == 0 and trader.debt_days != 0:
+		violations.append("%s: debt days without debt" % trader.id)
+	for captain in trader.captains:
+		violations.append_array(_check_captain(data, trader.id, captain))
+		var ship := trader.get_ship(captain.ship_id)
+		if ship == null or ship.captain_id != captain.id or not captain.city_id.is_empty():
+			violations.append("%s: captain %s has no matching ship" % [trader.id, captain.id])
+	for ship in trader.ships:
+		if not ship.captain_id.is_empty():
+			var captain := trader.get_captain(ship.captain_id)
+			if captain == null:
+				violations.append("%s: ship %s has unknown captain" % [trader.id, ship.id])
+			elif captain.ship_id != ship.id:
+				violations.append(
+					(
+						"%s: ship %s names captain %s of another ship"
+						% [trader.id, ship.id, captain.id]
+					)
+				)
+		if not ship.is_docked() and ship.captain_id.is_empty():
+			violations.append("%s: ship %s is at sea without a captain" % [trader.id, ship.id])
+	if trader.id == WorldState.PLAYER_ID:
+		if trader.person_ship_id.is_empty():
+			if not data.has_city(trader.person_city_id):
+				violations.append("player: unknown shore location '%s'" % trader.person_city_id)
+		elif trader.get_ship(trader.person_ship_id) == null or not trader.person_city_id.is_empty():
+			violations.append("player: invalid ship location '%s'" % trader.person_ship_id)
+	elif not trader.person_city_id.is_empty() or not trader.person_ship_id.is_empty():
+		violations.append("%s: rivals cannot have a player location" % trader.id)
+	return violations
+
+
+static func _check_taverns(data: GameData, world: WorldState) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	for city in data.cities:
+		if not world.taverns.has(city.id):
+			violations.append("%s: missing tavern" % city.id)
+			continue
+		var pool: Array = world.taverns.get(city.id, [])
+		for candidate: CaptainState in pool:
+			if candidate.city_id != city.id or not candidate.ship_id.is_empty():
+				violations.append(
+					"%s tavern: captain %s is assigned elsewhere" % [city.id, candidate.id]
+				)
+			violations.append_array(_check_captain(data, "%s tavern" % city.id, candidate))
+	return violations
+
+
+## Wage, experience and skills of a hired captain or tavern candidate.
+static func _check_captain(
+	data: GameData, where: String, captain: CaptainState
+) -> PackedStringArray:
+	var violations: PackedStringArray = []
+	if captain.wage <= 0 or captain.voyages < 0:
+		violations.append("%s: invalid captain %s" % [where, captain.id])
+	if captain.seamanship < 0 or captain.seamanship > data.captains.max_skill:
+		violations.append("%s: invalid seamanship for %s" % [where, captain.id])
+	if captain.trading < 0 or captain.trading > data.captains.max_skill:
+		violations.append("%s: invalid trading for %s" % [where, captain.id])
 	return violations
 
 

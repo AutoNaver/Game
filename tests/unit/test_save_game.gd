@@ -145,6 +145,7 @@ func test_duplicate_traders_are_rejected() -> void:
 	var save := _through_json(SaveGame.to_dict(sim.world))
 	var copy: Dictionary = (save["traders"][0] as Dictionary).duplicate(true)
 	copy["ships"] = []
+	copy["captains"] = []
 	copy["kontors"] = []
 	save["traders"].append(copy)
 	var loader := SaveGame.new()

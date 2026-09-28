@@ -5,6 +5,7 @@ extends RefCounted
 ## The arrays keep file order so iteration is deterministic; use the getters for lookups by id.
 
 var economy: EconomyDef
+var captains: CaptainDef
 ## City satisfaction and population change (data/population.json).
 var population: PopulationDef
 var scenario: ScenarioDef

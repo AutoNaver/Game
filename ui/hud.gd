@@ -55,7 +55,16 @@ func setup(session: GameSession) -> void:
 func refresh() -> void:
 	if _session.sim == null:
 		return
-	_coins_label.text = "%d coins" % _session.player().coins
+	var player := _session.player()
+	_coins_label.text = "%d coins" % player.coins
+	if player.debt > 0:
+		_coins_label.text += " · Debt %d (%d days)" % [player.debt, player.debt_days]
+		_coins_label.tooltip_text = (
+			"Pay the debt within %d days to avoid bankruptcy"
+			% _session.sim.data.captains.bankruptcy_grace_days
+		)
+	else:
+		_coins_label.tooltip_text = ""
 	var hour := _session.sim.world.hour
 	_date_label.text = "Day %d, %02d:00" % [_session.sim.day() + 1, hour % Simulation.HOURS_PER_DAY]
 	for speed: int in _speed_buttons:

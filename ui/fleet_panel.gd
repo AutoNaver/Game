@@ -10,6 +10,10 @@ var _ship_list: VBoxContainer = VBoxContainer.new()
 var _ship_buttons: Dictionary[String, Button] = {}
 var _summary: Label = Label.new()
 var _manifest: Label = Label.new()
+var _captain_status: Label = Label.new()
+var _hire_row: HFlowContainer = HFlowContainer.new()
+var _person_status: Label = Label.new()
+var _move_button: Button = Button.new()
 var _sail_row: HFlowContainer = HFlowContainer.new()
 var _sail_buttons: Dictionary[String, Button] = {}
 var _route_row: HBoxContainer = HBoxContainer.new()
@@ -27,6 +31,16 @@ func setup(session: GameSession) -> void:
 	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD
 	add_child(_summary)
 	add_child(_ship_list)
+	_captain_status.name = "CaptainStatus"
+	_captain_status.autowrap_mode = TextServer.AUTOWRAP_WORD
+	add_child(_captain_status)
+	_hire_row.name = "HireCaptains"
+	add_child(_hire_row)
+	_person_status.name = "PersonStatus"
+	add_child(_person_status)
+	_move_button.name = "MovePerson"
+	_move_button.pressed.connect(_move_person)
+	add_child(_move_button)
 	_manifest.name = "CargoManifest"
 	_manifest.autowrap_mode = TextServer.AUTOWRAP_WORD
 	add_child(_manifest)
@@ -65,19 +79,90 @@ func refresh() -> void:
 		button.text = _describe(ship)
 		button.set_pressed_no_signal(ship.id == _session.selected_ship)
 	var selected := _session.player().get_ship(_session.selected_ship)
+	_refresh_captain(selected)
+	_refresh_person(selected)
 	_refresh_manifest(selected)
 	_refresh_route(selected)
 	_sail_row.visible = selected != null and selected.is_docked()
 	if not _sail_row.visible:
 		return
 	var ship_type := _session.sim.data.get_ship(selected.type_id)
+	var captain := _session.player().get_captain(selected.captain_id)
 	for city in _session.sim.data.cities:
 		var button := _sail_buttons[city.id]
 		button.visible = city.id != selected.docked_at
 		var hours := Navigation.travel_hours(
 			_session.sim.data, ship_type, selected.docked_at, city.id
 		)
+		if captain != null:
+			hours = CaptainSystem.voyage_hours(_session.sim.data, selected, captain, city.id)
 		button.text = "%s (%dh)" % [city.name, hours]
+		button.disabled = captain == null
+
+
+func _refresh_captain(ship: ShipState) -> void:
+	for child in _hire_row.get_children():
+		child.queue_free()
+	_hire_row.visible = false
+	if ship == null:
+		_captain_status.text = ""
+		return
+	var captain := _session.player().get_captain(ship.captain_id)
+	if captain != null:
+		_captain_status.text = (
+			"%s · seamanship %d · trading %d · %d coins/day"
+			% [captain.name, captain.seamanship, captain.trading, captain.wage]
+		)
+		return
+	_captain_status.text = "No captain · cannot sail or follow a route"
+	if not ship.is_docked():
+		return
+	_hire_row.visible = true
+	var pool: Array = _session.sim.world.taverns.get(ship.docked_at, [])
+	for candidate: CaptainState in pool:
+		var button := Button.new()
+		button.text = "Hire %s (%d coins)" % [candidate.name, _session.sim.data.captains.hiring_fee]
+		button.disabled = _session.player().coins < _session.sim.data.captains.hiring_fee
+		button.pressed.connect(
+			_session.execute.bind(
+				HireCaptainCommand.new(WorldState.PLAYER_ID, ship.id, candidate.id)
+			)
+		)
+		_hire_row.add_child(button)
+	if pool.is_empty():
+		_hire_row.add_child(
+			UiStyle.label("No captains in this tavern until next week", UiStyle.MUTED_LABEL)
+		)
+
+
+func _refresh_person(ship: ShipState) -> void:
+	var player := _session.player()
+	if player.person_ship_id.is_empty():
+		_person_status.text = (
+			"You are ashore in %s" % _session.sim.data.get_city(player.person_city_id).name
+		)
+	else:
+		_person_status.text = "You are aboard %s" % player.get_ship(player.person_ship_id).name
+	_move_button.visible = false
+	if ship == null or not ship.is_docked():
+		return
+	var current_city := player.person_city_id
+	if not player.person_ship_id.is_empty():
+		var current := player.get_ship(player.person_ship_id)
+		if not current.is_docked():
+			return
+		current_city = current.docked_at
+	if ship.docked_at != current_city:
+		return
+	_move_button.visible = true
+	_move_button.text = "Go ashore" if ship.id == player.person_ship_id else "Board %s" % ship.name
+
+
+func _move_person() -> void:
+	var ship := _session.player().get_ship(_session.selected_ship)
+	if ship != null:
+		var target := "" if _session.player().person_ship_id == ship.id else ship.id
+		_session.execute(MovePersonCommand.new(target))
 
 
 func _refresh_summary(ships: Array[ShipState]) -> void:
@@ -220,6 +305,8 @@ func _describe(ship: ShipState) -> String:
 			where += " at 1/%d speed (storm)" % slowdown
 	var cargo := "cargo %d/%d" % [ship.cargo_total(), ship_type.capacity]
 	var text := "%s (%s), %s, %s" % [ship.name, ship_type.name, where, cargo]
+	if ship.captain_id.is_empty():
+		text += ", no captain"
 	if not ship.route_id.is_empty():
 		text += ", on %s" % _session.player().get_route(ship.route_id).name
 	return text

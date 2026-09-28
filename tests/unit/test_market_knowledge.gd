@@ -40,7 +40,8 @@ func test_arriving_ship_shares_its_departure_report_not_newer_home_prices() -> v
 	var sim := SmallWorld.rival_simulation(1, "town")
 	var ship := sim.world.player().ships[0]
 	SmallWorld.set_stock(sim, "port", "grain", 40)
-	MarketKnowledgeSystem.observe_presence(sim.data, sim.world)
+	# The player stays ashore at home and keeps seeing it while the ship sails.
+	assert_eq(sim.execute(MovePersonCommand.new()), "")
 	assert_eq(sim.execute(SailCommand.new(WorldState.PLAYER_ID, ship.id, "town")), "")
 	SmallWorld.set_stock(sim, "port", "grain", 0)
 	MarketKnowledgeSystem.observe_presence(sim.data, sim.world)
@@ -51,6 +52,22 @@ func test_arriving_ship_shares_its_departure_report_not_newer_home_prices() -> v
 	var rival := sim.world.get_trader(SmallWorld.RIVAL_ID)
 	assert_eq(rival.market_book["port"].stock["grain"], 40)
 	assert_eq(sim.world.player().market_book["port"].stock["grain"], 0)
+
+
+func test_the_player_in_person_sees_only_the_port_they_are_ashore_in() -> void:
+	var sim := SmallWorld.simulation(1)
+	var player := sim.world.player()
+	var ship := player.ships[0]
+	assert_eq(player.person_ship_id, ship.id)
+	assert_eq(sim.execute(SailCommand.new(WorldState.PLAYER_ID, ship.id, "town")), "")
+	assert_false(MarketKnowledgeSystem.has_presence(sim.data, player, "port"))
+	for i in ship.voyage_hours:
+		sim.tick()
+	assert_eq(sim.execute(MovePersonCommand.new()), "")
+	assert_eq(player.person_city_id, "town")
+	assert_eq(sim.execute(SailCommand.new(WorldState.PLAYER_ID, ship.id, "port")), "")
+	assert_true(MarketKnowledgeSystem.has_presence(sim.data, player, "town"))
+	assert_false(MarketKnowledgeSystem.has_presence(sim.data, player, "port"))
 
 
 func test_planner_uses_only_remembered_prices() -> void:

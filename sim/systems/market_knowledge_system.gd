@@ -4,9 +4,10 @@ extends RefCounted
 ## its departure report with other houses' ships in port; nobody gets the live remote market.
 
 
-## At M12 the player is ashore in the starting city until M13 adds movement for the person.
-static func has_presence(data: GameData, trader: TraderState, city_id: String) -> bool:
-	if trader.id == WorldState.PLAYER_ID and city_id == data.scenario.start_city:
+## A house sees a market through a docked ship or a kontor, and the player also in person ashore
+## (aboard, the ship's own presence counts).
+static func has_presence(_data: GameData, trader: TraderState, city_id: String) -> bool:
+	if trader.person_city_id == city_id:
 		return true
 	if trader.get_kontor(city_id) != null:
 		return true

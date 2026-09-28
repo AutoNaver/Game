@@ -77,6 +77,7 @@ func _ready() -> void:
 	add_child(save_menu)
 	save_menu.setup(session)
 	start.setup(session, save_menu)
+	session.game_over.connect(start.show_game_over)
 	session.save_menu_requested.connect(save_menu.open)
 	var route_editor := RouteEditor.new()
 	route_editor.name = "RouteEditor"

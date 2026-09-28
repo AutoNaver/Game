@@ -20,7 +20,11 @@ func validate(sim: Simulation) -> String:
 	var city := _market(sim)
 	var room := _hold_capacity(sim) - _hold(sim).cargo_total()
 	var cost := CityEconomy.buy_cost(
-		sim.data.economy, city, good, mini(quantity, city.stock[good_id])
+		sim.data.economy,
+		city,
+		good,
+		mini(quantity, city.stock[good_id]),
+		CaptainSystem.trade_spread(sim.data, _trader(sim), ship_id)
 	)
 	if quantity > city.stock[good_id]:
 		var city_name := sim.data.get_city(city.id).name
@@ -34,7 +38,10 @@ func validate(sim: Simulation) -> String:
 
 func apply(sim: Simulation) -> void:
 	var city := _market(sim)
-	var cost := CityEconomy.buy_cost(sim.data.economy, city, sim.data.get_good(good_id), quantity)
+	var spread := CaptainSystem.trade_spread(sim.data, _trader(sim), ship_id)
+	var cost := CityEconomy.buy_cost(
+		sim.data.economy, city, sim.data.get_good(good_id), quantity, spread
+	)
 	_trader(sim).coins -= cost
 	city.stock[good_id] -= quantity
 	_hold(sim).change_cargo(good_id, quantity)

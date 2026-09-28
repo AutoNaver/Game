@@ -27,7 +27,9 @@ extends RefCounted
 ## added as a new game starts them (newer cities come after the older ones in data order).
 ## Version 8 added a market book per trader and ships' departure reports (ADR 0013). Older saves
 ## begin with current reports for every city, then learn only where each trader has presence.
-const SAVE_VERSION: int = 8
+## Version 9 added captains, taverns, the player's location and house debt (ADR 0014). Older
+## saves give every ship a captain and put the player aboard their first ship.
+const SAVE_VERSION: int = 9
 const OLDEST_SUPPORTED_VERSION: int = 1
 const SAVE_DIR: String = "user://saves"
 ## Longest slot name the player can type.
@@ -79,12 +81,21 @@ static func to_dict(world: WorldState) -> Dictionary:
 				}
 			)
 		)
+	var taverns: Array = []
+	for city in world.cities:
+		var pool: Array = world.taverns.get(city.id, [])
+		var candidates: Array = []
+		for captain: CaptainState in pool:
+			candidates.append(_captain_to_dict(captain))
+		taverns.append({"city": city.id, "captains": candidates})
 	return {
 		"save_version": SAVE_VERSION,
 		"hour": world.hour,
 		"rng_seed": str(world.rng.seed),
 		"rng_state": str(world.rng.state),
 		"next_ship_number": world.next_ship_number,
+		"next_captain_number": world.next_captain_number,
+		"taverns": taverns,
 		"next_workshop_number": world.next_workshop_number,
 		"next_route_number": world.next_route_number,
 		"next_event_number": world.next_event_number,
@@ -172,6 +183,8 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 	world.rng.seed = rng_seed
 	world.rng.state = rng_state
 	world.next_ship_number = _int(save, "next_ship_number", "save")
+	if version >= 9:
+		world.next_captain_number = _int(save, "next_captain_number", "save")
 	world.next_workshop_number = _int(save, "next_workshop_number", "save")
 	if version >= 3:
 		world.next_route_number = _int(save, "next_route_number", "save")
@@ -210,6 +223,14 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 			var newer := version < 4 or rival.since_save > version
 			if newer and world.get_trader(rival.id) == null:
 				Simulation.add_rival(world, rival)
+	if version >= 9:
+		_read_taverns(data, world, _array(save, "taverns", "save"))
+	elif errors.is_empty():
+		var player := world.player()
+		if player != null:
+			player.person_ship_id = player.ships[0].id if not player.ships.is_empty() else ""
+			player.person_city_id = data.scenario.start_city if player.ships.is_empty() else ""
+		CaptainSystem.crew_starting_ships(data, world)
 	if version < 8 and errors.is_empty():
 		_migrate_market_books(data, world)
 	_check_unique_ids(data, world)
@@ -240,6 +261,8 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 	for trader in world.traders:
 		for ship in trader.ships:
 			_see_id(seen, ship.id, "ship")
+		for captain in trader.captains:
+			_see_id(seen, captain.id, "captain")
 		for kontor in trader.kontors_in_order(data.cities):
 			for workshop in kontor.workshops:
 				_see_id(seen, workshop.id, "workshop")
@@ -247,8 +270,13 @@ func _check_unique_ids(data: GameData, world: WorldState) -> void:
 			_see_id(seen, route.id, "route")
 	for event in world.events:
 		_see_id(seen, event.id, "event")
+	for city in data.cities:
+		var pool: Array = world.taverns.get(city.id, [])
+		for captain: CaptainState in pool:
+			_see_id(seen, captain.id, "captain")
 	var next_numbers: Dictionary[String, int] = {
 		"ship": world.next_ship_number,
+		"captain": world.next_captain_number,
 		"workshop": world.next_workshop_number,
 		"route": world.next_route_number,
 		"event": world.next_event_number,
@@ -295,6 +323,7 @@ static func _trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Di
 					"id": ship.id,
 					"type": ship.type_id,
 					"name": ship.name,
+					"captain": ship.captain_id,
 					"cargo": ship.cargo.duplicate(),
 					"docked_at": ship.docked_at,
 					"origin": ship.origin,
@@ -339,6 +368,9 @@ static func _trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Di
 		)
 	kontors.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["city"] < b["city"])
 	var routes: Array = []
+	var captains: Array = []
+	for captain in trader.captains:
+		captains.append(_captain_to_dict(captain))
 	for route in trader.routes:
 		var stops: Array = []
 		for stop in route.stops:
@@ -365,10 +397,29 @@ static func _trader_to_dict(trader: TraderState, cities: Array[CityState]) -> Di
 		"id": trader.id,
 		"name": trader.name,
 		"coins": trader.coins,
+		"debt": trader.debt,
+		"debt_days": trader.debt_days,
+		"bankrupt": trader.bankrupt,
+		"person_ship": trader.person_ship_id,
+		"person_city": trader.person_city_id,
+		"captains": captains,
 		"ships": ships,
 		"kontors": kontors,
 		"routes": routes,
 		"market_book": market_book,
+	}
+
+
+static func _captain_to_dict(captain: CaptainState) -> Dictionary:
+	return {
+		"id": captain.id,
+		"name": captain.name,
+		"wage": captain.wage,
+		"seamanship": captain.seamanship,
+		"trading": captain.trading,
+		"voyages": captain.voyages,
+		"city": captain.city_id,
+		"ship": captain.ship_id,
 	}
 
 
@@ -502,6 +553,17 @@ func _read_trader(
 	var trader := TraderState.new(
 		_string(raw, "id", ctx), _string(raw, "name", ctx), _int(raw, "coins", ctx)
 	)
+	if version >= 9:
+		trader.debt = _int(raw, "debt", ctx)
+		trader.debt_days = _int(raw, "debt_days", ctx)
+		trader.bankrupt = _bool(raw, "bankrupt", ctx)
+		trader.person_ship_id = _string(raw, "person_ship", ctx)
+		trader.person_city_id = _string(raw, "person_city", ctx)
+		var raw_captains := _array(raw, "captains", ctx)
+		for i in raw_captains.size():
+			var captain := _read_captain(raw_captains[i], "%s captains[%d]" % [ctx, i])
+			if captain != null:
+				trader.captains.append(captain)
 	if version >= 3:
 		var routes := _array(raw, "routes", ctx)
 		for i in routes.size():
@@ -515,6 +577,8 @@ func _read_trader(
 			continue
 		if version >= 6:
 			ship.spoil_carry = _carry(data, ships[i] as Dictionary, "%s ships[%d]" % [ctx, i])
+		if version >= 9:
+			ship.captain_id = _string(ships[i], "captain", "%s ships[%d]" % [ctx, i])
 		if version >= 8:
 			if not (ships[i] as Dictionary).has("news"):
 				errors.append("%s ships[%d]: missing news" % [ctx, i])
@@ -548,6 +612,48 @@ func _read_trader(
 				errors.append("%s: duplicate market report for %s" % [ctx, record.city_id])
 			trader.market_book[record.city_id] = record
 	return trader
+
+
+func _read_captain(raw_value: Variant, ctx: String) -> CaptainState:
+	if not raw_value is Dictionary:
+		errors.append("%s: must be an object" % ctx)
+		return null
+	var raw: Dictionary = raw_value
+	var captain := CaptainState.new(
+		_string(raw, "id", ctx),
+		_string(raw, "name", ctx),
+		_int(raw, "wage", ctx),
+		_string(raw, "city", ctx)
+	)
+	captain.ship_id = _string(raw, "ship", ctx)
+	captain.seamanship = _int(raw, "seamanship", ctx)
+	captain.trading = _int(raw, "trading", ctx)
+	captain.voyages = _int(raw, "voyages", ctx)
+	return captain
+
+
+func _read_taverns(data: GameData, world: WorldState, entries: Array) -> void:
+	if entries.size() != data.cities.size():
+		errors.append(
+			"save has %d taverns, the game has %d cities" % [entries.size(), data.cities.size()]
+		)
+		return
+	for i in entries.size():
+		var ctx := "taverns[%d]" % i
+		if not entries[i] is Dictionary:
+			errors.append("%s: must be an object" % ctx)
+			continue
+		var raw: Dictionary = entries[i]
+		var city_id := _string(raw, "city", ctx)
+		if city_id != data.cities[i].id:
+			errors.append("%s: expected city '%s'" % [ctx, data.cities[i].id])
+		var pool: Array[CaptainState] = []
+		var candidates := _array(raw, "captains", ctx)
+		for j in candidates.size():
+			var captain := _read_captain(candidates[j], "%s captains[%d]" % [ctx, j])
+			if captain != null:
+				pool.append(captain)
+		world.taverns[city_id] = pool
 
 
 ## An untrusted market report: all goods must be present. Quotes aren't saved but derived from the
@@ -833,6 +939,14 @@ func _string(raw: Dictionary, field: String, ctx: String) -> String:
 		return value as String
 	errors.append("%s: '%s' must be a string" % [ctx, field])
 	return ""
+
+
+func _bool(raw: Dictionary, field: String, ctx: String) -> bool:
+	var value: Variant = raw.get(field)
+	if value is bool:
+		return value as bool
+	errors.append("%s: '%s' must be a boolean" % [ctx, field])
+	return false
 
 
 func _dict(raw: Dictionary, field: String, ctx: String) -> Dictionary:

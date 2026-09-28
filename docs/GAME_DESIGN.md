@@ -125,11 +125,12 @@ Market knowledge is in play. The remaining progression in
 1. **What you know (M12).** You see live prices only where you have presence: you in person, a
    docked ship or a kontor. Elsewhere you see your last known prices and their age. Ships bring
    news and harbour gossip; the planner works from what you know. Rivals follow the same rules.
-   Until M13, you remain ashore in the starting city. Details are in
+   Details are in
    [ADR 0013](adr/0013-market-knowledge.md).
-2. **Who sails for you (M13).** You start as the captain of your own ship. More ships need hired
-   captains (tavern pools, wages, seamanship and trading skills that improve with voyages), and
-   only captained ships follow trade routes.
+2. **Who sails for you (M13).** You travel aboard one of your ships or stay ashore in a port.
+   Every ship needs a hired captain (tavern pools, wages, seamanship and trading skills that
+   improve with voyages); your starting ships come with one. Only captained ships follow trade
+   routes, and wages you can't pay become debt that ends in bankruptcy (ADR 0014).
 3. **Where you are established (M14).** Kontors also give presence and a factor with standing
    orders. Reputation per city and ranks (Skipper, Merchant, Trading house, Councillor, Alderman)
    gate kontors abroad, larger ships and later actions.

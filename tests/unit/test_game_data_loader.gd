@@ -190,6 +190,7 @@ func test_missing_directory_reports_each_file() -> void:
 		files.append(message.get_slice(":", 0))
 	var expected_files: Array[String] = [
 		"economy.json",
+		"captains.json",
 		"population.json",
 		"goods.json",
 		"map.json",

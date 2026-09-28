@@ -29,7 +29,8 @@ func test_rivals_grow_for_a_year_without_breaking_invariants() -> void:
 		assert_gt(worth, start_worth[rival.id] * 5, "%s grew" % rival.name)
 		assert_eq(trader.ships.size(), data.rival_ai.max_ships, "%s filled its fleet" % rival.name)
 		assert_gt(trader.kontors.size(), 0, "%s bought a kontor" % rival.name)
-		assert_eq(sim.world.player().coins, data.scenario.coins, "the idle player is untouched")
+		var wages := DAYS * data.captains.daily_wage
+		assert_eq(sim.world.player().coins, data.scenario.coins - wages, "the player pays crew")
 
 
 func test_different_seeds_play_out_differently() -> void:

@@ -70,7 +70,7 @@ the UI's `GameSession`, which compares state before and after each step.
 
 The market panel, destination planner and route editor use the player's market book. Unknown cities
 have no quoted prices; remote reports show their observation day. Rivals use their own books for
-voyage choices. The player remains ashore in the starting city until M13 adds personal movement.
+voyage choices. The player in person counts as presence while ashore (ADR 0014).
 
 ## Determinism
 

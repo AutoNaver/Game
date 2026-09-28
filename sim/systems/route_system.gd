@@ -9,8 +9,10 @@ extends RefCounted
 
 static func run_hour(sim: Simulation) -> void:
 	for trader in sim.world.traders:
+		if trader.bankrupt:
+			continue
 		for ship in trader.ships:
-			if ship.route_id.is_empty() or not ship.is_docked():
+			if ship.route_id.is_empty() or not ship.is_docked() or ship.captain_id.is_empty():
 				continue
 			var route := trader.get_route(ship.route_id)
 			var stop := route.stops[ship.route_stop]

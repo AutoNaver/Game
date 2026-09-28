@@ -1,0 +1,9 @@
+{
+  "daily_wage": 8,
+  "tavern_pool_size": 2,
+  "hiring_fee": 40,
+  "seamanship_hours_per_level": 2,
+  "voyages_per_level": 10,
+  "max_skill": 5,
+  "bankruptcy_grace_days": 14
+}

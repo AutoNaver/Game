@@ -21,6 +21,16 @@ const BUILDINGS_FILE: String = "buildings.json"
 const SCENARIO_FILE: String = "scenario.json"
 const RIVALS_FILE: String = "rivals.json"
 const EVENTS_FILE: String = "events.json"
+const CAPTAINS_FILE: String = "captains.json"
+const CAPTAIN_FIELDS: PackedStringArray = [
+	"daily_wage",
+	"tavern_pool_size",
+	"hiring_fee",
+	"seamanship_hours_per_level",
+	"voyages_per_level",
+	"max_skill",
+	"bankruptcy_grace_days"
+]
 
 const ECONOMY_FIELDS: PackedStringArray = [
 	"days_of_cover",
@@ -114,6 +124,9 @@ func load_dir(dir: String) -> GameData:
 	var economy: Variant = _read_json(dir.path_join(ECONOMY_FILE), TYPE_DICTIONARY)
 	if economy != null:
 		data.economy = _parse_economy(economy as Dictionary, ECONOMY_FILE)
+	var captains: Variant = _read_json(dir.path_join(CAPTAINS_FILE), TYPE_DICTIONARY)
+	if captains != null:
+		data.captains = _parse_captains(captains as Dictionary, CAPTAINS_FILE)
 
 	var population: Variant = _read_json(dir.path_join(POPULATION_FILE), TYPE_DICTIONARY)
 	if population != null:
@@ -206,6 +219,23 @@ func load_dir(dir: String) -> GameData:
 func _read_array(path: String) -> Array:
 	var value: Variant = _read_json(path, TYPE_ARRAY)
 	return value as Array if value != null else []
+
+
+func _parse_captains(entry: Dictionary, ctx: String) -> CaptainDef:
+	var before := errors.size()
+	_check_fields(entry, CAPTAIN_FIELDS, ctx)
+	var wage := _get_positive_int(entry, "daily_wage", ctx)
+	var pool := _get_positive_int(entry, "tavern_pool_size", ctx)
+	var fee := _get_positive_int(entry, "hiring_fee", ctx)
+	var hours := _get_positive_int(entry, "seamanship_hours_per_level", ctx)
+	var voyages := _get_positive_int(entry, "voyages_per_level", ctx)
+	var skill := _get_positive_int(entry, "max_skill", ctx)
+	var grace := _get_positive_int(entry, "bankruptcy_grace_days", ctx)
+	if pool > 10 or skill > 10 or wage > 10000 or fee > 100000 or grace > 365:
+		_error(ctx, "captain balance exceeds its supported range")
+	if errors.size() > before:
+		return null
+	return CaptainDef.new(wage, pool, fee, hours, voyages, skill, grace)
 
 
 ## Returns the parsed top-level value, or null after reporting why it is unusable.

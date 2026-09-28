@@ -22,7 +22,11 @@ static func run_hour(sim: Simulation) -> void:
 		if not sim.data.has_rival(trader.id):
 			continue
 		for ship in trader.ships:
-			if ship.is_docked() and ship.route_id.is_empty():
+			if ship.captain_id.is_empty() and ship.is_docked():
+				var pool: Array = sim.world.taverns.get(ship.docked_at, [])
+				if not pool.is_empty():
+					sim.execute(HireCaptainCommand.new(trader.id, ship.id, pool[0].id))
+			if ship.is_docked() and ship.route_id.is_empty() and not ship.captain_id.is_empty():
 				_trade_and_sail(sim, trader, ship)
 
 

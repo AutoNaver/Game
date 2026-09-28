@@ -18,8 +18,8 @@ ships move, and the same information limits for rival houses.
   population, satisfaction, per-good stock, shortage, buy and sell quotes, and a 30-day observed
   mid-price history. A missing record means the market is unknown. History has gaps for days
   without presence, rather than silently drawing a current-price line through those days.
-- A trader sees the current market where it has a docked ship or kontor. Until M13 gives the
-  player a movable person, the player is also ashore in the scenario's starting city. Presence
+- A trader sees the current market where it has a docked ship or kontor, and the player
+  also in person while ashore (M13 gives the player a location, ADR 0014). Presence
   refreshes reports after commands and after each day's economy changes.
 - On sailing, a ship takes a detached report of its departure market. On arrival it observes the
   destination and exchanges its departure report with other houses' ships docked there. The

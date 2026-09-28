@@ -8,6 +8,14 @@ var name: String
 ## Never negative.
 var coins: int
 var ships: Array[ShipState] = []
+var captains: Array[CaptainState] = []
+## The player is aboard one ship or ashore in a city. Rivals do not have a person location.
+var person_ship_id: String = ""
+var person_city_id: String = ""
+## Wages owed, and consecutive days the house has remained in debt.
+var debt: int = 0
+var debt_days: int = 0
+var bankrupt: bool = false
 ## Kontors by city id. Iterate with kontors_in_order() so the order never depends on the dictionary.
 var kontors: Dictionary[String, KontorState] = {}
 ## Trade routes, in creation order.
@@ -27,6 +35,14 @@ func get_ship(ship_id: String) -> ShipState:
 	for ship in ships:
 		if ship.id == ship_id:
 			return ship
+	return null
+
+
+## Returns a hired captain, or null.
+func get_captain(captain_id: String) -> CaptainState:
+	for captain in captains:
+		if captain.id == captain_id:
+			return captain
 	return null
 
 

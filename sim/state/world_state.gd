@@ -18,6 +18,9 @@ var goods_ledger: Dictionary[String, int] = {}
 var traders: Array[TraderState] = []
 ## Ship ids are "ship_<n>", numbered in creation order so they are stable and deterministic.
 var next_ship_number: int = 1
+var next_captain_number: int = 1
+## Tavern candidates by city, in GameData city order when iterated.
+var taverns: Dictionary[String, Array] = {}
 ## Workshop ids are "workshop_<n>", numbered the same way.
 var next_workshop_number: int = 1
 ## Route ids are "route_<n>", numbered the same way.
@@ -64,6 +67,16 @@ func add_ship(
 	next_ship_number += 1
 	trader.ships.append(ship)
 	return ship
+
+
+## Hires a named captain with the next stable id and assigns them to a docked ship.
+func add_captain(trader: TraderState, name: String, wage: int, ship: ShipState) -> CaptainState:
+	var captain := CaptainState.new("captain_%d" % next_captain_number, name, wage)
+	next_captain_number += 1
+	captain.ship_id = ship.id
+	ship.captain_id = captain.id
+	trader.captains.append(captain)
+	return captain
 
 
 ## Creates a route with the next free id for `trader`.

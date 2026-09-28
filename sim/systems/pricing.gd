@@ -21,22 +21,34 @@ static func mid_price(economy: EconomyDef, base_price: int, target: int, positio
 ## Coins a trader pays for `quantity` units from a market holding `stock`.
 ## Rounded up, so rounding never favors the trader.
 static func buy_cost(
-	economy: EconomyDef, base_price: int, target: int, stock: int, quantity: int
+	economy: EconomyDef,
+	base_price: int,
+	target: int,
+	stock: int,
+	quantity: int,
+	spread: float = -1.0
 ) -> int:
 	assert(quantity >= 0 and quantity <= stock, "cannot buy %d of %d" % [quantity, stock])
 	var total := 0.0
 	for i in quantity:
 		total += mid_price(economy, base_price, target, stock - 1 - i)
-	return ceili(total * (1.0 + economy.spread / 2.0))
+	var effective_spread := economy.spread if spread < 0.0 else spread
+	return ceili(total * (1.0 + effective_spread / 2.0))
 
 
 ## Coins a trader receives for selling `quantity` units into a market holding `stock`.
 ## Rounded down, so rounding never favors the trader.
 static func sell_revenue(
-	economy: EconomyDef, base_price: int, target: int, stock: int, quantity: int
+	economy: EconomyDef,
+	base_price: int,
+	target: int,
+	stock: int,
+	quantity: int,
+	spread: float = -1.0
 ) -> int:
 	assert(quantity >= 0 and stock >= 0, "invalid sale of %d into %d" % [quantity, stock])
 	var total := 0.0
 	for i in quantity:
 		total += mid_price(economy, base_price, target, stock + i)
-	return floori(total * (1.0 - economy.spread / 2.0))
+	var effective_spread := economy.spread if spread < 0.0 else spread
+	return floori(total * (1.0 - effective_spread / 2.0))

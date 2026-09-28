@@ -6,6 +6,8 @@ extends Hold
 var id: String
 var type_id: String
 var name: String
+## Empty when nobody can command this ship.
+var captain_id: String = ""
 ## City the ship is docked in; empty while at sea.
 var docked_at: String = ""
 ## The current voyage; only meaningful while at sea.

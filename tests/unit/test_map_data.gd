@@ -28,7 +28,13 @@ func test_bad_import_factors_and_river_lanes_are_reported() -> void:
 		errors, "cities.json[0]: 'import_factor' must be a number at least 0.0 and at most 10.0"
 	)
 	assert_has(errors, "sea_lanes.json rivers[0]: unknown node 'nowhere'")
-	assert_has(errors, "rivals.json houses[0]: 'since_save' must be at most the save version 8")
+	assert_has(
+		errors,
+		(
+			"rivals.json houses[0]: 'since_save' must be at most the save version %d"
+			% SaveGame.SAVE_VERSION
+		)
+	)
 
 
 func test_a_city_with_more_links_beyond_the_map_imports_more() -> void:

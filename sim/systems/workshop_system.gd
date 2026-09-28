@@ -42,6 +42,7 @@ static func _run(
 	var due := wages(workshop_type, staffing)
 	if trader.coins < due:
 		workshop.status = WorkshopState.Status.UNPAID
+		trader.debt += due
 		return
 	trader.coins -= due
 	workshop.progress += staffing
