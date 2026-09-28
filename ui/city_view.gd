@@ -2,22 +2,35 @@ class_name CityView
 extends Control
 ## A visual town scene for the selected city. Plots are derived from stable workshop ids until
 ## construction makes positions part of the simulation in M17. Walkers use UI time only.
+## Like the sea map, the wheel zooms around the cursor, dragging pans, and a click selects.
 
 signal landmark_selected(section: String)
 
+const LANDMARKS: Array[String] = ["market", "tavern", "shipyard", "kontor", "town_hall"]
 const GRID_SIZE: int = 14
 const MAX_WALKERS: int = 24
+const MIN_ZOOM: float = 0.7
+const MAX_ZOOM: float = 2.2
+## Tile width at zoom 1 is the largest that fits this many tiles across and down the view, so the
+## whole town (walls, quay and moored ships) shows on entry. Capped by MAX_TILE_WIDTH.
+const VIEW_TILES: Vector2 = Vector2(14.0, 8.3)
+const MAX_TILE_WIDTH: float = 64.0
+## Screen depth, in tile widths below the town's north corner, shown at the view's centre: midway
+## between the tallest roofs at the back and the harbour wall at the front.
+const VIEW_CENTRE_DEPTH: float = 2.75
 const GROUND: Color = Color("#6b7850")
 const ROAD: Color = Color("#a7a18a")
 const WALL: Color = Color("#c0ae89")
 const WATER: Color = Color("#244354")
 const PLAYER: Color = Color("#d4ae5a")
 const LABEL_OUTLINE: Color = Color("#18232b")
+const PLAQUE: Color = Color("#232b24d9")
 
 var _session: GameSession
 var _phase: float = 0.0
 var _zoom: float = 1.0
 var _pan := Vector2.ZERO
+var _press_position := Vector2.ZERO
 var _dragging: bool = false
 var _art := CityArt.new()
 var _hovered: String = ""
@@ -30,7 +43,8 @@ func setup(session: GameSession) -> void:
 	focus_mode = Control.FOCUS_ALL
 	clip_contents = true
 	_session.changed.connect(queue_redraw)
-	resized.connect(queue_redraw)
+	resized.connect(_clamp_pan)
+	mouse_exited.connect(_set_hovered.bind(""))
 	set_process(false)
 
 
@@ -41,7 +55,7 @@ func set_city_visible(value: bool) -> void:
 		reset_camera()
 	else:
 		_dragging = false
-		_hovered = ""
+		_set_hovered("")
 
 
 func _process(delta: float) -> void:
@@ -58,9 +72,9 @@ func _draw() -> void:
 	if city_def == null:
 		return
 	var variant := _city_variant(city_id)
-	var road_col := 5 + variant % 3
-	@warning_ignore("integer_division")
-	var road_row := 5 + variant / 3
+	var crossing := _main_crossing(variant)
+	var road_col := crossing.x
+	var road_row := crossing.y
 	_draw_ground(variant, road_col, road_row)
 	_draw_waterfront(road_col, road_row)
 	_draw_neighbourhood(city_id, variant, road_col, road_row)
@@ -148,19 +162,20 @@ func _draw_neighbourhood(city_id: String, variant: int, road_col: int, road_row:
 	var items: Array[Dictionary] = []
 	var reserved := _landmark_tiles(road_col, road_row)
 	var workshops := workshop_plots()
+	var workshop_tiles := workshops.values()
 	for y in range(0, GRID_SIZE):
 		for x in range(0, GRID_SIZE - 2):
 			if x == road_col or y == road_row or (y == road_row + 3 and x >= road_col):
 				continue
 			var plot := Vector2i(x, y)
-			if reserved.has(plot) or workshops.values().has(plot):
+			if reserved.has(plot) or workshop_tiles.has(plot):
 				continue
 			var seed_value := x * 13 + y * 17 + variant * 19
 			if seed_value % 7 > 4:
 				continue
 			var kind := "house" if seed_value % 7 < 3 else "tree"
 			items.append({"at": _tile_center(x, y), "kind": kind, "seed": seed_value})
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+	for section in LANDMARKS:
 		var plot := _landmark_tile(section, road_col, road_row)
 		items.append({"at": _tile_center(plot.x, plot.y), "kind": "landmark", "section": section})
 	for trader in _session.sim.world.traders:
@@ -229,10 +244,13 @@ func _draw_neighbourhood(city_id: String, variant: int, road_col: int, road_row:
 	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.at.y < b.at.y)
 	for item in items:
 		_draw_item(item)
-	# Labels are drawn last so roofs cannot hide navigation targets.
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+	# Plaques are drawn last so roofs cannot hide navigation targets. They sit on the street in
+	# front of each landmark, inside its click area.
+	for section in LANDMARKS:
 		var at := landmark_center(section)
-		_draw_label(at + Vector2(0, 18 * _tile_width() / 64), _landmark_name(section), 12)
+		_draw_plaque(
+			at + Vector2(0, 18 * _tile_width() / 64), _landmark_name(section), section == _hovered
+		)
 
 
 func _draw_item(item: Dictionary) -> void:
@@ -287,29 +305,32 @@ func workshop_plots() -> Dictionary[String, Vector2i]:
 	if _session == null or _session.sim == null:
 		return result
 	var variant := _city_variant(_session.selected_city)
-	var road_col := 5 + variant % 3
-	@warning_ignore("integer_division")
-	var road_row := 5 + variant / 3
+	var crossing := _main_crossing(variant)
+	var road_col := crossing.x
+	var road_row := crossing.y
 	var reserved := _landmark_tiles(road_col, road_row)
 	var candidates: Array[Vector2i] = []
+	# The two columns by the harbour are paved quay, so workshops stay inland like houses.
 	for y in range(1, GRID_SIZE - 1):
-		for x in range(1, GRID_SIZE - 1):
+		for x in range(1, GRID_SIZE - 2):
 			var plot := Vector2i(x, y)
 			if x == road_col or y == road_row or (y == road_row + 3 and x >= road_col):
 				continue
 			if not reserved.has(plot):
 				candidates.append(plot)
-	var ids := PackedStringArray()
+	var ids: Array[String] = []
 	for trader in _session.sim.world.traders:
 		var kontor := trader.get_kontor(_session.selected_city)
 		if kontor != null:
 			for workshop in kontor.workshops:
 				ids.append(workshop.id)
-	ids.sort()
+	# Numeric order places older workshops first, so building a new one never moves them.
+	ids.sort_custom(
+		func(a: String, b: String) -> bool: return _workshop_number(a) < _workshop_number(b)
+	)
 	var occupied: Array[Vector2i] = []
 	for id in ids:
-		@warning_ignore("integer_division")
-		var start := (int(id.trim_prefix("workshop_")) * 37 + variant * 11) % candidates.size()
+		var start := (_workshop_number(id) * 37 + variant * 11) % candidates.size()
 		for offset in candidates.size():
 			var plot := candidates[(start + offset) % candidates.size()]
 			if not occupied.has(plot):
@@ -317,6 +338,10 @@ func workshop_plots() -> Dictionary[String, Vector2i]:
 				occupied.append(plot)
 				break
 	return result
+
+
+func _workshop_number(id: String) -> int:
+	return int(id.trim_prefix("workshop_"))
 
 
 func _draw_title(city_name: String) -> void:
@@ -335,7 +360,7 @@ func _draw_title(city_name: String) -> void:
 	draw_string(
 		font,
 		origin + Vector2(12, 44),
-		"Wheel: zoom · Right-drag: pan · Home: reset",
+		"Wheel: zoom · Drag: pan · Home: reset",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		12,
@@ -351,6 +376,29 @@ func _title_style() -> StyleBoxFlat:
 	return style
 
 
+## A landmark name on a dark plaque, outlined in gold while the pointer is over the landmark.
+func _draw_plaque(baseline: Vector2, value: String, hovered: bool) -> void:
+	var font := get_theme_default_font()
+	var font_size := 13
+	var width := font.get_string_size(value, 0, -1, font_size).x
+	var box := Rect2(baseline + Vector2(-width * 0.5 - 6, -14), Vector2(width + 12, 19))
+	var style := StyleBoxFlat.new()
+	style.bg_color = PLAQUE
+	style.border_color = PLAYER if hovered else Color("#8a7a58")
+	style.set_border_width_all(2 if hovered else 1)
+	style.set_corner_radius_all(3)
+	draw_style_box(style, box)
+	draw_string(
+		font,
+		baseline - Vector2(width * 0.5, 0),
+		value,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		font_size,
+		PLAYER if hovered else UiStyle.INK
+	)
+
+
 func _draw_label(at: Vector2, value: String, font_size: int) -> void:
 	var font := get_theme_default_font()
 	var width := font.get_string_size(value, 0, -1, font_size).x
@@ -362,14 +410,15 @@ func _draw_label(at: Vector2, value: String, font_size: int) -> void:
 
 
 func _tile_width() -> float:
-	return minf(64.0, minf(size.x / 13.0, size.y / 8.0)) * _zoom
+	var fit := size / VIEW_TILES
+	return minf(MAX_TILE_WIDTH, minf(fit.x, fit.y)) * _zoom
 
 
+## Screen position of a ground point in tile coordinates. The view's centre is the fixed point
+## that zoom_at scales around.
 func _tile_center(x: float, y: float) -> Vector2:
-	var unit := _tile_width()
-	return (
-		Vector2(size.x * 0.5 + (x - y) * unit * 0.5, size.y * 0.04 + (x + y) * unit * 0.25) + _pan
-	)
+	var iso := Vector2((x - y) * 0.5, (x + y) * 0.25 - VIEW_CENTRE_DEPTH)
+	return size * 0.5 + iso * _tile_width() + _pan
 
 
 func _city_variant(city_id: String) -> int:
@@ -379,9 +428,16 @@ func _city_variant(city_id: String) -> int:
 	return 0
 
 
+## Where the town's main street and cross street meet; the market square. Each city's position in
+## the data gives it a different street plan.
+func _main_crossing(variant: int) -> Vector2i:
+	@warning_ignore("integer_division")
+	return Vector2i(5 + variant % 3, 5 + variant / 3)
+
+
 func _landmark_tiles(road_col: int, road_row: int) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+	for section in LANDMARKS:
 		result.append(_landmark_tile(section, road_col, road_row))
 	return result
 
@@ -416,16 +472,15 @@ func _landmark_name(section: String) -> String:
 
 ## Screen centre of a landmark, useful to mouse and keyboard navigation tests.
 func landmark_center(section: String) -> Vector2:
-	var variant := _city_variant(_session.selected_city)
-	@warning_ignore("integer_division")
-	var tile := _landmark_tile(section, 5 + variant % 3, 5 + variant / 3)
+	var crossing := _main_crossing(_city_variant(_session.selected_city))
+	var tile := _landmark_tile(section, crossing.x, crossing.y)
 	return _tile_center(float(tile.x), float(tile.y))
 
 
 func landmark_at(point: Vector2) -> String:
 	var nearest := ""
 	var distance := INF
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+	for section in LANDMARKS:
 		var at := landmark_center(section)
 		var reach := _tile_width() * 0.55
 		var unit := _tile_width() / 64.0
@@ -443,45 +498,61 @@ func _gui_input(event: InputEvent) -> void:
 	if key != null and key.pressed and key.keycode == KEY_HOME:
 		reset_camera()
 		accept_event()
+		return
 	var button := event as InputEventMouseButton
 	if button != null:
-		grab_focus()
-		if button.button_index == MOUSE_BUTTON_RIGHT:
-			_dragging = button.pressed
-			accept_event()
-		if (
-			button.pressed
-			and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]
-		):
-			zoom_at(
-				button.position,
-				1.15 if button.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15
-			)
-			accept_event()
-	if button != null and button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
-		var section := landmark_at(button.position)
-		if not section.is_empty():
-			landmark_selected.emit(section)
-			accept_event()
+		_handle_button(button)
+		return
 	var motion := event as InputEventMouseMotion
-	if motion != null:
-		if _dragging and (motion.button_mask & MOUSE_BUTTON_MASK_RIGHT) != 0:
+	if motion == null:
+		return
+	if motion.button_mask & MOUSE_BUTTON_MASK_LEFT:
+		if motion.position.distance_to(_press_position) > MapView.DRAG_THRESHOLD:
+			_dragging = true
+		if _dragging:
 			_pan += motion.relative
 			_clamp_pan()
-			queue_redraw()
-		var section := landmark_at(motion.position)
-		tooltip_text = _landmark_name(section) if not section.is_empty() else ""
-		_hovered = section
+			accept_event()
+	_set_hovered("" if _dragging else landmark_at(motion.position))
+
+
+func _handle_button(button: InputEventMouseButton) -> void:
+	match button.button_index:
+		MOUSE_BUTTON_WHEEL_UP when button.pressed:
+			zoom_at(button.position, MapView.ZOOM_STEP)
+		MOUSE_BUTTON_WHEEL_DOWN when button.pressed:
+			zoom_at(button.position, 1.0 / MapView.ZOOM_STEP)
+		MOUSE_BUTTON_LEFT when button.pressed:
+			grab_focus()
+			_press_position = button.position
+			_dragging = false
+		MOUSE_BUTTON_LEFT:
+			# A drag pans the town; only a click without travel opens a landmark.
+			if not _dragging:
+				var section := landmark_at(button.position)
+				if not section.is_empty():
+					landmark_selected.emit(section)
+			_dragging = false
+		_:
+			return
+	accept_event()
+
+
+func _set_hovered(section: String) -> void:
+	_hovered = section
+	tooltip_text = _landmark_name(section) if not section.is_empty() else ""
+	mouse_default_cursor_shape = (
+		Control.CURSOR_ARROW if section.is_empty() else Control.CURSOR_POINTING_HAND
+	)
 
 
 ## Zoom around the cursor so the inspected building stays under the pointer.
 func zoom_at(point: Vector2, factor: float) -> void:
 	var old := _zoom
-	_zoom = clampf(_zoom * factor, 0.7, 2.2)
-	var origin := Vector2(size.x * 0.5, size.y * 0.04)
-	_pan = point - origin - (point - origin - _pan) * (_zoom / old)
+	_zoom = clampf(_zoom * factor, MIN_ZOOM, MAX_ZOOM)
+	var centre := size * 0.5
+	_pan = point - centre - (point - centre - _pan) * (_zoom / old)
 	_clamp_pan()
-	queue_redraw()
 
 
 func reset_camera() -> void:
@@ -491,5 +562,12 @@ func reset_camera() -> void:
 	queue_redraw()
 
 
+## Keeps the view's centre within the town's ground, so the player can't lose it in open water.
 func _clamp_pan() -> void:
-	_pan = _pan.clamp(-size * _zoom, size * _zoom)
+	var unit := _tile_width()
+	# The ground diamond spans half a tile width per tile each side, and a quarter per tile down.
+	var half_width := float(GRID_SIZE - 1) * 0.5 * unit
+	var north := -VIEW_CENTRE_DEPTH * unit
+	var south := (float(GRID_SIZE - 1) * 0.5 - VIEW_CENTRE_DEPTH) * unit
+	_pan = Vector2(clampf(_pan.x, -half_width, half_width), clampf(_pan.y, -south, -north))
+	queue_redraw()

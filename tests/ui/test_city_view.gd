@@ -69,7 +69,7 @@ func test_departing_last_ship_returns_to_map() -> void:
 func test_landmarks_are_clickable_and_focus_existing_controls() -> void:
 	_toggle.pressed.emit()
 	await wait_process_frames(1)
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+	for section in CityView.LANDMARKS:
 		assert_eq(_city.landmark_at(_city.landmark_center(section)), section)
 	var scroll := _main.find_child("Scroll", true, false) as ScrollContainer
 	var release := InputEventMouseButton.new()
@@ -92,7 +92,7 @@ func test_all_nine_city_layouts_have_distinct_landmarks() -> void:
 		_session.select_city(city.id)
 		_toggle.pressed.emit()
 		assert_true(_city.visible, "%s has a town view" % city.id)
-		for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
+		for section in CityView.LANDMARKS:
 			var centre := _city.landmark_center(section)
 			assert_true(Rect2(Vector2.ZERO, _city.size).has_point(centre))
 		markets.append(_city.landmark_center("market"))
@@ -122,7 +122,23 @@ func test_workshops_appear_and_disappear_without_saved_plot_state() -> void:
 	assert_false(_city.workshop_plots().has(workshop.id))
 
 
-func test_camera_keeps_cursor_anchor_and_landmark_navigation() -> void:
+func test_new_workshops_never_move_older_ones() -> void:
+	_session.player().coins = 20_000
+	assert_true(_session.execute(BuyKontorCommand.new(WorldState.PLAYER_ID, "lubeck")))
+	var workshops := _session.player().get_kontor("lubeck").workshops
+	workshops.append(WorkshopState.new("workshop_5", "brewery"))
+	var plot: Vector2i = _city.workshop_plots()["workshop_5"]
+	# Ids past 99 sort before "workshop_5" as text; some of them hash to its plot.
+	for number in range(6, 1000):
+		workshops.append(WorkshopState.new("workshop_%d" % number, "brewery"))
+		if _city.workshop_plots()["workshop_5"] != plot:
+			fail_test("workshop_%d moved workshop_5" % number)
+			return
+		workshops.pop_back()
+	pass_test("workshop_5 kept its plot")
+
+
+func test_drag_pans_zoom_keeps_cursor_anchor_and_home_resets() -> void:
 	_toggle.pressed.emit()
 	var before := SaveGame.to_dict(_session.sim.world)
 	var anchor := _city.landmark_center("market")
@@ -132,21 +148,12 @@ func test_camera_keeps_cursor_anchor_and_landmark_navigation() -> void:
 	wheel.position = anchor
 	_city._gui_input(wheel)
 	assert_almost_eq(_city.landmark_center("market"), anchor, Vector2(0.01, 0.01))
-	var right := InputEventMouseButton.new()
-	right.button_index = MOUSE_BUTTON_RIGHT
-	right.pressed = true
-	_city._gui_input(right)
-	var motion := InputEventMouseMotion.new()
-	motion.button_mask = MOUSE_BUTTON_MASK_RIGHT
-	motion.relative = Vector2(53, 31)
-	_city._gui_input(motion)
-	assert_almost_eq(_city.landmark_center("market"), anchor + motion.relative, Vector2(0.01, 0.01))
-	for section: String in ["market", "tavern", "shipyard", "kontor", "town_hall"]:
-		assert_eq(_city.landmark_at(_city.landmark_center(section)), section)
 	watch_signals(_city)
-	right.pressed = false
-	_city._gui_input(right)
-	assert_signal_not_emitted(_city, "landmark_selected", "panning does not activate a landmark")
+	_drag(anchor, Vector2(53, 31))
+	assert_almost_eq(_city.landmark_center("market"), anchor + Vector2(53, 31), Vector2(0.01, 0.01))
+	assert_signal_not_emitted(_city, "landmark_selected", "a drag pans instead of selecting")
+	for section in CityView.LANDMARKS:
+		assert_eq(_city.landmark_at(_city.landmark_center(section)), section)
 	var home := InputEventKey.new()
 	home.keycode = KEY_HOME
 	home.pressed = true
@@ -155,14 +162,61 @@ func test_camera_keeps_cursor_anchor_and_landmark_navigation() -> void:
 	assert_eq(SaveGame.to_dict(_session.sim.world), before)
 
 
-func test_camera_limits_and_reentry_restore_a_reachable_city() -> void:
+func test_click_without_travel_selects_landmark() -> void:
+	_toggle.pressed.emit()
+	watch_signals(_city)
+	_drag(_city.landmark_center("kontor"), Vector2(2, 1))
+	assert_signal_emitted_with_parameters(_city, "landmark_selected", ["kontor"])
+
+
+func test_camera_limits_keep_the_town_in_view() -> void:
 	_toggle.pressed.emit()
 	var anchor := _city.landmark_center("market")
 	_city.zoom_at(anchor, 1000)
-	assert_eq(_city._zoom, 2.2)
+	assert_eq(_city._zoom, CityView.MAX_ZOOM)
 	_city.zoom_at(anchor, 0.0001)
-	assert_eq(_city._zoom, 0.7)
+	assert_eq(_city._zoom, CityView.MIN_ZOOM)
+	_city.zoom_at(anchor, 1000)
+	var centre := _city.size * 0.5
+	for direction: Vector2 in [Vector2(1, 1), Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1)]:
+		_drag(centre, direction * 100_000)
+		var town := Rect2(_city._tile_center(0, 0), Vector2.ZERO)
+		for corner: Vector2 in [Vector2(13, 0), Vector2(0, 13), Vector2(13, 13)]:
+			town = town.expand(_city._tile_center(corner.x, corner.y))
+		# has_point excludes the far edges, where the clamp stops exactly.
+		assert_true(
+			town.grow(0.5).has_point(centre), "view centre stays over the town after %s" % direction
+		)
 	_toggle.pressed.emit()
 	_toggle.pressed.emit()
 	assert_eq(_city.landmark_center("market"), anchor)
 	assert_eq(_city._zoom, 1.0)
+
+
+func test_whole_town_fits_on_entry_at_1280x720() -> void:
+	_toggle.pressed.emit()
+	var view := Rect2(Vector2.ZERO, _city.size)
+	# North corner with room for the tallest roofs above it, and the harbour wall at the front.
+	var roofs := _city._tile_center(0, 0) - Vector2(0, _city._tile_width() * 1.4)
+	assert_true(view.has_point(roofs), "back roofs are below the top edge")
+	assert_true(view.has_point(_city._tile_center(13.5, 13.5)), "front wall is on screen")
+	assert_true(view.has_point(_city._tile_center(0, 13.5)), "west wall is on screen")
+
+
+## Presses the left button at `from`, moves by `travel`, and releases there.
+func _drag(from: Vector2, travel: Vector2) -> void:
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = from
+	_city._gui_input(press)
+	var motion := InputEventMouseMotion.new()
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	motion.position = from + travel
+	motion.relative = travel
+	_city._gui_input(motion)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = from + travel
+	_city._gui_input(release)

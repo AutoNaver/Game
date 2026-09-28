@@ -198,13 +198,16 @@ Deferred P2 review findings go here, with the PR they came from.
 City art follow-up from the owner's M16 visual feedback (2026-09-28):
 
 The first draft is accepted as a prototype. Use the supplied Patrician city screenshot and
-GAME_DESIGN's "City art direction" as the target for a dedicated visual pass.
+GAME_DESIGN's "City art direction" as the target for a dedicated visual pass. A second reference
+(2026-09-28) sets the longer-term aim: a town on a natural bay, with countryside beyond its walls.
 
 - [ ] Build one detailed harbour neighbourhood with original brick and half-timbered buildings,
   gabled roofs, textured cobbles, greenery, and consistent shadows; review its look with the owner
-- [ ] Add a closer camera with pan and zoom, depth sorting, and readable landmark selection
+- [x] Add a closer camera with pan and zoom, depth sorting, and readable landmark selection
 - [ ] Integrate quays, piers, sailing ships, cargo props, and market stalls into the shoreline;
   animate small citizens along the streets and near busy landmarks
+- [ ] Set each town on land around a bay or river mouth, with an irregular coastline, round-towered
+  walls with gates, and fields, farms, and forest outside; zoomed out, the town reads at a glance
 - [ ] Extend the shared artwork across all nine distinct city layouts, keeping workshop ownership
   clear and aligning building scale with M17's footprints and placement previews
 - [ ] Give the HUD and contextual side panel a parchment, wood, and brass treatment, with a Baltic

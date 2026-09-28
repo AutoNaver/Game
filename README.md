@@ -19,7 +19,8 @@ docked, what selling that cargo in the current port would pay at today's prices.
 Open the folder in Godot and press F5, or run `godot` from the repo root.
 
 Select a city where you are ashore, have a docked ship, or own a kontor, then click **Enter city**.
-Click a landmark to jump to its existing controls, and use **Sea map** to return.
+Click a landmark to jump to its existing controls, and use **Sea map** to return. As on the sea map,
+the mouse wheel zooms and dragging pans; **Home** resets the view.
 
 With cargo aboard a docked ship, **Cargo destinations** compares what other ports would pay for
 the entire load at today's prices. Its Sail button sends the ship through the normal command.
