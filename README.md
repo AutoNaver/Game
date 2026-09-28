@@ -4,7 +4,7 @@ A Hanseatic trading and economy game inspired by *Patrician*, built with Godot 4
 
 Status: **M16**: trade, production, routes, rivals, city growth, events, and progression through
 acquisitions are playable. A first isometric city view shows the nine ports, their workshops, and
-walking citizens; the M16 owner play-test is pending. See [docs/ROADMAP.md](docs/ROADMAP.md).
+walking citizens; drag to pan and scroll to zoom. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 The fleet panel summarizes ship locations and capacity. Select a ship to see its cargo and, while
 docked, what selling that cargo in the current port would pay at today's prices.

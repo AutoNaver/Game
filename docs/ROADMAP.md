@@ -157,7 +157,7 @@ existing simulation; building placement begins in M17.
 - [x] Walking citizens on the streets, scaled to the city's population and jobs but visual only
 - [x] Click the market, tavern, shipyard, kontor, or town hall to reach the corresponding existing controls and city information; keep the HUD, side panel, and notifications available in both views
 - [x] Returning to the sea map when city presence ends; UI tests for access, switching, landmarks, workshop changes, and saves
-- [ ] **Owner play-test** of the Windows build, with feedback turned into roadmap items
+- [x] **Owner play-test** of the Windows build, with feedback turned into roadmap items (2026-09-28: successful; visual feedback in the backlog's city art follow-up)
 
 ## M17: Building placement and construction
 
@@ -214,6 +214,15 @@ GAME_DESIGN's "City art direction" as the target for a dedicated visual pass. A 
   minimap and readable controls at 1280x720
 - [ ] **Owner play-test** of the visual pass at 1280x720, checking city navigation, landmark access,
   workshop selection, and readability in a dense neighbourhood
+
+Deferred from the M16 review (#29):
+
+- [ ] Workshops can shift plots when another closes: ids 104 to 106 apart hash to the same start
+  plot, so closing the older one lets the survivor probe into its slot (`CityView.workshop_plots`).
+  M17's saved plots should replace the derivation
+- [ ] Keyboard access to city landmarks: the city view handles only Home, and landmarks are
+  custom-drawn, so market, tavern, shipyard, kontor, and town hall need a pointer (parked by the
+  owner)
 
 Follow-ups from M14 (ADR 0015):
 
