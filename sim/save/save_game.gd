@@ -243,7 +243,7 @@ func from_dict(data: GameData, save: Dictionary) -> WorldState:
 		RankSystem.run_day(data, world)
 	if version >= 11:
 		world.next_offer_number = _int(save, "next_offer_number", "save")
-		_read_offers(data, world, _array(save, "offers", "save"))
+		_read_offers(data, world, _array(save, "offers", "save"), current_day)
 	_check_unique_ids(data, world)
 	if errors.is_empty():
 		_check_trader_order(data, world)
@@ -455,8 +455,6 @@ func _read_trader(
 				trader.captains.append(captain)
 	if version >= 10:
 		trader.rank_id = _string(raw, "rank", ctx)
-	if version >= 11:
-		trader.sale_end_day = _int(raw, "sale_end_day", ctx)
 		if data.rank_index(trader.rank_id) < 0:
 			errors.append("%s: unknown rank '%s'" % [ctx, trader.rank_id])
 		var reputation := _dict(raw, "reputation", ctx)
@@ -470,6 +468,12 @@ func _read_trader(
 				errors.append("%s reputation: %s %d outside 1 to %d" % bounds)
 			else:
 				trader.reputation[city_id] = points
+	if version >= 11:
+		trader.sale_end_day = _int(raw, "sale_end_day", ctx)
+		var selling := trader.bankrupt and trader.id != WorldState.PLAYER_ID
+		if selling and trader.sale_end_day <= current_day:
+			var ended := [ctx, trader.sale_end_day, current_day]
+			errors.append("%s: sale_end_day %d must be after day %d" % ended)
 	if version >= 3:
 		var routes := _array(raw, "routes", ctx)
 		for i in routes.size():
@@ -801,9 +805,10 @@ func _read_kontor(data: GameData, raw_value: Variant, ctx: String, version: int)
 	return kontor
 
 
-## Offers from known rivals for the player's assets, each with a known kind and a positive price.
+## Offers from known rivals for the player's assets, each with a known kind, a positive price and
+## a last day not yet past.
 ## Whether the asset still exists is checked when the player accepts.
-func _read_offers(data: GameData, world: WorldState, entries: Array) -> void:
+func _read_offers(data: GameData, world: WorldState, entries: Array, current_day: int) -> void:
 	for i in entries.size():
 		var ctx := "offers[%d]" % i
 		if not entries[i] is Dictionary:
@@ -826,6 +831,10 @@ func _read_offers(data: GameData, world: WorldState, entries: Array) -> void:
 			errors.append("%s: unknown buyer '%s'" % [ctx, offer.buyer_id])
 		if offer.price <= 0:
 			errors.append("%s: price must be positive" % ctx)
+		if offer.last_day < current_day:
+			errors.append(
+				"%s: lapsed on day %d, before day %d" % [ctx, offer.last_day, current_day]
+			)
 		world.offers.append(offer)
 
 

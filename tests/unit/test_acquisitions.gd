@@ -276,3 +276,32 @@ func test_offers_and_bankruptcy_sales_save_and_old_saves_have_none() -> void:
 	var loader := SaveGame.new()
 	assert_null(loader.from_dict(_sim.data, save))
 	assert_has(loader.errors, "offers[0]: unknown buyer 'player'")
+
+
+func test_a_version_10_save_keeps_its_reputation() -> void:
+	ReputationSystem.add(_sim.data, _player(), "town", 15)
+	var save := SaveGame.to_dict(_sim.world)
+	save["save_version"] = 10
+	save["traders"][0].erase("sale_end_day")
+	var loaded := SaveGame.new().from_dict(_sim.data, save)
+	assert_not_null(loaded)
+	assert_eq(loaded.player().reputation, {"town": 15})
+
+
+func test_lapsed_offers_and_ended_sales_in_saves_are_rejected() -> void:
+	_rival().coins = 50_000
+	_ok(BuyKontorCommand.new(PLAYER, "town"))
+	AcquisitionSystem.run_rival(_sim, _rival())
+	_sim.advance_days(1)
+	var save := SaveGame.to_dict(_sim.world)
+	save["offers"][0]["last_day"] = 0
+	var loader := SaveGame.new()
+	assert_null(loader.from_dict(_sim.data, save))
+	assert_has(loader.errors, "offers[0]: lapsed on day 0, before day 1")
+	AcquisitionSystem.declare_bankrupt(_sim.data, _sim.world, _rival(), _sim.day())
+	var sale := SaveGame.to_dict(_sim.world)
+	assert_not_null(SaveGame.new().from_dict(_sim.data, sale), "a running sale loads")
+	sale["traders"][1]["sale_end_day"] = 1
+	var refused := SaveGame.new()
+	assert_null(refused.from_dict(_sim.data, sale))
+	assert_has(refused.errors, "traders[1]: sale_end_day 1 must be after day 1")
